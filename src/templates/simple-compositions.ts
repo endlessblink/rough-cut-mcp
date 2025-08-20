@@ -1,4 +1,7 @@
 // Simple composition templates without JSX for initial testing
+import { AnimationGeneratorService } from '../services/animation-generator.js';
+import { IntelligentCompositionGenerator } from './intelligent-compositions.js';
+
 export interface VideoAssets {
   voiceTracks: Array<{
     audioPath: string;
@@ -28,13 +31,48 @@ export interface CompositionRequest {
   };
 }
 
+// Initialize intelligent generators
+const animationGenerator = new AnimationGeneratorService();
+const compositionGenerator = new IntelligentCompositionGenerator();
+
 /**
- * Generate basic composition code as a string
+ * Generate basic composition code as a string with intelligent generation
  */
-export function generateBasicComposition(request: CompositionRequest): string {
+export async function generateBasicComposition(request: CompositionRequest): Promise<string> {
   const { animationDesc, assets, style, duration, fps, dimensions } = request;
   
-  // Check if this should be a bouncing ball animation
+  // First try intelligent generation
+  try {
+    const animationRequest = {
+      animationDesc,
+      duration,
+      fps,
+      dimensions,
+      style,
+    };
+
+    // Try the animation generator service first
+    const generatorResult = await animationGenerator.generateAnimation(animationRequest);
+    if (generatorResult.success) {
+      return generatorResult.compositionCode;
+    }
+
+    // If generator fails, try the intelligent composition generator
+    if (generatorResult.animationType) {
+      const compositionResult = compositionGenerator.generateComposition(
+        animationRequest,
+        generatorResult.animationType
+      );
+      
+      if (compositionResult.success) {
+        return compositionResult.compositionCode;
+      }
+    }
+  } catch (error) {
+    console.warn('Intelligent generation failed, falling back to templates:', error);
+  }
+
+  // Fallback to original template-based approach
   const isBallAnimation = animationDesc.toLowerCase().includes('ball') || animationDesc.toLowerCase().includes('bounce');
   
   if (isBallAnimation) {

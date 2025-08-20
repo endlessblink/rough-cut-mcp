@@ -266,16 +266,19 @@ export function createVideoCreationHandlers(config: MCPConfig) {
         // Validate input
         const validatedArgs = VideoCreationSchema.parse(args);
 
-        // Check required services
+        // Check required services - make image generation optional
         const requiredServices = [];
         if (validatedArgs.narration && !elevenlabsService) {
-          throw new Error('ElevenLabs API key required for voice narration');
+          logger.warn('ElevenLabs API key not available - skipping voice narration');
+          validatedArgs.narration = undefined; // Skip voice generation
         }
         if (validatedArgs.sfxDesc?.length && !freesoundService) {
-          throw new Error('Freesound API key required for sound effects');
+          logger.warn('Freesound API key not available - skipping sound effects');
+          validatedArgs.sfxDesc = []; // Skip sound effects
         }
         if (validatedArgs.imageDesc?.length && !fluxService) {
-          throw new Error('Flux API key required for image generation');
+          logger.warn('Flux API key not available - skipping image generation, using procedural animation instead');
+          validatedArgs.imageDesc = []; // Skip image generation, let intelligent generation handle it
         }
 
         // Initialize asset directories

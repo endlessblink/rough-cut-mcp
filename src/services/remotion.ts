@@ -71,7 +71,7 @@ export class RemotionService {
       // Generate composition code using simple compositions
       const { generateBasicComposition, generateIndexFile, generatePackageJson } = await import('../templates/simple-compositions.js');
       
-      const compositionCode = generateBasicComposition({
+      const compositionCode = await generateBasicComposition({
         animationDesc: request.animationDesc,
         assets,
         style: request.style,
@@ -513,7 +513,7 @@ registerRoot(() => (
     // Generate composition code
     const { generateBasicComposition, generateIndexFile, generatePackageJson } = await import('../templates/simple-compositions.js');
     
-    const compositionCode = generateBasicComposition({
+    const compositionCode = await generateBasicComposition({
       animationDesc: request.animationDesc,
       assets,
       style: request.style,
