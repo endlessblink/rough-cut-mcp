@@ -1,0 +1,198 @@
+// ElevenLabs voice generation service
+import axios, { AxiosInstance } from 'axios';
+import fs from 'fs-extra';
+import path from 'path';
+import { v4 as uuidv4 } from 'uuid';
+import { MCPConfig, VoiceGenerationRequest, VoiceGenerationResult } from '../types/index.js';
+import { getAssetPath } from '../utils/config.js';
+import { getLogger } from '../utils/logger.js';
+import { validateTextContent } from '../utils/validation.js';
+
+export class ElevenLabsService {
+  private client: AxiosInstance;
+  private config: MCPConfig;
+  private logger = getLogger().service('ElevenLabs');
+
+  constructor(config: MCPConfig) {
+    this.config = config;
+    
+    if (!config.apiKeys.elevenlabs) {
+      throw new Error('ElevenLabs API key is required');
+    }
+
+    this.client = axios.create({
+      baseURL: 'https://api.elevenlabs.io/v1',
+      headers: {
+        'xi-api-key': config.apiKeys.elevenlabs,
+        'Content-Type': 'application/json',
+      },
+      timeout: 30000,
+    });
+
+    this.logger.info('ElevenLabs service initialized');
+  }
+
+  /**
+   * Generate voice audio from text
+   */
+  async generateVoice(request: VoiceGenerationRequest): Promise<VoiceGenerationResult> {
+    const startTime = Date.now();
+    this.logger.info('Starting voice generation', { 
+      textLength: request.text.length,
+      voiceId: request.voiceId,
+      modelId: request.modelId 
+    });
+
+    try {
+      // Validate input text
+      const textValidation = validateTextContent(request.text, 10000);
+      if (!textValidation.isValid) {
+        throw new Error(`Invalid text content: ${textValidation.errors.join(', ')}`);
+      }
+
+      // Prepare output path
+      const audioDir = getAssetPath(this.config, 'audio');
+      await fs.ensureDir(audioDir);
+      
+      const filename = request.outputPath || `voice_${uuidv4()}.mp3`;
+      const audioPath = path.isAbsolute(filename) ? filename : path.join(audioDir, filename);
+
+      // Generate audio using REST API
+      const response = await this.client.post(
+        `/text-to-speech/${request.voiceId || 'pNInz6obpgDQGcFmaJgB'}`, // Default Adam voice ID
+        {
+          text: request.text,
+          model_id: request.modelId || 'eleven_multilingual_v2',
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75,
+            style: 0.0,
+            use_speaker_boost: true,
+          },
+        },
+        {
+          responseType: 'arraybuffer',
+        }
+      );
+
+      // Convert response to buffer
+      const audioBuffer = Buffer.from(response.data);
+
+      // Save audio file
+      await fs.writeFile(audioPath, audioBuffer);
+
+      // Get audio duration (approximate based on text length and speaking rate)
+      // Rough estimate: 150 words per minute, average 5 characters per word
+      const estimatedDuration = (request.text.length / 5 / 150) * 60;
+
+      const result: VoiceGenerationResult = {
+        audioPath,
+        duration: estimatedDuration,
+        metadata: {
+          voiceId: request.voiceId || 'Adam',
+          modelId: request.modelId || 'eleven_multilingual_v2',
+          textLength: request.text.length,
+          timestamp: new Date().toISOString(),
+        },
+      };
+
+      const endTime = Date.now();
+      this.logger.info('Voice generation completed', {
+        duration: endTime - startTime,
+        audioPath,
+        fileSize: audioBuffer.length,
+      });
+
+      return result;
+
+    } catch (error) {
+      this.logger.error('Voice generation failed', { 
+        error: error instanceof Error ? error.message : String(error),
+        request: { ...request, text: request.text.substring(0, 100) + '...' }
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Get available voices
+   */
+  async getVoices(): Promise<any[]> {
+    try {
+      this.logger.debug('Fetching available voices');
+      const response = await this.client.get('/voices');
+      const voices = response.data.voices || [];
+      this.logger.debug('Retrieved voices', { count: voices.length });
+      return voices;
+    } catch (error) {
+      this.logger.error('Failed to fetch voices', { error: error instanceof Error ? error.message : String(error) });
+      throw error;
+    }
+  }
+
+  /**
+   * Get voice by ID with details
+   */
+  async getVoiceById(voiceId: string): Promise<any> {
+    try {
+      this.logger.debug('Fetching voice details', { voiceId });
+      const response = await this.client.get(`/voices/${voiceId}`);
+      return response.data;
+    } catch (error) {
+      this.logger.error('Failed to fetch voice details', { 
+        voiceId, 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Test the ElevenLabs connection
+   */
+  async testConnection(): Promise<boolean> {
+    try {
+      this.logger.info('Testing ElevenLabs connection');
+      await this.getVoices();
+      this.logger.info('ElevenLabs connection test successful');
+      return true;
+    } catch (error) {
+      this.logger.error('ElevenLabs connection test failed', { 
+        error: error instanceof Error ? error.message : String(error) 
+      });
+      return false;
+    }
+  }
+
+  /**
+   * Generate voice with retry logic
+   */
+  async generateVoiceWithRetry(
+    request: VoiceGenerationRequest, 
+    maxRetries: number = 3
+  ): Promise<VoiceGenerationResult> {
+    let lastError: Error;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        this.logger.debug(`Voice generation attempt ${attempt}/${maxRetries}`);
+        return await this.generateVoice(request);
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+        this.logger.warn(`Voice generation attempt ${attempt} failed`, { 
+          error: lastError.message,
+          remaining: maxRetries - attempt 
+        });
+
+        if (attempt < maxRetries) {
+          // Exponential backoff
+          const delay = Math.pow(2, attempt) * 1000;
+          this.logger.debug(`Retrying in ${delay}ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    throw lastError!;
+  }
+}

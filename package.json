@@ -1,0 +1,64 @@
+{
+  "name": "rough-cut-mcp",
+  "version": "1.0.0",
+  "description": "A robust MCP server for rapid video creation integrating Remotion with AI voice generation, sound effects, and image generation",
+  "main": "build/index.js",
+  "type": "module",
+  "scripts": {
+    "clean-tsx": "rm -f src/**/*.tsx src/templates/animations.ts 2>/dev/null || true",
+    "prebuild": "npm run clean-tsx",
+    "build": "tsc",
+    "start": "node build/index.js",
+    "dev": "tsc --watch",
+    "clean": "rm -rf build",
+    "prestart": "npm run build",
+    "install-to-claude": "node install-to-claude.js",
+    "studio": "cd assets/studio-project && npm start",
+    "setup": "node install.js",
+    "test": "node test-mcp-protocol.js",
+    "test-studio": "node test-studio-complete.js",
+    "postinstall": "echo 'Run npm run setup to complete installation'"
+  },
+  "bin": {
+    "install-rough-cut-mcp": "./install-to-claude.js"
+  },
+  "keywords": [
+    "remotion",
+    "mcp",
+    "video",
+    "ai",
+    "creative",
+    "elevenlabs",
+    "freesound",
+    "flux"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "@remotion/bundler": "^4.0.0",
+    "@remotion/cli": "^4.0.0",
+    "@remotion/lambda": "^4.0.0",
+    "@remotion/renderer": "^4.0.0",
+    "axios": "^1.6.0",
+    "cross-spawn": "^7.0.3",
+    "dotenv": "^16.3.0",
+    "elevenlabs": "^0.15.0",
+    "fs-extra": "^11.2.0",
+    "mime-types": "^2.1.35",
+    "open": "^10.0.0",
+    "uuid": "^9.0.0",
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "@types/cross-spawn": "^6.0.6",
+    "@types/fs-extra": "^11.0.0",
+    "@types/mime-types": "^2.1.0",
+    "@types/node": "^20.10.0",
+    "@types/uuid": "^9.0.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
