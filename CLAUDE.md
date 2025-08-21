@@ -1,126 +1,272 @@
-# CLAUDE.md
+# Claude Code Configuration - SPARC Development Environment
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## 🚨 CRITICAL: CONCURRENT EXECUTION & FILE MANAGEMENT
+
+**ABSOLUTE RULES**:
+1. ALL operations MUST be concurrent/parallel in a single message
+2. **NEVER save working files, text/mds and tests to the root folder**
+3. ALWAYS organize files in appropriate subdirectories
+
+### ⚡ GOLDEN RULE: "1 MESSAGE = ALL RELATED OPERATIONS"
+
+**MANDATORY PATTERNS:**
+- **TodoWrite**: ALWAYS batch ALL todos in ONE call (5-10+ todos minimum)
+- **Task tool**: ALWAYS spawn ALL agents in ONE message with full instructions
+- **File operations**: ALWAYS batch ALL reads/writes/edits in ONE message
+- **Bash commands**: ALWAYS batch ALL terminal operations in ONE message
+- **Memory operations**: ALWAYS batch ALL memory store/retrieve in ONE message
+
+### 📁 File Organization Rules
+
+**NEVER save to root folder. Use these directories:**
+- `/src` - Source code files
+- `/tests` - Test files
+- `/docs` - Documentation and markdown files
+- `/config` - Configuration files
+- `/scripts` - Utility scripts
+- `/examples` - Example code
 
 ## Project Overview
 
-This is **Rough Cut MCP** - a Model Context Protocol server for rapid video creation that serves as a vessel for Claude-generated animation code. The MCP accepts complete Remotion React component code and renders it into videos.
+This project uses SPARC (Specification, Pseudocode, Architecture, Refinement, Completion) methodology with Claude-Flow orchestration for systematic Test-Driven Development.
 
-**Key Principle**: The MCP does NOT generate animation code - Claude generates the code, MCP executes it.
+## SPARC Commands
 
-The server integrates:
-- **Remotion**: Executes Claude-generated animation code
-- **ElevenLabs**: AI voice generation for narration (optional)
-- **Freesound**: Sound effects search and download (optional)
-- **Flux (Black Forest Labs)**: AI image generation (optional)
+### Core Commands
+- `npx claude-flow sparc modes` - List available modes
+- `npx claude-flow sparc run <mode> "<task>"` - Execute specific mode
+- `npx claude-flow sparc tdd "<feature>"` - Run complete TDD workflow
+- `npx claude-flow sparc info <mode>` - Get mode details
 
-## Development Commands
+### Batchtools Commands
+- `npx claude-flow sparc batch <modes> "<task>"` - Parallel execution
+- `npx claude-flow sparc pipeline "<task>"` - Full pipeline processing
+- `npx claude-flow sparc concurrent <mode> "<tasks-file>"` - Multi-task processing
+
+### Build Commands
+- `npm run build` - Build project
+- `npm run test` - Run tests
+- `npm run lint` - Linting
+- `npm run typecheck` - Type checking
+
+## SPARC Workflow Phases
+
+1. **Specification** - Requirements analysis (`sparc run spec-pseudocode`)
+2. **Pseudocode** - Algorithm design (`sparc run spec-pseudocode`)
+3. **Architecture** - System design (`sparc run architect`)
+4. **Refinement** - TDD implementation (`sparc tdd`)
+5. **Completion** - Integration (`sparc run integration`)
+
+## Code Style & Best Practices
+
+- **Modular Design**: Files under 500 lines
+- **Environment Safety**: Never hardcode secrets
+- **Test-First**: Write tests before implementation
+- **Clean Architecture**: Separate concerns
+- **Documentation**: Keep updated
+
+## 🚀 Available Agents (54 Total)
+
+### Core Development
+`coder`, `reviewer`, `tester`, `planner`, `researcher`
+
+### Swarm Coordination
+`hierarchical-coordinator`, `mesh-coordinator`, `adaptive-coordinator`, `collective-intelligence-coordinator`, `swarm-memory-manager`
+
+### Consensus & Distributed
+`byzantine-coordinator`, `raft-manager`, `gossip-coordinator`, `consensus-builder`, `crdt-synchronizer`, `quorum-manager`, `security-manager`
+
+### Performance & Optimization
+`perf-analyzer`, `performance-benchmarker`, `task-orchestrator`, `memory-coordinator`, `smart-agent`
+
+### GitHub & Repository
+`github-modes`, `pr-manager`, `code-review-swarm`, `issue-tracker`, `release-manager`, `workflow-automation`, `project-board-sync`, `repo-architect`, `multi-repo-swarm`
+
+### SPARC Methodology
+`sparc-coord`, `sparc-coder`, `specification`, `pseudocode`, `architecture`, `refinement`
+
+### Specialized Development
+`backend-dev`, `mobile-dev`, `ml-developer`, `cicd-engineer`, `api-docs`, `system-architect`, `code-analyzer`, `base-template-generator`
+
+### Testing & Validation
+`tdd-london-swarm`, `production-validator`
+
+### Migration & Planning
+`migration-planner`, `swarm-init`
+
+## 🎯 Claude Code vs MCP Tools
+
+### Claude Code Handles ALL:
+- File operations (Read, Write, Edit, MultiEdit, Glob, Grep)
+- Code generation and programming
+- Bash commands and system operations
+- Implementation work
+- Project navigation and analysis
+- TodoWrite and task management
+- Git operations
+- Package management
+- Testing and debugging
+
+### MCP Tools ONLY:
+- Coordination and planning
+- Memory management
+- Neural features
+- Performance tracking
+- Swarm orchestration
+- GitHub integration
+
+**KEY**: MCP coordinates, Claude Code executes.
+
+## 🚀 Quick Setup
 
 ```bash
-# Build the TypeScript project
-npm run build
-
-# Start the MCP server (builds first via prestart hook)
-npm start
-
-# Development mode with TypeScript watching
-npm run dev
-
-# Clean build artifacts
-npm run clean
+# Add Claude Flow MCP server
+claude mcp add claude-flow npx claude-flow@alpha mcp start
 ```
 
-## Environment Setup
+## MCP Tool Categories
 
-Copy `.env.example` to `.env` and configure the required API keys:
-- `ELEVENLABS_API_KEY`: For AI voice generation
-- `FREESOUND_API_KEY`: For sound effects access  
-- `FLUX_API_KEY`: For AI image generation
-- `REMOTION_ASSETS_DIR`: Asset storage location (default: `./assets`)
+### Coordination
+`swarm_init`, `agent_spawn`, `task_orchestrate`
 
-## Architecture Overview
+### Monitoring
+`swarm_status`, `agent_list`, `agent_metrics`, `task_status`, `task_results`
 
-The MCP server follows a **pure code vessel architecture** - it accepts and executes Claude-generated animation code:
+### Memory & Neural
+`memory_usage`, `neural_status`, `neural_train`, `neural_patterns`
 
-### Core Workflow
+### GitHub Integration
+`github_swarm`, `repo_analyze`, `pr_enhance`, `issue_triage`, `code_review`
+
+### System
+`benchmark_run`, `features_detect`, `swarm_monitor`
+
+## 📋 Agent Coordination Protocol
+
+### Every Agent MUST:
+
+**1️⃣ BEFORE Work:**
+```bash
+npx claude-flow@alpha hooks pre-task --description "[task]"
+npx claude-flow@alpha hooks session-restore --session-id "swarm-[id]"
 ```
-1. User asks Claude: "Generate Remotion code for [any animation]"
-2. Claude generates: Complete Remotion React component code
-3. User calls MCP: create-complete-video with compositionCode parameter
-4. MCP executes: Creates project and renders the animation
+
+**2️⃣ DURING Work:**
+```bash
+npx claude-flow@alpha hooks post-edit --file "[file]" --memory-key "swarm/[agent]/[step]"
+npx claude-flow@alpha hooks notify --message "[what was done]"
 ```
 
-**Pure Code Injection • No Templates • Unlimited Creativity**
+**3️⃣ AFTER Work:**
+```bash
+npx claude-flow@alpha hooks post-task --task-id "[task]"
+npx claude-flow@alpha hooks session-end --export-metrics true
+```
 
-### Core Services Layer (`src/services/`)
-- `remotion.ts`: Executes Claude-generated Remotion code
-- `file-manager.ts`: Asset lifecycle management
-- `elevenlabs.ts`: Voice generation using ElevenLabs API (optional)
-- `freesound.ts`: Sound effects search/download from Freesound (optional)
-- `flux.ts`: Image generation via Flux API (optional)
+## 🎯 Concurrent Execution Examples
 
-### MCP Tools Layer (`src/tools/`)
-- `video-creation.ts`: **Primary tool** - accepts `compositionCode` parameter with Claude-generated code
-- `voice-tools.ts`: Voice generation tools (optional)
-- `sound-tools.ts`: Sound effects tools (optional)
-- `image-tools.ts`: Image generation tools (optional)
-- `studio-tools.ts`: Remotion Studio launcher for editing
+### ✅ CORRECT (Single Message):
+```javascript
+[BatchTool]:
+  // Initialize swarm
+  mcp__claude-flow__swarm_init { topology: "mesh", maxAgents: 6 }
+  mcp__claude-flow__agent_spawn { type: "researcher" }
+  mcp__claude-flow__agent_spawn { type: "coder" }
+  mcp__claude-flow__agent_spawn { type: "tester" }
+  
+  // Spawn agents with Task tool
+  Task("Research agent: Analyze requirements...")
+  Task("Coder agent: Implement features...")
+  Task("Tester agent: Create test suite...")
+  
+  // Batch todos
+  TodoWrite { todos: [
+    {id: "1", content: "Research", status: "in_progress", priority: "high"},
+    {id: "2", content: "Design", status: "pending", priority: "high"},
+    {id: "3", content: "Implement", status: "pending", priority: "high"},
+    {id: "4", content: "Test", status: "pending", priority: "medium"},
+    {id: "5", content: "Document", status: "pending", priority: "low"}
+  ]}
+  
+  // File operations
+  Bash "mkdir -p app/{src,tests,docs}"
+  Write "app/src/index.js"
+  Write "app/tests/index.test.js"
+  Write "app/docs/README.md"
+```
 
-### How to Use
-1. Ask Claude to generate Remotion code for any animation
-2. Call `create-complete-video` tool with:
-   - `animationDesc`: Description of what you want
-   - `compositionCode`: The complete React/Remotion code Claude generated
-   - Other optional parameters (duration, fps, dimensions, etc.)
-3. MCP creates a Remotion project with your code and renders it
+### ❌ WRONG (Multiple Messages):
+```javascript
+Message 1: mcp__claude-flow__swarm_init
+Message 2: Task("agent 1")
+Message 3: TodoWrite { todos: [single todo] }
+Message 4: Write "file.js"
+// This breaks parallel coordination!
+```
 
-The server can render ANY animation Claude can code:
-- Scientific simulations (particle physics, DNA replication)
-- Abstract art (fractals, color gradients, geometric patterns)
-- Character animations (walking, dancing, fighting)
-- Nature scenes (growing trees, flowing water, weather)
-- Technical visualizations (circuit boards, data flows, networks)
-- **Any valid Remotion code** = **Any animation possible**
+## Performance Benefits
 
-## Asset Management
+- **84.8% SWE-Bench solve rate**
+- **32.3% token reduction**
+- **2.8-4.4x speed improvement**
+- **27+ neural models**
 
-The server manages assets across multiple directories:
-- `assets/temp/`: Temporary files during processing
-- `assets/videos/`: Final rendered video outputs
-- `assets/audio/`: Voice narration and sound effects
-- `assets/images/`: Generated visual assets
+## Hooks Integration
 
-Assets are automatically cleaned up based on `MAX_ASSET_AGE_HOURS` configuration.
+### Pre-Operation
+- Auto-assign agents by file type
+- Validate commands for safety
+- Prepare resources automatically
+- Optimize topology by complexity
+- Cache searches
 
-## Remotion Integration
+### Post-Operation
+- Auto-format code
+- Train neural patterns
+- Update memory
+- Analyze performance
+- Track token usage
 
-This project leverages Remotion's programmatic video creation capabilities. The extensive documentation in `Docs/Remotion Documentation/` contains critical reference material for:
-- Animation patterns and timing
-- Audio synchronization techniques
-- Video composition structures
-- Rendering configurations
+### Session Management
+- Generate summaries
+- Persist state
+- Track metrics
+- Restore context
+- Export workflows
 
-Key Remotion concepts used:
-- **Compositions**: Video structure definitions
-- **useCurrentFrame()**: Frame-based animations
-- **interpolate()**: Value mapping for smooth transitions
-- **spring()**: Physics-based animations
+## Advanced Features (v2.0.0)
 
-## Technology Stack
+- 🚀 Automatic Topology Selection
+- ⚡ Parallel Execution (2.8-4.4x speed)
+- 🧠 Neural Training
+- 📊 Bottleneck Analysis
+- 🤖 Smart Auto-Spawning
+- 🛡️ Self-Healing Workflows
+- 💾 Cross-Session Memory
+- 🔗 GitHub Integration
 
-- **Runtime**: Node.js 18+ with ES modules
-- **Language**: TypeScript with strict mode
-- **MCP SDK**: `@modelcontextprotocol/sdk` for tool registration
-- **Validation**: Zod for input/output schema validation
-- **File Operations**: fs-extra for asset management
-- **HTTP Client**: Axios for external API calls
+## Integration Tips
 
-## Development Notes
+1. Start with basic swarm init
+2. Scale agents gradually
+3. Use memory for context
+4. Monitor progress regularly
+5. Train patterns from success
+6. Enable hooks automation
+7. Use GitHub tools first
 
-The server uses **StdioServerTransport** for MCP communication and implements robust error handling with retry mechanisms for external API calls. All services are designed to be stateless and can be tested independently.
+## Support
 
-When developing new tools, follow the established pattern:
-1. Create service function in `src/services/`
-2. Add tool registration in appropriate `src/tools/` file
-3. Define Zod schemas for input validation
-4. Implement proper asset cleanup in tool handlers
+- Documentation: https://github.com/ruvnet/claude-flow
+- Issues: https://github.com/ruvnet/claude-flow/issues
+
+---
+
+Remember: **Claude Flow coordinates, Claude Code creates!**
+
+# important-instruction-reminders
+Do what has been asked; nothing more, nothing less.
+NEVER create files unless they're absolutely necessary for achieving your goal.
+ALWAYS prefer editing an existing file to creating a new one.
+NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
+Never save working files, text/mds and tests to the root folder.

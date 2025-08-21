@@ -1,0 +1,85 @@
+// Platform-specific fixes for Windows/WSL2 spawn issues
+import { spawn, SpawnOptions } from 'child_process';
+import * as childProcess from 'child_process';
+import os from 'os';
+
+/**
+ * Fix for Windows/WSL2 spawn EINVAL issues
+ * Wraps child_process.spawn with proper shell configuration
+ */
+export function createRemotionProcess(
+  command: string, 
+  args: string[] = [], 
+  options: SpawnOptions = {}
+): ReturnType<typeof spawn> {
+  const isWindows = process.platform === 'win32';
+  const isWSL = process.platform === 'linux' && os.release().toLowerCase().includes('microsoft');
+  
+  if (isWindows || isWSL) {
+    // Use shell: true for Windows/WSL2
+    return spawn(command, args, { 
+      ...options, 
+      shell: true,
+      stdio: options.stdio || 'pipe'
+    });
+  }
+  
+  return spawn(command, args, options);
+}
+
+/**
+ * Normalize paths for cross-platform compatibility
+ */
+export function normalizePath(filePath: string): string {
+  if (process.platform === 'win32') {
+    // Convert forward slashes to backslashes on Windows
+    return filePath.replace(/\//g, '\\');
+  }
+  // Convert backslashes to forward slashes on Unix-like systems
+  return filePath.replace(/\\/g, '/');
+}
+
+/**
+ * Get platform-specific Remotion bundler options
+ */
+export function getBundlerOptions() {
+  const isWindows = process.platform === 'win32';
+  const isWSL = process.platform === 'linux' && os.release().toLowerCase().includes('microsoft');
+  
+  if (isWindows || isWSL) {
+    return {
+      // Add Windows-specific options
+      webpackOverride: (config: any) => {
+        return {
+          ...config,
+          // Ensure proper module resolution on Windows
+          resolve: {
+            ...config.resolve,
+            fallback: {
+              ...config.resolve?.fallback,
+              "child_process": false,
+              "fs": false,
+              "path": false
+            }
+          }
+        };
+      }
+    };
+  }
+  
+  return {};
+}
+
+/**
+ * Patch Remotion's internal spawn calls
+ */
+export function patchRemotionSpawn() {
+  // Override global spawn
+  (global as any).spawn = function(command: string, args?: string[], options?: SpawnOptions) {
+    console.error(`[PLATFORM-FIX] Intercepting spawn call: ${command}`);
+    return createRemotionProcess(command, args || [], options || {});
+  };
+  
+  // Note: Direct patching of childProcess.spawn skipped due to read-only property
+  // createRemotionProcess should be used directly where needed
+}

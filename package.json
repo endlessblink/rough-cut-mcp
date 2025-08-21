@@ -15,8 +15,8 @@
     "install-to-claude": "node install-to-claude.js",
     "studio": "cd assets/studio-project && npm start",
     "setup": "node install.js",
-    "test": "node test-mcp-protocol.js",
-    "test-studio": "node test-studio-complete.js",
+    "test": "node tests/test-mcp-protocol.js",
+    "test-studio": "node tests/test-studio-complete.js",
     "postinstall": "echo 'Run npm run setup to complete installation'"
   },
   "bin": {

@@ -95,6 +95,8 @@ class RemotionCreativeMCPServer {
   private async validateConfiguration(): Promise<void> {
     this.logger.info('Validating configuration', {
       assetsDir: this.config.assetsDir,
+      platform: process.platform,
+      workingDir: process.cwd(),
       apiKeysSet: {
         elevenlabs: !!this.config.apiKeys.elevenlabs,
         freesound: !!this.config.apiKeys.freesound,

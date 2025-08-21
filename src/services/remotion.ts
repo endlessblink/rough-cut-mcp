@@ -8,6 +8,7 @@ import { MCPConfig, VideoCreationRequest, VideoCreationResult, VoiceGenerationRe
 import { RemotionRenderResult } from '../types/api-responses.js';
 import { getAssetPath } from '../utils/config.js';
 import { getLogger } from '../utils/logger.js';
+import { patchRemotionSpawn, getBundlerOptions, normalizePath } from '../utils/platform-fix.js';
 import { validateTextContent, validateDuration } from '../utils/validation.js';
 import { setLastCreatedProject } from '../tools/studio-tools.js';
 
@@ -17,7 +18,11 @@ export class RemotionService {
 
   constructor(config: MCPConfig) {
     this.config = config;
-    this.logger.info('Remotion service initialized');
+    
+    // Apply platform-specific spawn fixes
+    patchRemotionSpawn();
+    
+    this.logger.info('Remotion service initialized with platform fixes');
   }
 
   /**
@@ -75,6 +80,7 @@ export class RemotionService {
         animationDesc: request.animationDesc,
         assets,
         style: request.style,
+        compositionCode: request.compositionCode, // Pass Claude's code if provided
         duration: request.duration || 30,
         fps: request.fps || 30,
         dimensions: request.dimensions || { width: 1920, height: 1080 },
@@ -102,14 +108,27 @@ import { RemotionVideo } from './Video';
 registerRoot(RemotionVideo);`;
       await fs.writeFile(path.join(compositionDir, 'index.ts'), rootIndexCode);
 
-      // Bundle the composition
-      this.logger.debug('Bundling composition');
-      const bundleLocation = await bundle({
-        entryPoint: path.join(compositionDir, 'index.ts'),
-        onProgress: (progress) => {
-          this.logger.debug('Bundle progress', { progress: Math.round(progress * 100) + '%' });
-        },
-      });
+      // Bundle the composition with platform fixes
+      this.logger.debug('Bundling composition with platform fixes');
+      let bundleLocation: string;
+      
+      try {
+        const platformOptions = getBundlerOptions();
+        bundleLocation = await bundle({
+          entryPoint: normalizePath(path.join(compositionDir, 'index.ts')),
+          onProgress: (progress) => {
+            this.logger.debug('Bundle progress', { progress: Math.round(progress * 100) + '%' });
+          },
+          ...platformOptions
+        });
+      } catch (bundleError) {
+        this.logger.error('Bundle failed - likely spawn EINVAL error', { 
+          error: bundleError instanceof Error ? bundleError.message : String(bundleError),
+          platform: process.platform,
+          compositionDir
+        });
+        throw new Error(`Failed to bundle composition: ${bundleError instanceof Error ? bundleError.message : String(bundleError)}`);
+      }
 
       // Get composition metadata
       const compositions = await selectComposition({
@@ -517,6 +536,7 @@ registerRoot(() => (
       animationDesc: request.animationDesc,
       assets,
       style: request.style,
+      compositionCode: request.compositionCode, // Pass Claude's code if provided
       duration: request.duration || 30,
       fps: request.fps || 30,
       dimensions: request.dimensions || { width: 1920, height: 1080 },

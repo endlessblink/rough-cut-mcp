@@ -36,39 +36,71 @@ export interface CompositionRequest {
 export async function generateBasicComposition(request: CompositionRequest): Promise<string> {
   const { animationDesc, assets, style, duration, fps, dimensions, compositionCode } = request;
   
+  // Log for debugging
+  console.error(`[DEBUG] generateBasicComposition called with:
+    - animationDesc: ${animationDesc?.substring(0, 100)}...
+    - compositionCode provided: ${compositionCode ? 'YES' : 'NO'}
+    - compositionCode length: ${compositionCode?.length || 0}
+    - style: ${style || 'none'}
+    - duration: ${duration}s
+    - assets: ${assets.images.length} images, ${assets.voiceTracks.length} voices, ${assets.soundEffects.length} sounds`);
+  
   // If Claude provided composition code, use it directly
   if (compositionCode && compositionCode.trim()) {
+    console.error('[DEBUG] Using Claude-provided composition code');
     return compositionCode;
   }
   
-  // Basic fallback - just shows a message asking for code
+  // Enhanced fallback with error guidance
+  console.error('[ERROR] No compositionCode provided - falling back to error message');
   const durationInFrames = Math.round(duration * fps);
   
   return `import React from 'react';
-import { AbsoluteFill, interpolate, useCurrentFrame } from 'remotion';
+import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 
 export const VideoComposition: React.FC = () => {
   const frame = useCurrentFrame();
+  const { fps, durationInFrames } = useVideoConfig();
   const opacity = interpolate(frame, [0, 30], [0, 1]);
   
   return (
-    <AbsoluteFill style={{ backgroundColor: '#000000' }}>
+    <AbsoluteFill style={{ backgroundColor: '#1a1a1a' }}>
       <div style={{
         position: 'absolute',
         top: '50%',
         left: '50%',
         transform: 'translate(-50%, -50%)',
         textAlign: 'center',
-        opacity
+        opacity,
+        maxWidth: '80%',
+        padding: '40px',
+        backgroundColor: 'rgba(255, 0, 0, 0.1)',
+        borderRadius: '10px',
+        border: '2px solid #ff0000'
       }}>
-        <h1 style={{ color: 'white', fontSize: 60, marginBottom: 30 }}>
-          No Animation Code Provided
+        <h1 style={{ color: '#ff0000', fontSize: 60, marginBottom: 30 }}>
+          ⚠️ Missing Animation Code
         </h1>
-        <p style={{ color: '#888', fontSize: 30 }}>
-          Request: ${animationDesc}
+        <p style={{ color: '#ffaaaa', fontSize: 24, marginBottom: 20 }}>
+          Request: "${animationDesc}"
         </p>
-        <p style={{ color: '#666', fontSize: 20, marginTop: 40 }}>
-          Please ask Claude to generate Remotion code for this animation
+        <div style={{ 
+          backgroundColor: 'rgba(0, 0, 0, 0.5)', 
+          padding: '20px', 
+          borderRadius: '5px',
+          marginTop: '30px'
+        }}>
+          <p style={{ color: '#ffffff', fontSize: 18, marginBottom: 15 }}>
+            Claude must generate complete Remotion React component code.
+          </p>
+          <p style={{ color: '#aaaaaa', fontSize: 16 }}>
+            The compositionCode parameter is REQUIRED and should contain a complete
+            React component with animations using Remotion hooks like useCurrentFrame,
+            interpolate, and spring.
+          </p>
+        </div>
+        <p style={{ color: '#666', fontSize: 14, marginTop: 30 }}>
+          Requested duration: ${duration}s | FPS: ${fps} | Dimensions: ${dimensions.width}x${dimensions.height}
         </p>
       </div>
     </AbsoluteFill>

@@ -94,6 +94,7 @@ export interface VideoCreationRequest {
   imageDesc?: string[];
   duration?: number;
   style?: string;
+  compositionCode?: string; // Complete Remotion React component code
   fps?: number;
   dimensions?: {
     width: number;

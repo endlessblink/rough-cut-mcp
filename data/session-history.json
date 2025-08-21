@@ -1,1 +1,86 @@
-[]
+[
+  {
+    "id": "session-1755787051672-370axrz82",
+    "startTime": 1755787051672,
+    "metadata": {
+      "autoStarted": true
+    },
+    "activities": [
+      {
+        "type": "tool_use",
+        "timestamp": 1755787051672,
+        "data": {
+          "tool": "add_memory",
+          "args": {
+            "content": "Creating E2E video demo for RoughCut MCP using pure code vessel architecture. User wants a real visual animation, not just text. Will generate a space scene with planets, stars, and rocket animation.",
+            "category": "code",
+            "project": "RoughCut MCP"
+          }
+        }
+      },
+      {
+        "type": "memory_created",
+        "timestamp": 1755787051719,
+        "data": {
+          "memoryId": "1755787051675ayv35m3vw",
+          "category": "code",
+          "tags": [
+            "title:Creating E2e Video Demo Roughcut Mcp Using Pure Code",
+            "summary:Creating E2E video demo for RoughCut MCP using pure code vessel architecture.  User wants a real visual animation, not just text."
+          ],
+          "hasCode": false,
+          "technologies": [
+            "mcp"
+          ]
+        }
+      }
+    ],
+    "errors": [],
+    "solutions": [],
+    "discoveries": [],
+    "files": {},
+    "searches": {},
+    "tools": {},
+    "keyMoments": [],
+    "context": {
+      "project": "default",
+      "goal": null,
+      "tags": []
+    },
+    "endTime": 1755789031418,
+    "duration": 1979731,
+    "summary": {
+      "metrics": {
+        "duration": 1979731,
+        "totalActivities": 2,
+        "searches": 0,
+        "uniqueSearches": 0,
+        "toolsUsed": 1,
+        "filesAccessed": 0,
+        "errorsEncountered": 0,
+        "errorsResolved": 0,
+        "solutionsFound": 0,
+        "discoveries": 0,
+        "keyMoments": 0
+      },
+      "sessionType": [
+        "general"
+      ],
+      "narrative": "32 minutes session with 2 activities.",
+      "isSignificant": false,
+      "highlights": [
+        {
+          "type": "tools",
+          "data": [
+            {
+              "tool": "add_memory",
+              "count": 1
+            }
+          ]
+        }
+      ],
+      "recommendations": []
+    },
+    "reason": "timeout"
+  }
+]

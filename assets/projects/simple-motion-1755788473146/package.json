@@ -1,0 +1,13 @@
+{
+  "name": "simple-motion-1755788473146",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "remotion studio",
+    "build": "remotion render"
+  },
+  "dependencies": {
+    "react": "^18.0.0",
+    "remotion": "^4.0.0"
+  }
+}

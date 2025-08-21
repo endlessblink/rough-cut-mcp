@@ -34,6 +34,7 @@ export const VideoCreationSchema = z.object({
   imageDesc: z.array(z.string().max(1000)).optional(),
   duration: z.number().positive().max(300).optional().default(30), // Max 5 minutes
   style: z.string().max(500).optional(),
+  compositionCode: z.string().max(50000).optional(), // Complete Remotion React component code
   fps: z.number().int().min(24).max(60).optional().default(30),
   dimensions: z.object({
     width: z.number().int().min(256).max(4096).default(1920),

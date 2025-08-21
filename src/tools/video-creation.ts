@@ -17,7 +17,28 @@ export function createVideoCreationTools(config: MCPConfig): Tool[] {
   return [
     {
       name: 'create-complete-video',
-      description: 'Create a complete video with AI-generated voice narration, sound effects, and visuals using Remotion',
+      description: `ATTENTION CLAUDE: You MUST generate complete Remotion React component code before calling this tool.
+
+MANDATORY STEPS:
+1. Generate a complete React component using Remotion hooks
+2. Include the code in the compositionCode parameter
+3. The component must use useCurrentFrame() for animations
+
+REQUIRED CODE STRUCTURE:
+import React from 'react';
+import { AbsoluteFill, useCurrentFrame, interpolate } from 'remotion';
+
+export const VideoComposition: React.FC = () => {
+  const frame = useCurrentFrame();
+  // Your animation logic here
+  return (
+    <AbsoluteFill style={{backgroundColor: 'white'}}>
+      {/* Animated elements */}
+    </AbsoluteFill>
+  );
+};
+
+DO NOT call this tool without providing compositionCode!`,
       inputSchema: {
         type: 'object',
         properties: {
@@ -64,7 +85,7 @@ export function createVideoCreationTools(config: MCPConfig): Tool[] {
           },
           compositionCode: {
             type: 'string',
-            description: 'Complete Remotion React component code for the animation (optional - Claude can provide this directly)',
+            description: 'REQUIRED: Complete Remotion React component code that you generate',
             maxLength: 50000,
           },
           fps: {
@@ -93,7 +114,7 @@ export function createVideoCreationTools(config: MCPConfig): Tool[] {
             },
           },
         },
-        required: ['animationDesc'],
+        required: ['animationDesc', 'compositionCode'],
       },
     },
 
@@ -238,6 +259,21 @@ export function createVideoCreationTools(config: MCPConfig): Tool[] {
         required: ['duration'],
       },
     },
+
+    {
+      name: 'generate-remotion-code',
+      description: 'Generate Remotion React component code for animations',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          animationType: { 
+            type: 'string', 
+            description: 'Type of animation (e.g., "moving car", "bouncing ball", "rotating square")'
+          }
+        },
+        required: ['animationType']
+      }
+    },
   ];
 }
 
@@ -270,9 +306,49 @@ export function createVideoCreationHandlers(config: MCPConfig) {
 
   return {
     'create-complete-video': async (args: any) => {
-      logger.info('Starting complete video creation', { animationDesc: args.animationDesc?.substring(0, 100) + '...' });
+      // Add logging to see what Claude is sending
+      console.log('[DEBUG] Received parameters:', {
+        hasAnimationDesc: !!args.animationDesc,
+        hasCompositionCode: !!args.compositionCode,
+        codeLength: args.compositionCode?.length || 0
+      });
+
+      logger.info('Starting complete video creation', { 
+        animationDesc: args.animationDesc?.substring(0, 100) + '...',
+        hasCompositionCode: !!args.compositionCode,
+        compositionCodeLength: args.compositionCode?.length || 0
+      });
+
+      // Explicit check for missing code
+      if (!args.compositionCode || args.compositionCode.trim().length === 0) {
+        throw new Error(`MISSING COMPOSITIONCODE: Claude must generate complete Remotion React component code and include it in the compositionCode parameter.
+
+Example code structure needed:
+import React from 'react';
+import { AbsoluteFill, useCurrentFrame, interpolate } from 'remotion';
+
+export const VideoComposition: React.FC = () => {
+  const frame = useCurrentFrame();
+  const progress = interpolate(frame, [0, 150], [0, 1]);
+  
+  return (
+    <AbsoluteFill style={{ backgroundColor: '#87CEEB' }}>
+      <div style={{
+        width: 100,
+        height: 50,
+        backgroundColor: '#FF6B6B',
+        position: 'absolute',
+        left: interpolate(progress, [0, 1], ['0%', '80%']),
+        top: '50%',
+        transform: 'translateY(-50%)'
+      }} />
+    </AbsoluteFill>
+  );
+};`);
+      }
 
       try {
+
         // Validate input
         const validatedArgs = VideoCreationSchema.parse(args);
 
@@ -381,6 +457,7 @@ export function createVideoCreationHandlers(config: MCPConfig) {
         };
 
       } catch (error) {
+        console.error('[ERROR] Video creation failed:', error);
         logger.error('Video creation failed', { error: error instanceof Error ? error.message : String(error) });
         throw error;
       }
@@ -563,6 +640,97 @@ export function createVideoCreationHandlers(config: MCPConfig) {
           baseTime,
           assetAdjustment,
         },
+      };
+    },
+
+    'generate-remotion-code': async (args: any) => {
+      logger.info('Generating Remotion code template', { animationType: args.animationType });
+
+      const templates = {
+        'moving car': `
+import React from 'react';
+import { AbsoluteFill, useCurrentFrame, interpolate } from 'remotion';
+
+export const VideoComposition: React.FC = () => {
+  const frame = useCurrentFrame();
+  const carPosition = interpolate(frame, [0, 150], [0, 80]);
+  
+  return (
+    <AbsoluteFill style={{ backgroundColor: '#87CEEB' }}>
+      <div style={{
+        width: 100,
+        height: 50,
+        backgroundColor: '#FF6B6B',
+        position: 'absolute',
+        left: carPosition + '%',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        borderRadius: '10px'
+      }} />
+    </AbsoluteFill>
+  );
+};`,
+        'bouncing ball': `
+import React from 'react';
+import { AbsoluteFill, useCurrentFrame, interpolate } from 'remotion';
+
+export const VideoComposition: React.FC = () => {
+  const frame = useCurrentFrame();
+  const bounceHeight = interpolate(
+    frame % 30,
+    [0, 15, 30],
+    [0, -100, 0],
+    { extrapolateRight: 'clamp' }
+  );
+  
+  return (
+    <AbsoluteFill style={{ backgroundColor: '#87CEEB' }}>
+      <div style={{
+        width: 50,
+        height: 50,
+        borderRadius: '50%',
+        backgroundColor: '#FF6B6B',
+        position: 'absolute',
+        left: '50%',
+        top: '70%',
+        transform: \`translate(-50%, \${bounceHeight}px)\`
+      }} />
+    </AbsoluteFill>
+  );
+};`,
+        'rotating square': `
+import React from 'react';
+import { AbsoluteFill, useCurrentFrame, interpolate } from 'remotion';
+
+export const VideoComposition: React.FC = () => {
+  const frame = useCurrentFrame();
+  const rotation = interpolate(frame, [0, 60], [0, 360]);
+  
+  return (
+    <AbsoluteFill style={{ backgroundColor: 'black', justifyContent: 'center', alignItems: 'center' }}>
+      <div style={{
+        width: 100,
+        height: 100,
+        backgroundColor: '#4ECDC4',
+        transform: \`rotate(\${rotation}deg)\`
+      }} />
+    </AbsoluteFill>
+  );
+};`
+      };
+      
+      const selectedCode = templates[args.animationType as keyof typeof templates] || templates['moving car'];
+      
+      return {
+        success: true,
+        code: selectedCode.trim(),
+        animationType: args.animationType,
+        message: 'Use this code in the compositionCode parameter of create-complete-video',
+        instructions: [
+          'Copy the generated code',
+          'Use it as the compositionCode parameter when calling create-complete-video',
+          'The code creates a complete Remotion React component with animations'
+        ]
       };
     },
   };
