@@ -2,7 +2,8 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { writeFileSync, existsSync, mkdirSync } from 'fs';
+import { writeFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'fs';
+import fs from 'fs';
 import { join, basename } from 'path';
 import { spawn, execSync } from 'child_process';
 import { createWriteStream } from 'fs';
@@ -499,7 +500,7 @@ The video has been rendered and is ready. Use the 'launch-remotion-studio' tool 
     
     async getProjectStatus() {
         const projects = existsSync(this.projectsDir) ? 
-            require('fs').readdirSync(this.projectsDir) : [];
+            fs.readdirSync(this.projectsDir) : [];
         
         return {
             success: true,
@@ -513,11 +514,11 @@ The video has been rendered and is ready. Use the 'launch-remotion-studio' tool 
     getLastCreatedProject() {
         if (!existsSync(this.projectsDir)) return null;
         
-        const projects = require('fs').readdirSync(this.projectsDir)
+        const projects = readdirSync(this.projectsDir)
             .map(name => ({
                 name,
                 path: join(this.projectsDir, name),
-                mtime: require('fs').statSync(join(this.projectsDir, name)).mtime
+                mtime: statSync(join(this.projectsDir, name)).mtime
             }))
             .sort((a, b) => b.mtime - a.mtime);
         
