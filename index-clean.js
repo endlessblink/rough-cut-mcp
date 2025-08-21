@@ -434,13 +434,13 @@ registerRoot(RemotionRoot);`);
             const npxCmd = getNpxCommand();
             const { promise } = spawnIsolated(npxCmd, [
                 'remotion', 'render',
-                'Root.tsx',
+                'src/Root.tsx',
                 'VideoComposition',
                 videoPath,
                 '--props', '{}',
                 '--quiet'
             ], {
-                cwd: srcPath,
+                cwd: projectPath,
                 env: {
                     NODE_PATH: join(projectPath, 'node_modules')
                 }
@@ -487,7 +487,7 @@ The video has been rendered and is ready. Use the 'launch-remotion-studio' tool 
             'remotion', 'studio',
             '--port', port.toString()
         ], {
-            cwd: join(targetPath, 'src')
+            cwd: targetPath
         });
         
         return {
