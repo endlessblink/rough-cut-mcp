@@ -4,12 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is **Rough Cut MCP** - a Model Context Protocol server for rapid video creation that integrates Remotion with AI-powered services for comprehensive video production workflows. The server combines:
+This is **Rough Cut MCP** - a Model Context Protocol server for rapid video creation that serves as a vessel for Claude-generated animation code. The MCP accepts complete Remotion React component code and renders it into videos.
 
-- **Remotion**: Programmatic video creation and rendering
-- **ElevenLabs**: AI voice generation for narration
-- **Freesound**: Sound effects search and download
-- **Flux (Black Forest Labs)**: AI image generation
+**Key Principle**: The MCP does NOT generate animation code - Claude generates the code, MCP executes it.
+
+The server integrates:
+- **Remotion**: Executes Claude-generated animation code
+- **ElevenLabs**: AI voice generation for narration (optional)
+- **Freesound**: Sound effects search and download (optional)
+- **Flux (Black Forest Labs)**: AI image generation (optional)
 
 ## Development Commands
 
@@ -37,31 +40,47 @@ Copy `.env.example` to `.env` and configure the required API keys:
 
 ## Architecture Overview
 
-The MCP server follows a **modular service architecture** with clear separation of concerns:
+The MCP server follows a **pure code vessel architecture** - it accepts and executes Claude-generated animation code:
+
+### Core Workflow
+```
+1. User asks Claude: "Generate Remotion code for [any animation]"
+2. Claude generates: Complete Remotion React component code
+3. User calls MCP: create-complete-video with compositionCode parameter
+4. MCP executes: Creates project and renders the animation
+```
+
+**Pure Code Injection • No Templates • Unlimited Creativity**
 
 ### Core Services Layer (`src/services/`)
-- `elevenlabs.ts`: Voice generation using ElevenLabs API
-- `freesound.ts`: Sound effects search/download from Freesound
-- `flux.ts`: Image generation via Flux API
-- `remotion.ts`: Video rendering orchestration
+- `remotion.ts`: Executes Claude-generated Remotion code
 - `file-manager.ts`: Asset lifecycle management
+- `elevenlabs.ts`: Voice generation using ElevenLabs API (optional)
+- `freesound.ts`: Sound effects search/download from Freesound (optional)
+- `flux.ts`: Image generation via Flux API (optional)
 
 ### MCP Tools Layer (`src/tools/`)
-- `video-creation.ts`: Main orchestrator combining all services
-- `voice-tools.ts`: Voice generation tools
-- `sound-tools.ts`: Sound effects tools  
-- `image-tools.ts`: Image generation tools
+- `video-creation.ts`: **Primary tool** - accepts `compositionCode` parameter with Claude-generated code
+- `voice-tools.ts`: Voice generation tools (optional)
+- `sound-tools.ts`: Sound effects tools (optional)
+- `image-tools.ts`: Image generation tools (optional)
+- `studio-tools.ts`: Remotion Studio launcher for editing
 
-### Data Flow Architecture
-```
-MCP Tool Request → Service Layer → External APIs → Asset Management → Remotion Render
-```
+### How to Use
+1. Ask Claude to generate Remotion code for any animation
+2. Call `create-complete-video` tool with:
+   - `animationDesc`: Description of what you want
+   - `compositionCode`: The complete React/Remotion code Claude generated
+   - Other optional parameters (duration, fps, dimensions, etc.)
+3. MCP creates a Remotion project with your code and renders it
 
-The server orchestrates complex workflows where:
-1. **Asset Generation Phase**: Voice, sound effects, and images are generated in parallel
-2. **Composition Phase**: Assets are integrated into Remotion video compositions
-3. **Render Phase**: Final video is rendered using Remotion's rendering engine
-4. **Cleanup Phase**: Temporary assets are managed according to retention policies
+The server can render ANY animation Claude can code:
+- Scientific simulations (particle physics, DNA replication)
+- Abstract art (fractals, color gradients, geometric patterns)
+- Character animations (walking, dancing, fighting)
+- Nature scenes (growing trees, flowing water, weather)
+- Technical visualizations (circuit boards, data flows, networks)
+- **Any valid Remotion code** = **Any animation possible**
 
 ## Asset Management
 

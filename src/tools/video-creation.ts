@@ -62,6 +62,11 @@ export function createVideoCreationTools(config: MCPConfig): Tool[] {
             description: 'Visual style or theme for the video',
             maxLength: 500,
           },
+          compositionCode: {
+            type: 'string',
+            description: 'Complete Remotion React component code for the animation (optional - Claude can provide this directly)',
+            maxLength: 50000,
+          },
           fps: {
             type: 'number',
             description: 'Frames per second',
@@ -134,6 +139,11 @@ export function createVideoCreationTools(config: MCPConfig): Tool[] {
             type: 'string',
             description: 'Font family',
             default: 'Arial, sans-serif',
+          },
+          compositionCode: {
+            type: 'string',
+            description: 'Complete Remotion React component code for the text animation (optional - Claude can provide this directly)',
+            maxLength: 50000,
           },
         },
         required: ['text'],
@@ -398,6 +408,7 @@ export function createVideoCreationHandlers(config: MCPConfig) {
           fps: 30,
           dimensions: { width: 1920, height: 1080 },
           style: 'text-only',
+          compositionCode: args.compositionCode,
         };
 
         const studioProjectPath = await remotionService.createStudioProject(textRequest, {
