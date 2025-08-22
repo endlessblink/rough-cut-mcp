@@ -371,9 +371,10 @@ export const VideoComposition: React.FC = () => {
             const compositionFile = join(srcPath, 'VideoComposition.tsx');
             writeFileSync(compositionFile, componentCode);
             
-            // Create entry point
+            // Create entry point with registerRoot
             const entryPoint = join(srcPath, 'index.tsx');
-            writeFileSync(entryPoint, `import { Composition } from 'remotion';
+            writeFileSync(entryPoint, `import { registerRoot } from 'remotion';
+import { Composition } from 'remotion';
 import { VideoComposition } from './VideoComposition';
 
 export const RemotionRoot: React.FC = () => {
@@ -389,7 +390,9 @@ export const RemotionRoot: React.FC = () => {
       />
     </>
   );
-};`);
+};
+
+registerRoot(RemotionRoot);`);
             
             // Create package.json for the project
             const packageJson = {
@@ -407,10 +410,10 @@ export const RemotionRoot: React.FC = () => {
             };
             writeFileSync(join(projectPath, 'package.json'), JSON.stringify(packageJson, null, 2));
             
-            // Create a root index file for Remotion registration
-            const rootIndex = join(srcPath, 'Root.tsx');
+            // Create a root index file for Remotion registration in project root
+            const rootIndex = join(projectPath, 'Root.tsx');
             writeFileSync(rootIndex, `import { registerRoot } from 'remotion';
-import { RemotionRoot } from './index';
+import { RemotionRoot } from './src/index';
 
 registerRoot(RemotionRoot);`);
             
@@ -434,7 +437,7 @@ registerRoot(RemotionRoot);`);
             const npxCmd = getNpxCommand();
             const { promise } = spawnIsolated(npxCmd, [
                 'remotion', 'render',
-                'src/Root.tsx',
+                'Root.tsx',
                 'VideoComposition',
                 videoPath,
                 '--props', '{}',
