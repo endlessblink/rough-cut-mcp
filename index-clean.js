@@ -310,6 +310,68 @@ DO NOT call this tool without providing compositionCode!`,
                             }
                         }
                     }
+                },
+                {
+                    name: 'list-video-projects',
+                    description: 'List all available video projects with their details',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            sortBy: {
+                                type: 'string',
+                                enum: ['name', 'date', 'size'],
+                                description: 'Sort projects by name, creation date, or size',
+                                default: 'date'
+                            },
+                            showDetails: {
+                                type: 'boolean',
+                                description: 'Show detailed project information',
+                                default: true
+                            }
+                        }
+                    }
+                },
+                {
+                    name: 'open-specific-project',
+                    description: 'Open a specific video project in Remotion Studio',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            projectName: {
+                                type: 'string',
+                                description: 'Name of the project directory to open'
+                            },
+                            port: {
+                                type: 'number',
+                                description: 'Port to run studio on (default: auto-detect)',
+                                default: 7400
+                            },
+                            clearCache: {
+                                type: 'boolean',
+                                description: 'Clear all caches before opening',
+                                default: true
+                            }
+                        },
+                        required: ['projectName']
+                    }
+                },
+                {
+                    name: 'clear-project-cache',
+                    description: 'Clear all cache files for a specific project or all projects',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            projectName: {
+                                type: 'string',
+                                description: 'Project name (optional, clears all if not specified)'
+                            },
+                            killProcesses: {
+                                type: 'boolean',
+                                description: 'Also kill any running Remotion processes',
+                                default: true
+                            }
+                        }
+                    }
                 }
             ]
         }));
@@ -327,6 +389,12 @@ DO NOT call this tool without providing compositionCode!`,
                         return await this.getProjectStatus();
                     case 'fix-project-config':
                         return await this.fixProjectConfig(args);
+                    case 'list-video-projects':
+                        return await this.listVideoProjects(args);
+                    case 'open-specific-project':
+                        return await this.openSpecificProject(args);
+                    case 'clear-project-cache':
+                        return await this.clearProjectCache(args);
                     default:
                         throw new Error(`Unknown tool: ${name}`);
                 }
@@ -434,7 +502,7 @@ registerRoot(RemotionRoot);`);
             };
             writeFileSync(join(projectPath, 'package.json'), JSON.stringify(packageJson, null, 2));
             
-            // Create remotion.config.ts for proper webpack configuration
+            // Create remotion.config.ts for proper webpack configuration with cache disabled
             const remotionConfig = `import { Config } from '@remotion/cli/config';
 
 // Set the image format for videos
@@ -443,10 +511,14 @@ Config.setVideoImageFormat('jpeg');
 // Allow output files to be overwritten
 Config.setOverwriteOutput(true);
 
+// IMPORTANT: Disable caching to prevent stale content issues
+Config.setCachingEnabled(false);
+
 // Webpack overrides to handle Node.js modules and fix HMR
 Config.overrideWebpackConfig((config) => {
   return {
     ...config,
+    cache: false, // Disable webpack cache
     resolve: {
       ...config.resolve,
       fallback: {
@@ -514,6 +586,16 @@ registerRoot(RemotionRoot);`);
             // Auto-launch Remotion Studio after successful video creation
             process.stderr.write(`[INFO] Auto-launching Remotion Studio...\n`);
             try {
+                // Try to kill any existing studio processes first to free up ports
+                try {
+                    process.stderr.write(`[INFO] Checking for existing studio processes...\n`);
+                    execSync('pkill -f "remotion studio" 2>/dev/null || true', { shell: true });
+                    // Give it a moment to clean up
+                    await new Promise(r => setTimeout(r, 1000));
+                } catch (e) {
+                    // Ignore errors from pkill if no processes found
+                }
+                
                 const studioResult = await this.launchRemotionStudio({ projectPath });
                 
                 return {
@@ -534,6 +616,7 @@ Remotion Studio is now running and should open automatically in your browser.`,
             } catch (studioError) {
                 // If studio launch fails, still return success for video creation
                 process.stderr.write(`[WARN] Studio auto-launch failed: ${studioError.message}\n`);
+                process.stderr.write(`[INFO] You can manually launch the studio later.\n`);
                 return {
                     success: true,
                     message: `Animation created successfully! 
@@ -856,6 +939,209 @@ Config.overrideWebpackConfig((config) => {
                 ? `Fixed ${fixed.length} configuration issue(s). ${updateDependencies ? "Run 'npm install' to install new dependencies." : ""}`
                 : 'Project configuration is already correct.'
         };
+    }
+    
+    async listVideoProjects(params) {
+        const { sortBy = 'date', showDetails = true } = params;
+        
+        if (!existsSync(this.projectsDir)) {
+            return { success: true, projects: [], message: 'No projects found' };
+        }
+        
+        const projects = [];
+        const dirs = readdirSync(this.projectsDir);
+        
+        for (const dir of dirs) {
+            const projectPath = join(this.projectsDir, dir);
+            const stats = statSync(projectPath);
+            
+            if (stats.isDirectory()) {
+                const project = {
+                    name: dir,
+                    path: projectPath,
+                    created: stats.birthtime,
+                    modified: stats.mtime,
+                    size: 0
+                };
+                
+                if (showDetails) {
+                    // Check for key files
+                    project.hasVideo = existsSync(join(this.videosDir, `${dir}.mp4`));
+                    project.hasStudioConfig = existsSync(join(projectPath, 'remotion.config.ts'));
+                    project.hasRegisterRoot = false;
+                    
+                    // Check if registerRoot exists in index.tsx
+                    const indexPath = join(projectPath, 'src', 'index.tsx');
+                    if (existsSync(indexPath)) {
+                        const content = readFileSync(indexPath, 'utf8');
+                        project.hasRegisterRoot = content.includes('registerRoot(');
+                        
+                        // Get composition details if available
+                        if (project.hasRegisterRoot) {
+                            const matches = content.match(/durationInFrames={(\d+)}/);
+                            if (matches) {
+                                project.duration = parseInt(matches[1]) / 30; // Assuming 30fps
+                            }
+                        }
+                    }
+                }
+                
+                projects.push(project);
+            }
+        }
+        
+        // Sort projects
+        if (sortBy === 'name') {
+            projects.sort((a, b) => a.name.localeCompare(b.name));
+        } else if (sortBy === 'date') {
+            projects.sort((a, b) => b.modified - a.modified);
+        }
+        
+        return {
+            success: true,
+            count: projects.length,
+            projects,
+            message: `Found ${projects.length} video project(s)`
+        };
+    }
+    
+    async openSpecificProject(params) {
+        const { projectName, port = 7400, clearCache = true } = params;
+        
+        const projectPath = join(this.projectsDir, projectName);
+        
+        if (!existsSync(projectPath)) {
+            throw new Error(`Project "${projectName}" not found`);
+        }
+        
+        // Clear cache if requested
+        if (clearCache) {
+            process.stderr.write(`[INFO] Clearing cache for ${projectName}...\n`);
+            
+            // Kill any existing Remotion processes
+            try {
+                execSync('pkill -f "remotion" 2>/dev/null || true', { shell: true });
+                await new Promise(r => setTimeout(r, 1000));
+            } catch (e) {
+                // Ignore errors
+            }
+            
+            // Clear cache directories
+            const cacheDirs = ['.cache', '.next', '.remotion', 'node_modules/.cache'];
+            for (const cacheDir of cacheDirs) {
+                const cachePath = join(projectPath, cacheDir);
+                if (existsSync(cachePath)) {
+                    execSync(`rm -rf "${cachePath}"`, { shell: true });
+                    process.stderr.write(`[INFO] Cleared ${cacheDir}\n`);
+                }
+            }
+        }
+        
+        // Fix project config if needed
+        await this.fixProjectConfig({ projectPath });
+        
+        // Launch studio with cache disabled
+        process.stderr.write(`[INFO] Launching ${projectName} with cache disabled...\n`);
+        
+        const actualPort = await this.findAvailablePort(port, port + 10);
+        const npxCmd = getNpxCommand();
+        
+        const studioProcess = spawn(npxCmd, [
+            'remotion', 'studio',
+            '--port', actualPort.toString(),
+            '--bundle-cache=false'
+        ], {
+            cwd: projectPath,
+            detached: true,
+            stdio: 'ignore',
+            shell: true,
+            env: {
+                ...process.env,
+                NODE_ENV: 'development',
+                DISABLE_CACHE: 'true'
+            }
+        });
+        
+        studioProcess.unref();
+        
+        // Wait for server and open browser
+        const serverReady = await this.waitForServer(actualPort);
+        
+        if (!serverReady) {
+            throw new Error(`Failed to start studio for ${projectName}`);
+        }
+        
+        const studioUrl = `http://localhost:${actualPort}`;
+        await this.openBrowser(studioUrl);
+        
+        return {
+            success: true,
+            message: `Opened ${projectName} in Remotion Studio`,
+            projectName,
+            projectPath,
+            url: studioUrl,
+            port: actualPort,
+            cacheCleared: clearCache
+        };
+    }
+    
+    async clearProjectCache(params) {
+        const { projectName, killProcesses = true } = params;
+        
+        // Kill processes if requested
+        if (killProcesses) {
+            process.stderr.write(`[INFO] Killing Remotion processes...\n`);
+            try {
+                execSync('pkill -f "remotion" 2>/dev/null || true', { shell: true });
+                await new Promise(r => setTimeout(r, 1000));
+            } catch (e) {
+                // Ignore errors
+            }
+        }
+        
+        let clearedProjects = [];
+        
+        if (projectName) {
+            // Clear specific project
+            const projectPath = join(this.projectsDir, projectName);
+            if (existsSync(projectPath)) {
+                await this.clearProjectCacheDir(projectPath);
+                clearedProjects.push(projectName);
+            } else {
+                throw new Error(`Project "${projectName}" not found`);
+            }
+        } else {
+            // Clear all projects
+            if (existsSync(this.projectsDir)) {
+                const dirs = readdirSync(this.projectsDir);
+                for (const dir of dirs) {
+                    const projectPath = join(this.projectsDir, dir);
+                    if (statSync(projectPath).isDirectory()) {
+                        await this.clearProjectCacheDir(projectPath);
+                        clearedProjects.push(dir);
+                    }
+                }
+            }
+        }
+        
+        return {
+            success: true,
+            message: `Cleared cache for ${clearedProjects.length} project(s)`,
+            projects: clearedProjects,
+            processesKilled: killProcesses
+        };
+    }
+    
+    async clearProjectCacheDir(projectPath) {
+        const cacheDirs = ['.cache', '.next', '.remotion', 'node_modules/.cache'];
+        
+        for (const cacheDir of cacheDirs) {
+            const cachePath = join(projectPath, cacheDir);
+            if (existsSync(cachePath)) {
+                execSync(`rm -rf "${cachePath}"`, { shell: true });
+                process.stderr.write(`[INFO] Cleared ${cacheDir} in ${basename(projectPath)}\n`);
+            }
+        }
     }
 }
 
