@@ -1,11 +1,62 @@
-# Claude Code Configuration - SPARC Development Environment
+# 🎯 ROUGHCUT MCP - MISSION CRITICAL CONFIGURATION
+
+## ⚠️ SINGLE OBJECTIVE: MAKE ROUGHCUT MCP FULLY OPERATIONAL
+
+**THE ONLY GOAL**: Enable Claude Desktop to generate videos through the RoughCut MCP server.
+- **SUCCESS**: MCP receives animation requests → generates Remotion code → launches studio → renders video
+- **FOCUS**: Fix MCP issues ONLY. No templates, no alternatives, no workarounds.
+
+## 🚫 EXPLICITLY OUT OF SCOPE
+- ❌ Alternative video generation methods
+- ❌ Template-based systems  
+- ❌ External API integrations (except required Remotion)
+- ❌ Manual video creation workflows
+- ❌ Any solution that bypasses the MCP
+
+## ✅ MCP OPERATIONAL REQUIREMENTS
+1. **Claude Desktop Integration**: MCP must receive and process tool calls
+2. **Code Generation**: Claude must provide complete Remotion React components
+3. **Studio Launch**: Must actually start and be accessible on specified port
+4. **Video Rendering**: Must produce valid MP4 files in output directory
+5. **Error Handling**: Clear feedback when operations fail
+
+## 🔧 CRITICAL MCP COMPONENTS
+- `index-clean.js` - Main MCP server (THIS IS THE PRIORITY)
+- `create-complete-video` - Must accept compositionCode from Claude
+- `launch-remotion-studio` - Must actually launch and verify
+- `fix-project-config` - Must fix broken projects
+
+## 🔍 MCP TROUBLESHOOTING CHECKLIST
+When MCP isn't working, check IN THIS ORDER:
+1. **Is compositionCode being passed?** - Check if Claude is generating React code
+2. **Is project structure correct?** - Root.tsx in root, remotion.config.ts exists
+3. **Is studio actually launching?** - Check with `ps aux | grep remotion`
+4. **Is render command working?** - Check cwd and entry point paths
+5. **Are dependencies installed?** - Verify node_modules exists
+
+## 🎬 MCP WORKFLOW VALIDATION
+The MCP must support this exact flow:
+```
+Claude Desktop → "Create animation of X" 
+    ↓
+MCP receives request with compositionCode
+    ↓
+Creates project with correct structure
+    ↓
+Launches studio (and verifies it's running)
+    ↓
+Renders video to MP4
+    ↓
+Returns success with video path
+```
+**ANY DEVIATION FROM THIS FLOW IS A BUG TO FIX**
 
 ## 🚨 CRITICAL: CONCURRENT EXECUTION & FILE MANAGEMENT
 
 **ABSOLUTE RULES**:
 1. ALL operations MUST be concurrent/parallel in a single message
 2. **NEVER save working files, text/mds and tests to the root folder**
-3. ALWAYS organize files in appropriate subdirectories
+3. ALWAYS organize files in appropriate subdirectories 
 
 ### ⚡ GOLDEN RULE: "1 MESSAGE = ALL RELATED OPERATIONS"
 
