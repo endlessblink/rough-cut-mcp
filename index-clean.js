@@ -9,6 +9,7 @@ import { spawn, execSync, exec } from 'child_process';
 import { createWriteStream } from 'fs';
 import os from 'os';
 import http from 'http';
+import net from 'net';
 
 // Windows-optimized process isolation
 function spawnIsolated(command, args, options = {}) {
@@ -557,30 +558,66 @@ The video has been rendered and is ready. Use the 'launch-remotion-studio' tool 
     async openBrowser(url) {
         const platform = process.platform;
         
+        // Check if we're in WSL2
+        const isWSL = existsSync('/proc/version') && 
+                      readFileSync('/proc/version', 'utf8').toLowerCase().includes('microsoft');
+        
         let command;
         if (platform === 'win32') {
-            // Windows
+            // Native Windows
             command = `start "" "${url}"`;
         } else if (platform === 'darwin') {
             // macOS
             command = `open "${url}"`;
+        } else if (isWSL) {
+            // WSL2 - use Windows commands via cmd.exe
+            // First try wslview (if wslu is installed), then fallback to cmd.exe
+            command = `wslview "${url}" 2>/dev/null || cmd.exe /c start "" "${url}"`;
         } else {
-            // Linux/WSL
-            // Try multiple commands as fallback
+            // Native Linux
             command = `xdg-open "${url}" || sensible-browser "${url}" || x-www-browser "${url}" || gnome-open "${url}"`;
         }
+        
+        process.stderr.write(`[INFO] Opening browser with command: ${command}\n`);
         
         exec(command, { shell: true }, (error) => {
             if (error) {
                 process.stderr.write(`[INFO] Could not auto-open browser. Please open ${url} manually.\n`);
+                process.stderr.write(`[DEBUG] Error: ${error.message}\n`);
             } else {
-                process.stderr.write(`[INFO] Opening browser at ${url}\n`);
+                process.stderr.write(`[INFO] Browser opened successfully at ${url}\n`);
             }
         });
     }
     
+    async findAvailablePort(startPort = 7400, maxPort = 7410) {
+        for (let port = startPort; port <= maxPort; port++) {
+            const isAvailable = await new Promise((resolve) => {
+                const server = net.createServer();
+                
+                server.once('error', () => {
+                    resolve(false);
+                });
+                
+                server.once('listening', () => {
+                    server.close();
+                    resolve(true);
+                });
+                
+                server.listen(port, 'localhost');
+            });
+            
+            if (isAvailable) {
+                process.stderr.write(`[INFO] Found available port: ${port}\n`);
+                return port;
+            }
+        }
+        
+        throw new Error(`No available ports found between ${startPort} and ${maxPort}`);
+    }
+    
     async launchRemotionStudio(params) {
-        const { projectPath, port = 7400 } = params;
+        const { projectPath, port: requestedPort } = params;
         
         // Use last created project if no specific path provided
         const targetPath = projectPath || this.getLastCreatedProject();
@@ -591,12 +628,21 @@ The video has been rendered and is ready. Use the 'launch-remotion-studio' tool 
         
         process.stderr.write(`[INFO] Launching Remotion Studio for: ${targetPath}\n`);
         
+        // Find an available port
+        let actualPort;
+        try {
+            actualPort = requestedPort || await this.findAvailablePort(7400, 7410);
+            process.stderr.write(`[INFO] Using port: ${actualPort}\n`);
+        } catch (error) {
+            throw new Error(`Could not find available port: ${error.message}`);
+        }
+        
         const npxCmd = getNpxCommand();
         
         // Use regular spawn for studio (not spawnIsolated) with detached mode
         const studioProcess = spawn(npxCmd, [
             'remotion', 'studio',
-            '--port', port.toString()
+            '--port', actualPort.toString()
         ], {
             cwd: targetPath,
             detached: true,
@@ -614,23 +660,24 @@ The video has been rendered and is ready. Use the 'launch-remotion-studio' tool 
         process.stderr.write(`[INFO] Studio process spawned, waiting for server to be ready...\n`);
         
         // Wait for server to be ready
-        const serverReady = await this.waitForServer(port);
+        const serverReady = await this.waitForServer(actualPort);
         
         if (!serverReady) {
-            throw new Error(`Studio failed to start on port ${port} after 30 seconds. Please check if the port is already in use or if there are any errors in the project.`);
+            throw new Error(`Studio failed to start on port ${actualPort} after 30 seconds. Please check if there are any errors in the project.`);
         }
         
-        process.stderr.write(`[INFO] Remotion Studio is now running at http://localhost:${port}\n`);
+        process.stderr.write(`[INFO] Remotion Studio is now running at http://localhost:${actualPort}\n`);
         
         // Open browser automatically
-        const studioUrl = `http://localhost:${port}`;
+        const studioUrl = `http://localhost:${actualPort}`;
         await this.openBrowser(studioUrl);
         
         return {
             success: true,
-            message: `Remotion Studio is running on port ${port}`,
+            message: `Remotion Studio is running on port ${actualPort}`,
             url: studioUrl,
             projectPath: targetPath,
+            port: actualPort,
             note: 'Studio is running in the background. Browser should open automatically.'
         };
     }
