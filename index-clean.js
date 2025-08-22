@@ -221,20 +221,36 @@ MANDATORY STEPS:
 1. Generate a complete React component using Remotion hooks
 2. Include the code in the compositionCode parameter
 3. The component must use useCurrentFrame() for animations
+4. Component can accept props for customizable values (colors, text, speeds, etc.)
 
-REQUIRED CODE STRUCTURE:
+REQUIRED CODE STRUCTURE WITH PROPS:
 import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate } from 'remotion';
+import { z } from 'zod';
+import { MyCompProps } from '../src/index';
 
-export const VideoComposition: React.FC = () => {
+export const VideoComposition: React.FC<MyCompProps> = ({
+  titleText,
+  titleColor,
+  animationSpeed,
+  fontSize,
+  backgroundColor,
+  // ... other props
+}) => {
   const frame = useCurrentFrame();
-  // Your animation logic here
+  // Use props in your animation logic
+  const progress = interpolate(frame, [0, 60], [0, 1]) * animationSpeed;
+  
   return (
-    <AbsoluteFill style={{backgroundColor: 'white'}}>
-      {/* Animated elements */}
+    <AbsoluteFill style={{backgroundColor}}>
+      <h1 style={{color: titleColor, fontSize}}>{titleText}</h1>
+      {/* Animated elements using props */}
     </AbsoluteFill>
   );
 };
+
+The video will have editable props in Remotion Studio's sidebar!
+Props include: colors, text, numbers, booleans - all customizable in the studio.
 
 DO NOT call this tool without providing compositionCode!`,
                     inputSchema: {
@@ -372,6 +388,56 @@ DO NOT call this tool without providing compositionCode!`,
                             }
                         }
                     }
+                },
+                {
+                    name: 'update-video-props',
+                    description: 'Update the props schema for an existing video project to add/modify editable variables',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            projectName: {
+                                type: 'string',
+                                description: 'Name of the project to update'
+                            },
+                            props: {
+                                type: 'object',
+                                description: 'Object containing prop definitions (name, type, default, min, max, description)',
+                                properties: {
+                                    textProps: {
+                                        type: 'object',
+                                        description: 'Text/string properties'
+                                    },
+                                    colorProps: {
+                                        type: 'object',
+                                        description: 'Color properties (hex values)'
+                                    },
+                                    numberProps: {
+                                        type: 'object',
+                                        description: 'Numeric properties with min/max'
+                                    },
+                                    booleanProps: {
+                                        type: 'object',
+                                        description: 'Boolean toggle properties'
+                                    }
+                                }
+                            }
+                        },
+                        required: ['projectName', 'props']
+                    }
+                },
+                {
+                    name: 'get-video-props',
+                    description: 'Get the current props schema for a video project',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            projectName: {
+                                type: 'string',
+                                description: 'Name of the project'
+                            }
+                        },
+                        required: ['projectName']
+                    }
                 }
             ]
         }));
@@ -395,6 +461,10 @@ DO NOT call this tool without providing compositionCode!`,
                         return await this.openSpecificProject(args);
                     case 'clear-project-cache':
                         return await this.clearProjectCache(args);
+                    case 'update-video-props':
+                        return await this.updateVideoProps(args);
+                    case 'get-video-props':
+                        return await this.getVideoProps(args);
                     default:
                         throw new Error(`Unknown tool: ${name}`);
                 }
@@ -461,11 +531,70 @@ export const VideoComposition: React.FC = () => {
             const compositionFile = join(srcPath, 'VideoComposition.tsx');
             writeFileSync(compositionFile, componentCode);
             
-            // Create entry point with registerRoot
+            // Create entry point with registerRoot and props schema
             const entryPoint = join(srcPath, 'index.tsx');
+            
+            // Generate a default props schema if not provided
+            // This will be enhanced when Claude generates videos with specific props
+            const propsSchema = `import { z } from 'zod';
+
+// Define the props schema for editable variables
+export const myCompSchema = z.object({
+  // Text props
+  titleText: z.string().default('Amazing Video'),
+  titleColor: z.string().default('#FFFFFF'),
+  
+  // Numeric props
+  animationSpeed: z.number().min(0.1).max(5).default(1),
+  fontSize: z.number().min(10).max(100).default(48),
+  
+  // Boolean props
+  showBackground: z.boolean().default(true),
+  enableParticles: z.boolean().default(false),
+  
+  // Color props
+  backgroundColor: z.string().default('#000000'),
+  accentColor: z.string().default('#FF6B6B'),
+});`;
+            
             writeFileSync(entryPoint, `import { registerRoot } from 'remotion';
 import { Composition } from 'remotion';
 import { VideoComposition } from './VideoComposition';
+import { z } from 'zod';
+
+// Define the props schema for editable variables
+export const myCompSchema = z.object({
+  // Text props
+  titleText: z.string().describe('Main title text'),
+  titleColor: z.string().describe('Title text color'),
+  
+  // Numeric props
+  animationSpeed: z.number().min(0.1).max(5).describe('Animation speed multiplier'),
+  fontSize: z.number().min(10).max(100).describe('Font size in pixels'),
+  
+  // Boolean props
+  showBackground: z.boolean().describe('Show background gradient'),
+  enableParticles: z.boolean().describe('Enable particle effects'),
+  
+  // Color props
+  backgroundColor: z.string().describe('Background color'),
+  accentColor: z.string().describe('Accent color for highlights'),
+});
+
+// Type for the props
+export type MyCompProps = z.infer<typeof myCompSchema>;
+
+// Default props values
+const defaultProps: MyCompProps = {
+  titleText: 'Amazing Video',
+  titleColor: '#FFFFFF',
+  animationSpeed: 1,
+  fontSize: 48,
+  showBackground: true,
+  enableParticles: false,
+  backgroundColor: '#000000',
+  accentColor: '#FF6B6B',
+};
 
 export const RemotionRoot: React.FC = () => {
   return (
@@ -477,6 +606,8 @@ export const RemotionRoot: React.FC = () => {
         fps={${fps}}
         width={${dimensions.width}}
         height={${dimensions.height}}
+        schema={myCompSchema}
+        defaultProps={defaultProps}
       />
     </>
   );
@@ -1144,6 +1275,237 @@ Config.overrideWebpackConfig((config) => {
                 process.stderr.write(`[INFO] Cleared ${cacheDir} in ${basename(projectPath)}\n`);
             }
         }
+    }
+    
+    async updateVideoProps(params) {
+        const { projectName, props } = params;
+        
+        const projectPath = join(this.projectsDir, projectName);
+        if (!existsSync(projectPath)) {
+            throw new Error(`Project "${projectName}" not found`);
+        }
+        
+        const indexPath = join(projectPath, 'src', 'index.tsx');
+        if (!existsSync(indexPath)) {
+            throw new Error(`Index file not found in project "${projectName}"`);
+        }
+        
+        // Build the new schema from provided props
+        let schemaLines = [];
+        schemaLines.push('export const myCompSchema = z.object({');
+        
+        // Add text props
+        if (props.textProps) {
+            schemaLines.push('  // Text props');
+            for (const [key, config] of Object.entries(props.textProps)) {
+                const desc = config.description ? `.describe('${config.description}')` : '';
+                schemaLines.push(`  ${key}: z.string()${desc},`);
+            }
+        }
+        
+        // Add color props
+        if (props.colorProps) {
+            schemaLines.push('  // Color props');
+            for (const [key, config] of Object.entries(props.colorProps)) {
+                const desc = config.description ? `.describe('${config.description}')` : '';
+                schemaLines.push(`  ${key}: z.string()${desc},`);
+            }
+        }
+        
+        // Add number props
+        if (props.numberProps) {
+            schemaLines.push('  // Numeric props');
+            for (const [key, config] of Object.entries(props.numberProps)) {
+                let propDef = `  ${key}: z.number()`;
+                if (config.min !== undefined) propDef += `.min(${config.min})`;
+                if (config.max !== undefined) propDef += `.max(${config.max})`;
+                if (config.description) propDef += `.describe('${config.description}')`;
+                schemaLines.push(`${propDef},`);
+            }
+        }
+        
+        // Add boolean props
+        if (props.booleanProps) {
+            schemaLines.push('  // Boolean props');
+            for (const [key, config] of Object.entries(props.booleanProps)) {
+                const desc = config.description ? `.describe('${config.description}')` : '';
+                schemaLines.push(`  ${key}: z.boolean()${desc},`);
+            }
+        }
+        
+        schemaLines.push('});');
+        
+        // Build default props
+        let defaultPropsLines = [];
+        defaultPropsLines.push('const defaultProps: MyCompProps = {');
+        
+        // Add defaults for each prop type
+        if (props.textProps) {
+            for (const [key, config] of Object.entries(props.textProps)) {
+                defaultPropsLines.push(`  ${key}: '${config.default || ''}',`);
+            }
+        }
+        if (props.colorProps) {
+            for (const [key, config] of Object.entries(props.colorProps)) {
+                defaultPropsLines.push(`  ${key}: '${config.default || '#000000'}',`);
+            }
+        }
+        if (props.numberProps) {
+            for (const [key, config] of Object.entries(props.numberProps)) {
+                defaultPropsLines.push(`  ${key}: ${config.default || 1},`);
+            }
+        }
+        if (props.booleanProps) {
+            for (const [key, config] of Object.entries(props.booleanProps)) {
+                defaultPropsLines.push(`  ${key}: ${config.default || false},`);
+            }
+        }
+        
+        defaultPropsLines.push('};');
+        
+        // Read current file
+        let indexContent = readFileSync(indexPath, 'utf8');
+        
+        // Replace the schema definition
+        const schemaRegex = /export const myCompSchema = z\.object\({[\s\S]*?\}\);/;
+        indexContent = indexContent.replace(schemaRegex, schemaLines.join('\n'));
+        
+        // Replace default props
+        const defaultPropsRegex = /const defaultProps: MyCompProps = {[\s\S]*?};/;
+        indexContent = indexContent.replace(defaultPropsRegex, defaultPropsLines.join('\n'));
+        
+        // Write back the updated file
+        writeFileSync(indexPath, indexContent);
+        
+        // Also update the VideoComposition.tsx to use the new props
+        const videoCompPath = join(projectPath, 'src', 'VideoComposition.tsx');
+        if (existsSync(videoCompPath)) {
+            let videoContent = readFileSync(videoCompPath, 'utf8');
+            
+            // Check if it already has MyCompProps import
+            if (!videoContent.includes('MyCompProps')) {
+                // Add import at the top
+                videoContent = `import { MyCompProps } from './index';\n` + videoContent;
+                
+                // Update the component signature
+                videoContent = videoContent.replace(
+                    /export const VideoComposition: React\.FC[^=]*= \(/,
+                    'export const VideoComposition: React.FC<MyCompProps> = ('
+                );
+                
+                writeFileSync(videoCompPath, videoContent);
+            }
+        }
+        
+        return {
+            success: true,
+            message: `Updated props schema for "${projectName}"`,
+            projectName,
+            propsAdded: {
+                text: Object.keys(props.textProps || {}),
+                colors: Object.keys(props.colorProps || {}),
+                numbers: Object.keys(props.numberProps || {}),
+                booleans: Object.keys(props.booleanProps || {})
+            }
+        };
+    }
+    
+    async getVideoProps(params) {
+        const { projectName } = params;
+        
+        const projectPath = join(this.projectsDir, projectName);
+        if (!existsSync(projectPath)) {
+            throw new Error(`Project "${projectName}" not found`);
+        }
+        
+        const indexPath = join(projectPath, 'src', 'index.tsx');
+        if (!existsSync(indexPath)) {
+            return {
+                success: true,
+                message: `No props schema found in "${projectName}"`,
+                projectName,
+                props: null
+            };
+        }
+        
+        const indexContent = readFileSync(indexPath, 'utf8');
+        
+        // Extract schema definition
+        const schemaMatch = indexContent.match(/export const myCompSchema = z\.object\({([\s\S]*?)\}\);/);
+        if (!schemaMatch) {
+            return {
+                success: true,
+                message: `No props schema found in "${projectName}"`,
+                projectName,
+                props: null
+            };
+        }
+        
+        // Extract default props
+        const defaultsMatch = indexContent.match(/const defaultProps: MyCompProps = {([\s\S]*?)};/);
+        
+        // Parse the schema to extract props
+        const schemaContent = schemaMatch[1];
+        const props = {
+            text: [],
+            colors: [],
+            numbers: [],
+            booleans: []
+        };
+        
+        // Parse each prop definition
+        const propLines = schemaContent.split(',').filter(line => line.trim());
+        for (const line of propLines) {
+            const propMatch = line.match(/(\w+):\s*z\.(\w+)\(\)/);
+            if (propMatch) {
+                const [, propName, propType] = propMatch;
+                const descMatch = line.match(/\.describe\(['"](.+?)['"]\)/);
+                const description = descMatch ? descMatch[1] : null;
+                
+                // Extract default value if available
+                let defaultValue = null;
+                if (defaultsMatch) {
+                    const defaultRegex = new RegExp(`${propName}:\\s*(['"]?)(.+?)\\1,`);
+                    const defaultMatch = defaultsMatch[1].match(defaultRegex);
+                    if (defaultMatch) {
+                        defaultValue = defaultMatch[2];
+                    }
+                }
+                
+                const propInfo = {
+                    name: propName,
+                    description,
+                    default: defaultValue
+                };
+                
+                if (propType === 'string') {
+                    // Determine if it's a color based on name or default value
+                    if (propName.toLowerCase().includes('color') || 
+                        (defaultValue && defaultValue.startsWith('#'))) {
+                        props.colors.push(propInfo);
+                    } else {
+                        props.text.push(propInfo);
+                    }
+                } else if (propType === 'number') {
+                    // Extract min/max if present
+                    const minMatch = line.match(/\.min\((\d+(?:\.\d+)?)\)/);
+                    const maxMatch = line.match(/\.max\((\d+(?:\.\d+)?)\)/);
+                    if (minMatch) propInfo.min = parseFloat(minMatch[1]);
+                    if (maxMatch) propInfo.max = parseFloat(maxMatch[1]);
+                    props.numbers.push(propInfo);
+                } else if (propType === 'boolean') {
+                    props.booleans.push(propInfo);
+                }
+            }
+        }
+        
+        return {
+            success: true,
+            message: `Found props schema for "${projectName}"`,
+            projectName,
+            props,
+            hasSchema: true
+        };
     }
 }
 
