@@ -511,18 +511,43 @@ registerRoot(RemotionRoot);`);
                 throw new Error(`Video rendering failed with code ${result.code}: ${result.stderr}`);
             }
             
-            return {
-                success: true,
-                message: `Animation created successfully! 
+            // Auto-launch Remotion Studio after successful video creation
+            process.stderr.write(`[INFO] Auto-launching Remotion Studio...\n`);
+            try {
+                const studioResult = await this.launchRemotionStudio({ projectPath });
+                
+                return {
+                    success: true,
+                    message: `Animation created and studio launched successfully! 
+
+📁 Project: ${projectPath}
+🎬 Video: ${videoPath}
+🌐 Studio: ${studioResult.url}
+
+Remotion Studio is now running and should open automatically in your browser.`,
+                    projectPath,
+                    videoPath,
+                    studioUrl: studioResult.url,
+                    studioPort: studioResult.port,
+                    logFile: result.logFile
+                };
+            } catch (studioError) {
+                // If studio launch fails, still return success for video creation
+                process.stderr.write(`[WARN] Studio auto-launch failed: ${studioError.message}\n`);
+                return {
+                    success: true,
+                    message: `Animation created successfully! 
 
 📁 Project: ${projectPath}
 🎬 Video: ${videoPath}
 
-The video has been rendered and is ready. Use the 'launch-remotion-studio' tool to open it in Remotion Studio for editing.`,
-                projectPath,
-                videoPath,
-                logFile: result.logFile
-            };
+The video has been rendered. Studio auto-launch failed but you can use the 'launch-remotion-studio' tool to open it manually.`,
+                    projectPath,
+                    videoPath,
+                    logFile: result.logFile,
+                    studioError: studioError.message
+                };
+            }
             
         } catch (error) {
             process.stderr.write(`[ERROR] Video creation failed: ${error}\n`);
