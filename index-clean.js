@@ -170,12 +170,18 @@ export class RoughCutMCPServer {
     server;
     projectsDir;
     videosDir;
+    portHistoryFile;
+    portHistory;
     
     constructor() {
         // Setup directories
         const baseDir = process.env.REMOTION_ASSETS_DIR || './assets';
         this.projectsDir = join(baseDir, 'projects');
         this.videosDir = join(baseDir, 'videos');
+        this.portHistoryFile = join(baseDir, 'port-history.json');
+        
+        // Load port history
+        this.loadPortHistory();
         
         // Create MCP server
         this.server = new Server({
@@ -207,6 +213,65 @@ export class RoughCutMCPServer {
                 mkdirSync(dir, { recursive: true });
             }
         });
+    }
+    
+    loadPortHistory() {
+        try {
+            if (existsSync(this.portHistoryFile)) {
+                const data = readFileSync(this.portHistoryFile, 'utf8');
+                this.portHistory = JSON.parse(data);
+                process.stderr.write(`[INFO] Loaded port history with ${this.portHistory.usedPorts.length} entries\n`);
+            } else {
+                this.portHistory = {
+                    usedPorts: [],
+                    lastPort: 7400,
+                    rotationIndex: 0
+                };
+            }
+        } catch (error) {
+            process.stderr.write(`[WARN] Could not load port history: ${error.message}\n`);
+            this.portHistory = {
+                usedPorts: [],
+                lastPort: 7400,
+                rotationIndex: 0
+            };
+        }
+    }
+    
+    savePortHistory() {
+        try {
+            writeFileSync(this.portHistoryFile, JSON.stringify(this.portHistory, null, 2));
+        } catch (error) {
+            process.stderr.write(`[WARN] Could not save port history: ${error.message}\n`);
+        }
+    }
+    
+    getNextPort() {
+        // Define port rotation range (7500-7599 to avoid cached 7400-7499)
+        const portRange = { start: 7500, end: 7599 };
+        const totalPorts = portRange.end - portRange.start + 1;
+        
+        // Keep only recent port usage (last 10 entries)
+        if (this.portHistory.usedPorts.length > 10) {
+            this.portHistory.usedPorts = this.portHistory.usedPorts.slice(-10);
+        }
+        
+        // Calculate next port using rotation
+        const nextPort = portRange.start + (this.portHistory.rotationIndex % totalPorts);
+        this.portHistory.rotationIndex++;
+        
+        // Add to history
+        this.portHistory.usedPorts.push({
+            port: nextPort,
+            timestamp: Date.now(),
+            project: null // Will be updated when project is created
+        });
+        
+        this.portHistory.lastPort = nextPort;
+        this.savePortHistory();
+        
+        process.stderr.write(`[INFO] Selected port ${nextPort} from rotation (index: ${this.portHistory.rotationIndex})\n`);
+        return nextPort;
     }
     
     setupTools() {
@@ -869,13 +934,20 @@ The video has been rendered. Studio auto-launch failed but you can use the 'laun
         
         process.stderr.write(`[INFO] Launching Remotion Studio for: ${targetPath}\n`);
         
-        // Find an available port
+        // Use port rotation system for automatic port selection
         let actualPort;
         try {
-            actualPort = requestedPort || await this.findAvailablePort(7400, 7410);
-            process.stderr.write(`[INFO] Using port: ${actualPort}\n`);
+            if (requestedPort) {
+                // If specific port requested, try to use it
+                actualPort = requestedPort;
+                process.stderr.write(`[INFO] Using requested port: ${actualPort}\n`);
+            } else {
+                // Use intelligent port rotation to avoid cache issues
+                actualPort = this.getNextPort();
+                process.stderr.write(`[INFO] Using rotated port: ${actualPort} (avoids browser cache)\n`);
+            }
         } catch (error) {
-            throw new Error(`Could not find available port: ${error.message}`);
+            throw new Error(`Could not determine port: ${error.message}`);
         }
         
         const npxCmd = getNpxCommand();
@@ -1139,7 +1211,7 @@ Config.overrideWebpackConfig((config) => {
     }
     
     async openSpecificProject(params) {
-        const { projectName, port = 7400, clearCache = true } = params;
+        const { projectName, port, clearCache = true } = params;
         
         const projectPath = join(this.projectsDir, projectName);
         
@@ -1176,7 +1248,8 @@ Config.overrideWebpackConfig((config) => {
         // Launch studio with cache disabled
         process.stderr.write(`[INFO] Launching ${projectName} with cache disabled...\n`);
         
-        const actualPort = await this.findAvailablePort(port, port + 10);
+        // Use port rotation if no specific port requested
+        const actualPort = port || this.getNextPort();
         const npxCmd = getNpxCommand();
         
         const studioProcess = spawn(npxCmd, [
