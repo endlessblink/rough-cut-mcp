@@ -5,7 +5,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { writeFileSync, existsSync, mkdirSync, readdirSync, statSync, readFileSync, unlinkSync } from 'fs';
 import fs from 'fs';
 import { join, basename } from 'path';
-import { spawn, execSync } from 'child_process';
+import { spawn, execSync, exec } from 'child_process';
 import { createWriteStream } from 'fs';
 import os from 'os';
 import http from 'http';
@@ -554,6 +554,31 @@ The video has been rendered and is ready. Use the 'launch-remotion-studio' tool 
         return false;
     }
     
+    async openBrowser(url) {
+        const platform = process.platform;
+        
+        let command;
+        if (platform === 'win32') {
+            // Windows
+            command = `start "" "${url}"`;
+        } else if (platform === 'darwin') {
+            // macOS
+            command = `open "${url}"`;
+        } else {
+            // Linux/WSL
+            // Try multiple commands as fallback
+            command = `xdg-open "${url}" || sensible-browser "${url}" || x-www-browser "${url}" || gnome-open "${url}"`;
+        }
+        
+        exec(command, { shell: true }, (error) => {
+            if (error) {
+                process.stderr.write(`[INFO] Could not auto-open browser. Please open ${url} manually.\n`);
+            } else {
+                process.stderr.write(`[INFO] Opening browser at ${url}\n`);
+            }
+        });
+    }
+    
     async launchRemotionStudio(params) {
         const { projectPath, port = 7400 } = params;
         
@@ -597,12 +622,16 @@ The video has been rendered and is ready. Use the 'launch-remotion-studio' tool 
         
         process.stderr.write(`[INFO] Remotion Studio is now running at http://localhost:${port}\n`);
         
+        // Open browser automatically
+        const studioUrl = `http://localhost:${port}`;
+        await this.openBrowser(studioUrl);
+        
         return {
             success: true,
             message: `Remotion Studio is running on port ${port}`,
-            url: `http://localhost:${port}`,
+            url: studioUrl,
             projectPath: targetPath,
-            note: 'Studio is running in the background. Open your browser to the URL above.'
+            note: 'Studio is running in the background. Browser should open automatically.'
         };
     }
     
