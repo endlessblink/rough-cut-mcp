@@ -8,6 +8,7 @@ import { join, basename } from 'path';
 import { spawn, execSync } from 'child_process';
 import { createWriteStream } from 'fs';
 import os from 'os';
+import http from 'http';
 
 // Windows-optimized process isolation
 function spawnIsolated(command, args, options = {}) {
@@ -528,6 +529,31 @@ The video has been rendered and is ready. Use the 'launch-remotion-studio' tool 
         }
     }
     
+    async waitForServer(port, maxAttempts = 30) {
+        for (let i = 0; i < maxAttempts; i++) {
+            try {
+                await new Promise((resolve, reject) => {
+                    const req = http.get(`http://localhost:${port}`, (res) => {
+                        resolve(true);
+                    });
+                    req.on('error', reject);
+                    req.setTimeout(1000, () => {
+                        req.destroy();
+                        reject(new Error('Timeout'));
+                    });
+                });
+                return true;
+            } catch {
+                // Wait 1 second before retrying
+                await new Promise(r => setTimeout(r, 1000));
+                if (i % 5 === 4) {
+                    process.stderr.write(`[INFO] Waiting for studio to start... (${i + 1}/${maxAttempts})\n`);
+                }
+            }
+        }
+        return false;
+    }
+    
     async launchRemotionStudio(params) {
         const { projectPath, port = 7400 } = params;
         
@@ -541,18 +567,42 @@ The video has been rendered and is ready. Use the 'launch-remotion-studio' tool 
         process.stderr.write(`[INFO] Launching Remotion Studio for: ${targetPath}\n`);
         
         const npxCmd = getNpxCommand();
-        const { promise } = spawnIsolated(npxCmd, [
+        
+        // Use regular spawn for studio (not spawnIsolated) with detached mode
+        const studioProcess = spawn(npxCmd, [
             'remotion', 'studio',
             '--port', port.toString()
         ], {
-            cwd: targetPath
+            cwd: targetPath,
+            detached: true,
+            stdio: 'ignore',
+            shell: true,
+            env: {
+                ...process.env,
+                NODE_ENV: 'development'
+            }
         });
+        
+        // Unref so MCP doesn't wait for studio to exit
+        studioProcess.unref();
+        
+        process.stderr.write(`[INFO] Studio process spawned, waiting for server to be ready...\n`);
+        
+        // Wait for server to be ready
+        const serverReady = await this.waitForServer(port);
+        
+        if (!serverReady) {
+            throw new Error(`Studio failed to start on port ${port} after 30 seconds. Please check if the port is already in use or if there are any errors in the project.`);
+        }
+        
+        process.stderr.write(`[INFO] Remotion Studio is now running at http://localhost:${port}\n`);
         
         return {
             success: true,
-            message: `Remotion Studio launching on port ${port}`,
+            message: `Remotion Studio is running on port ${port}`,
             url: `http://localhost:${port}`,
-            projectPath: targetPath
+            projectPath: targetPath,
+            note: 'Studio is running in the background. Open your browser to the URL above.'
         };
     }
     
