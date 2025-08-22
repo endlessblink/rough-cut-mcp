@@ -2,7 +2,7 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
-import { writeFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'fs';
+import { writeFileSync, existsSync, mkdirSync, readdirSync, statSync, readFileSync, unlinkSync } from 'fs';
 import fs from 'fs';
 import { join, basename } from 'path';
 import { spawn, execSync } from 'child_process';
@@ -290,6 +290,24 @@ DO NOT call this tool without providing compositionCode!`,
                         type: 'object',
                         properties: {}
                     }
+                },
+                {
+                    name: 'fix-project-config',
+                    description: 'Fix configuration issues in existing Remotion projects (adds missing config files)',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            projectPath: { 
+                                type: 'string', 
+                                description: 'Path to project (optional, uses last created if not provided)' 
+                            },
+                            updateDependencies: { 
+                                type: 'boolean', 
+                                description: 'Also update package.json dependencies',
+                                default: false
+                            }
+                        }
+                    }
                 }
             ]
         }));
@@ -305,6 +323,8 @@ DO NOT call this tool without providing compositionCode!`,
                         return await this.launchRemotionStudio(args);
                     case 'get-project-status':
                         return await this.getProjectStatus();
+                    case 'fix-project-config':
+                        return await this.fixProjectConfig(args);
                     default:
                         throw new Error(`Unknown tool: ${name}`);
                 }
@@ -561,6 +581,130 @@ The video has been rendered and is ready. Use the 'launch-remotion-studio' tool 
             .sort((a, b) => b.mtime - a.mtime);
         
         return projects.length > 0 ? projects[0].path : null;
+    }
+    
+    async fixProjectConfig(params) {
+        const { projectPath, updateDependencies = false } = params;
+        
+        // Use provided path or get last created project
+        const targetPath = projectPath || this.getLastCreatedProject();
+        if (!targetPath || !existsSync(targetPath)) {
+            throw new Error('Project not found. Please provide a valid project path.');
+        }
+        
+        let fixed = [];
+        
+        // Check and create remotion.config.ts if missing
+        const configPath = join(targetPath, 'remotion.config.ts');
+        if (!existsSync(configPath)) {
+            const remotionConfig = `import { Config } from '@remotion/cli/config';
+
+// Set the image format for videos
+Config.setVideoImageFormat('jpeg');
+
+// Allow output files to be overwritten
+Config.setOverwriteOutput(true);
+
+// Webpack overrides to handle Node.js modules and fix HMR
+Config.overrideWebpackConfig((config) => {
+  return {
+    ...config,
+    resolve: {
+      ...config.resolve,
+      fallback: {
+        ...config.resolve?.fallback,
+        // These Node.js modules aren't needed in the browser
+        fs: false,
+        path: false,
+        os: false,
+        crypto: false,
+        stream: false,
+        buffer: false,
+        util: false,
+        assert: false,
+        process: false,
+      },
+    },
+  };
+});`;
+            writeFileSync(configPath, remotionConfig);
+            fixed.push('Created remotion.config.ts');
+            process.stderr.write(`[INFO] Created remotion.config.ts in ${targetPath}\n`);
+        }
+        
+        // Check and create tsconfig.json if missing
+        const tsconfigPath = join(targetPath, 'tsconfig.json');
+        if (!existsSync(tsconfigPath)) {
+            const tsConfig = {
+                compilerOptions: {
+                    target: "ES2018",
+                    module: "ESNext",
+                    jsx: "react-jsx",
+                    strict: true,
+                    esModuleInterop: true,
+                    skipLibCheck: true,
+                    forceConsistentCasingInFileNames: true,
+                    moduleResolution: "node",
+                    resolveJsonModule: true,
+                    allowSyntheticDefaultImports: true,
+                    noEmit: true
+                },
+                include: ["src"]
+            };
+            writeFileSync(tsconfigPath, JSON.stringify(tsConfig, null, 2));
+            fixed.push('Created tsconfig.json');
+            process.stderr.write(`[INFO] Created tsconfig.json in ${targetPath}\n`);
+        }
+        
+        // Check if Root.tsx is in the wrong location and move it if needed
+        const oldRootPath = join(targetPath, 'src', 'Root.tsx');
+        const newRootPath = join(targetPath, 'Root.tsx');
+        if (existsSync(oldRootPath) && !existsSync(newRootPath)) {
+            // Read the content and update the import path
+            let rootContent = readFileSync(oldRootPath, 'utf-8');
+            rootContent = rootContent.replace('./index', './src/index');
+            writeFileSync(newRootPath, rootContent);
+            unlinkSync(oldRootPath);
+            fixed.push('Moved Root.tsx to project root and fixed imports');
+            process.stderr.write(`[INFO] Moved Root.tsx to project root\n`);
+        }
+        
+        // Optionally update package.json dependencies
+        if (updateDependencies) {
+            const packageJsonPath = join(targetPath, 'package.json');
+            if (existsSync(packageJsonPath)) {
+                const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+                let updated = false;
+                
+                if (!packageJson.dependencies) {
+                    packageJson.dependencies = {};
+                }
+                
+                if (!packageJson.dependencies['react-dom']) {
+                    packageJson.dependencies['react-dom'] = '^18.0.0';
+                    updated = true;
+                }
+                if (!packageJson.dependencies['@remotion/cli']) {
+                    packageJson.dependencies['@remotion/cli'] = '^4.0.0';
+                    updated = true;
+                }
+                
+                if (updated) {
+                    writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+                    fixed.push('Updated package.json dependencies');
+                    process.stderr.write(`[INFO] Updated dependencies in package.json\n`);
+                }
+            }
+        }
+        
+        return {
+            success: true,
+            projectPath: targetPath,
+            fixes: fixed.length > 0 ? fixed : ['Project already has correct configuration'],
+            message: fixed.length > 0 
+                ? `Fixed ${fixed.length} configuration issue(s). ${updateDependencies ? "Run 'npm install' to install new dependencies." : ""}`
+                : 'Project configuration is already correct.'
+        };
     }
 }
 
