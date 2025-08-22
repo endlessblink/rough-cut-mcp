@@ -497,7 +497,9 @@ registerRoot(RemotionRoot);`);
                     "react": "^18.0.0",
                     "react-dom": "^18.0.0",
                     "remotion": "^4.0.0",
-                    "@remotion/cli": "^4.0.0"
+                    "@remotion/cli": "^4.0.0",
+                    "@remotion/zod-types": "^4.0.0",
+                    "zod": "^3.22.3"
                 }
             };
             writeFileSync(join(projectPath, 'package.json'), JSON.stringify(packageJson, null, 2));
