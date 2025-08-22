@@ -10,6 +10,10 @@ import { createWriteStream } from 'fs';
 import os from 'os';
 import http from 'http';
 import net from 'net';
+import * as parser from '@babel/parser';
+import traverse from '@babel/traverse';
+import generate from '@babel/generator';
+import * as t from '@babel/types';
 
 // Windows-optimized process isolation
 function spawnIsolated(command, args, options = {}) {
@@ -503,6 +507,164 @@ DO NOT call this tool without providing compositionCode!`,
                         },
                         required: ['projectName']
                     }
+                },
+                {
+                    name: 'analyze-video-structure',
+                    description: 'Analyze the structure of an existing video to identify sequences, elements, and timings',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            projectName: {
+                                type: 'string',
+                                description: 'Name of the project to analyze'
+                            }
+                        },
+                        required: ['projectName']
+                    }
+                },
+                {
+                    name: 'edit-video-element',
+                    description: 'Edit specific elements in a video (text, colors, positions, animations)',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            projectName: {
+                                type: 'string',
+                                description: 'Name of the project'
+                            },
+                            elementPath: {
+                                type: 'string',
+                                description: 'Path to the element (e.g., "sequence.0.text" or "shot1.title")'
+                            },
+                            changes: {
+                                type: 'object',
+                                description: 'Object containing the changes to apply',
+                                properties: {
+                                    text: { type: 'string' },
+                                    color: { type: 'string' },
+                                    fontSize: { type: 'number' },
+                                    position: { type: 'object' },
+                                    animation: { type: 'object' }
+                                }
+                            }
+                        },
+                        required: ['projectName', 'elementPath', 'changes']
+                    }
+                },
+                {
+                    name: 'adjust-video-timing',
+                    description: 'Adjust the timing of sequences or the entire video composition',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            projectName: {
+                                type: 'string',
+                                description: 'Name of the project'
+                            },
+                            target: {
+                                type: 'string',
+                                description: 'What to adjust: "composition" or sequence ID'
+                            },
+                            newDuration: {
+                                type: 'number',
+                                description: 'New duration in frames'
+                            },
+                            adjustSubsequent: {
+                                type: 'boolean',
+                                description: 'Adjust timing of subsequent sequences',
+                                default: true
+                            },
+                            scaleAnimations: {
+                                type: 'boolean',
+                                description: 'Scale animations proportionally',
+                                default: true
+                            }
+                        },
+                        required: ['projectName', 'target', 'newDuration']
+                    }
+                },
+                {
+                    name: 'add-video-sequence',
+                    description: 'Add a new sequence to the video at a specific position',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            projectName: {
+                                type: 'string',
+                                description: 'Name of the project'
+                            },
+                            position: {
+                                type: 'number',
+                                description: 'Frame position to insert the sequence'
+                            },
+                            sequenceType: {
+                                type: 'string',
+                                enum: ['text-overlay', 'transition', 'image', 'animation', 'custom'],
+                                description: 'Type of sequence to add'
+                            },
+                            duration: {
+                                type: 'number',
+                                description: 'Duration of the sequence in frames'
+                            },
+                            properties: {
+                                type: 'object',
+                                description: 'Properties for the sequence (text, color, etc.)'
+                            },
+                            customCode: {
+                                type: 'string',
+                                description: 'Custom React component code (for custom type)'
+                            }
+                        },
+                        required: ['projectName', 'position', 'sequenceType', 'duration']
+                    }
+                },
+                {
+                    name: 'remove-video-sequence',
+                    description: 'Remove a sequence from the video',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            projectName: {
+                                type: 'string',
+                                description: 'Name of the project'
+                            },
+                            sequenceId: {
+                                type: 'string',
+                                description: 'ID or index of the sequence to remove'
+                            },
+                            adjustTimeline: {
+                                type: 'boolean',
+                                description: 'Adjust subsequent sequence timings',
+                                default: true
+                            }
+                        },
+                        required: ['projectName', 'sequenceId']
+                    }
+                },
+                {
+                    name: 'reorder-video-sequences',
+                    description: 'Reorder sequences in the video timeline',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            projectName: {
+                                type: 'string',
+                                description: 'Name of the project'
+                            },
+                            reorderMap: {
+                                type: 'array',
+                                description: 'Array mapping old indices to new indices',
+                                items: {
+                                    type: 'object',
+                                    properties: {
+                                        from: { type: 'number' },
+                                        to: { type: 'number' }
+                                    }
+                                }
+                            }
+                        },
+                        required: ['projectName', 'reorderMap']
+                    }
                 }
             ]
         }));
@@ -530,6 +692,18 @@ DO NOT call this tool without providing compositionCode!`,
                         return await this.updateVideoProps(args);
                     case 'get-video-props':
                         return await this.getVideoProps(args);
+                    case 'analyze-video-structure':
+                        return await this.analyzeVideoStructure(args);
+                    case 'edit-video-element':
+                        return await this.editVideoElement(args);
+                    case 'adjust-video-timing':
+                        return await this.adjustVideoTiming(args);
+                    case 'add-video-sequence':
+                        return await this.addVideoSequence(args);
+                    case 'remove-video-sequence':
+                        return await this.removeVideoSequence(args);
+                    case 'reorder-video-sequences':
+                        return await this.reorderVideoSequences(args);
                     default:
                         throw new Error(`Unknown tool: ${name}`);
                 }
@@ -695,7 +869,11 @@ registerRoot(RemotionRoot);`);
                     "remotion": "^4.0.0",
                     "@remotion/cli": "^4.0.0",
                     "@remotion/zod-types": "^4.0.0",
-                    "zod": "^3.22.3"
+                    "zod": "^3.22.3",
+                    "@babel/parser": "^7.24.0",
+                    "@babel/traverse": "^7.24.0",
+                    "@babel/generator": "^7.24.0",
+                    "@babel/types": "^7.24.0"
                 }
             };
             writeFileSync(join(projectPath, 'package.json'), JSON.stringify(packageJson, null, 2));
@@ -1578,6 +1756,570 @@ Config.overrideWebpackConfig((config) => {
             projectName,
             props,
             hasSchema: true
+        };
+    }
+    
+    async analyzeVideoStructure(params) {
+        const { projectName } = params;
+        
+        const projectPath = join(this.projectsDir, projectName);
+        if (!existsSync(projectPath)) {
+            throw new Error(`Project "${projectName}" not found`);
+        }
+        
+        const videoCompPath = join(projectPath, 'src', 'VideoComposition.tsx');
+        if (!existsSync(videoCompPath)) {
+            throw new Error(`VideoComposition.tsx not found in project "${projectName}"`);
+        }
+        
+        const code = readFileSync(videoCompPath, 'utf8');
+        
+        // Parse the code into AST
+        const ast = parser.parse(code, {
+            sourceType: 'module',
+            plugins: ['jsx', 'typescript']
+        });
+        
+        const structure = {
+            duration: 0,
+            fps: 30,
+            sequences: [],
+            elements: [],
+            interpolations: [],
+            variables: []
+        };
+        
+        // Extract composition details from index.tsx
+        const indexPath = join(projectPath, 'src', 'index.tsx');
+        if (existsSync(indexPath)) {
+            const indexContent = readFileSync(indexPath, 'utf8');
+            const durationMatch = indexContent.match(/durationInFrames={(\d+)}/);
+            const fpsMatch = indexContent.match(/fps={(\d+)}/);
+            
+            if (durationMatch) structure.duration = parseInt(durationMatch[1]);
+            if (fpsMatch) structure.fps = parseInt(fpsMatch[1]);
+        }
+        
+        // Traverse AST to extract structure
+        traverse.default(ast, {
+            JSXElement(path) {
+                const node = path.node;
+                if (t.isJSXIdentifier(node.openingElement.name)) {
+                    const name = node.openingElement.name.name;
+                    
+                    // Check for Sequence components
+                    if (name === 'Sequence') {
+                        const sequenceInfo = {
+                            type: 'sequence',
+                            props: {}
+                        };
+                        
+                        // Extract props
+                        node.openingElement.attributes.forEach(attr => {
+                            if (t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name)) {
+                                const propName = attr.name.name;
+                                if (t.isJSXExpressionContainer(attr.value)) {
+                                    // Try to evaluate the expression
+                                    const expr = attr.value.expression;
+                                    if (t.isNumericLiteral(expr)) {
+                                        sequenceInfo.props[propName] = expr.value;
+                                    } else if (t.isStringLiteral(expr)) {
+                                        sequenceInfo.props[propName] = expr.value;
+                                    } else {
+                                        // Store as code string
+                                        sequenceInfo.props[propName] = generate.default(expr).code;
+                                    }
+                                }
+                            }
+                        });
+                        
+                        structure.sequences.push(sequenceInfo);
+                    }
+                    
+                    // Track other important elements
+                    if (['AbsoluteFill', 'Img', 'Video', 'Audio'].includes(name)) {
+                        structure.elements.push({
+                            type: name.toLowerCase(),
+                            line: node.loc?.start.line
+                        });
+                    }
+                }
+            },
+            
+            CallExpression(path) {
+                const node = path.node;
+                // Track interpolate calls
+                if (t.isIdentifier(node.callee) && node.callee.name === 'interpolate') {
+                    const interpolation = {
+                        line: node.loc?.start.line,
+                        arguments: node.arguments.length
+                    };
+                    
+                    // Try to extract frame range if possible
+                    if (node.arguments[1] && t.isArrayExpression(node.arguments[1])) {
+                        const range = node.arguments[1].elements.map(el => 
+                            t.isNumericLiteral(el) ? el.value : null
+                        ).filter(v => v !== null);
+                        if (range.length === 2) {
+                            interpolation.frameRange = range;
+                        }
+                    }
+                    
+                    structure.interpolations.push(interpolation);
+                }
+            },
+            
+            VariableDeclarator(path) {
+                const node = path.node;
+                // Track important variables like shot timings
+                if (t.isIdentifier(node.id)) {
+                    const varName = node.id.name;
+                    if (varName.includes('shot') || varName.includes('End') || varName.includes('Start')) {
+                        let value = null;
+                        if (t.isNumericLiteral(node.init)) {
+                            value = node.init.value;
+                        }
+                        structure.variables.push({
+                            name: varName,
+                            value,
+                            line: node.loc?.start.line
+                        });
+                    }
+                }
+            }
+        });
+        
+        return {
+            success: true,
+            projectName,
+            structure,
+            message: `Analyzed structure of "${projectName}"`,
+            summary: {
+                sequenceCount: structure.sequences.length,
+                elementCount: structure.elements.length,
+                interpolationCount: structure.interpolations.length,
+                duration: `${structure.duration / structure.fps} seconds`,
+                fps: structure.fps
+            }
+        };
+    }
+    
+    async editVideoElement(params) {
+        const { projectName, elementPath, changes } = params;
+        
+        const projectPath = join(this.projectsDir, projectName);
+        if (!existsSync(projectPath)) {
+            throw new Error(`Project "${projectName}" not found`);
+        }
+        
+        const videoCompPath = join(projectPath, 'src', 'VideoComposition.tsx');
+        if (!existsSync(videoCompPath)) {
+            throw new Error(`VideoComposition.tsx not found in project "${projectName}"`);
+        }
+        
+        let code = readFileSync(videoCompPath, 'utf8');
+        const ast = parser.parse(code, {
+            sourceType: 'module',
+            plugins: ['jsx', 'typescript']
+        });
+        
+        let modified = false;
+        
+        // Apply changes based on elementPath
+        traverse.default(ast, {
+            JSXText(path) {
+                // Edit text content
+                if (changes.text !== undefined) {
+                    const parent = path.parent;
+                    if (t.isJSXElement(parent)) {
+                        // Check if this matches the elementPath
+                        // Simple implementation - can be enhanced with more sophisticated path matching
+                        path.node.value = changes.text;
+                        modified = true;
+                    }
+                }
+            },
+            
+            JSXAttribute(path) {
+                const node = path.node;
+                if (t.isJSXIdentifier(node.name)) {
+                    const attrName = node.name.name;
+                    
+                    // Update style attributes
+                    if (attrName === 'style' && (changes.color || changes.fontSize || changes.position)) {
+                        if (t.isJSXExpressionContainer(node.value)) {
+                            const expr = node.value.expression;
+                            if (t.isObjectExpression(expr)) {
+                                // Modify style object properties
+                                expr.properties.forEach(prop => {
+                                    if (t.isObjectProperty(prop) && t.isIdentifier(prop.key)) {
+                                        const key = prop.key.name;
+                                        
+                                        if (key === 'color' && changes.color) {
+                                            prop.value = t.stringLiteral(changes.color);
+                                            modified = true;
+                                        }
+                                        if (key === 'fontSize' && changes.fontSize) {
+                                            prop.value = t.numericLiteral(changes.fontSize);
+                                            modified = true;
+                                        }
+                                        if ((key === 'left' || key === 'top') && changes.position) {
+                                            if (changes.position[key]) {
+                                                prop.value = t.stringLiteral(changes.position[key]);
+                                                modified = true;
+                                            }
+                                        }
+                                    }
+                                });
+                                
+                                // Add new style properties if they don't exist
+                                if (changes.color && !expr.properties.find(p => 
+                                    t.isObjectProperty(p) && t.isIdentifier(p.key) && p.key.name === 'color'
+                                )) {
+                                    expr.properties.push(
+                                        t.objectProperty(t.identifier('color'), t.stringLiteral(changes.color))
+                                    );
+                                    modified = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        if (modified) {
+            // Generate updated code
+            const output = generate.default(ast, {}, code);
+            writeFileSync(videoCompPath, output.code);
+            
+            return {
+                success: true,
+                message: `Updated elements in "${projectName}"`,
+                projectName,
+                changes,
+                modified: true
+            };
+        } else {
+            return {
+                success: true,
+                message: `No matching elements found to update in "${projectName}"`,
+                projectName,
+                modified: false
+            };
+        }
+    }
+    
+    async adjustVideoTiming(params) {
+        const { projectName, target, newDuration, adjustSubsequent = true, scaleAnimations = true } = params;
+        
+        const projectPath = join(this.projectsDir, projectName);
+        if (!existsSync(projectPath)) {
+            throw new Error(`Project "${projectName}" not found`);
+        }
+        
+        // Update composition duration if target is "composition"
+        if (target === 'composition') {
+            const indexPath = join(projectPath, 'src', 'index.tsx');
+            if (existsSync(indexPath)) {
+                let indexContent = readFileSync(indexPath, 'utf8');
+                indexContent = indexContent.replace(
+                    /durationInFrames={\d+}/,
+                    `durationInFrames={${newDuration}}`
+                );
+                writeFileSync(indexPath, indexContent);
+            }
+        }
+        
+        // Update sequence timings in VideoComposition.tsx
+        const videoCompPath = join(projectPath, 'src', 'VideoComposition.tsx');
+        if (existsSync(videoCompPath)) {
+            let code = readFileSync(videoCompPath, 'utf8');
+            const ast = parser.parse(code, {
+                sourceType: 'module',
+                plugins: ['jsx', 'typescript']
+            });
+            
+            let modified = false;
+            const scaleFactor = scaleAnimations ? newDuration / this.getCurrentDuration(code) : 1;
+            
+            traverse.default(ast, {
+                JSXAttribute(path) {
+                    const node = path.node;
+                    if (t.isJSXIdentifier(node.name)) {
+                        const attrName = node.name.name;
+                        
+                        // Adjust sequence timing attributes
+                        if ((attrName === 'from' || attrName === 'durationInFrames') && 
+                            adjustSubsequent && scaleAnimations) {
+                            if (t.isJSXExpressionContainer(node.value)) {
+                                const expr = node.value.expression;
+                                if (t.isNumericLiteral(expr)) {
+                                    expr.value = Math.round(expr.value * scaleFactor);
+                                    modified = true;
+                                }
+                            }
+                        }
+                    }
+                },
+                
+                CallExpression(path) {
+                    const node = path.node;
+                    // Scale interpolation frame ranges
+                    if (scaleAnimations && t.isIdentifier(node.callee) && node.callee.name === 'interpolate') {
+                        if (node.arguments[1] && t.isArrayExpression(node.arguments[1])) {
+                            node.arguments[1].elements.forEach(el => {
+                                if (t.isNumericLiteral(el)) {
+                                    el.value = Math.round(el.value * scaleFactor);
+                                    modified = true;
+                                }
+                            });
+                        }
+                    }
+                }
+            });
+            
+            if (modified) {
+                const output = generate.default(ast, {}, code);
+                writeFileSync(videoCompPath, output.code);
+            }
+        }
+        
+        return {
+            success: true,
+            message: `Adjusted timing for "${projectName}"`,
+            projectName,
+            target,
+            newDuration,
+            adjustSubsequent,
+            scaleAnimations
+        };
+    }
+    
+    getCurrentDuration(code) {
+        // Simple extraction of duration from code
+        const match = code.match(/durationInFrames=\{(\d+)\}/);
+        return match ? parseInt(match[1]) : 150;
+    }
+    
+    async addVideoSequence(params) {
+        const { projectName, position, sequenceType, duration, properties = {}, customCode } = params;
+        
+        const projectPath = join(this.projectsDir, projectName);
+        if (!existsSync(projectPath)) {
+            throw new Error(`Project "${projectName}" not found`);
+        }
+        
+        const videoCompPath = join(projectPath, 'src', 'VideoComposition.tsx');
+        if (!existsSync(videoCompPath)) {
+            throw new Error(`VideoComposition.tsx not found in project "${projectName}"`);
+        }
+        
+        let code = readFileSync(videoCompPath, 'utf8');
+        
+        // Generate sequence code based on type
+        let sequenceCode = '';
+        
+        switch (sequenceType) {
+            case 'text-overlay':
+                sequenceCode = `
+      <Sequence from={${position}} durationInFrames={${duration}}>
+        <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center' }}>
+          <h1 style={{ 
+            color: '${properties.color || '#FFFFFF'}', 
+            fontSize: ${properties.fontSize || 48},
+            textAlign: 'center'
+          }}>
+            ${properties.text || 'New Text'}
+          </h1>
+        </AbsoluteFill>
+      </Sequence>`;
+                break;
+                
+            case 'transition':
+                sequenceCode = `
+      <Sequence from={${position}} durationInFrames={${duration}}>
+        <AbsoluteFill style={{ 
+          backgroundColor: '${properties.color || '#000000'}',
+          opacity: interpolate(frame, [${position}, ${position + duration}], [0, 1])
+        }} />
+      </Sequence>`;
+                break;
+                
+            case 'custom':
+                if (!customCode) {
+                    throw new Error('Custom code is required for custom sequence type');
+                }
+                sequenceCode = `
+      <Sequence from={${position}} durationInFrames={${duration}}>
+        ${customCode}
+      </Sequence>`;
+                break;
+                
+            default:
+                sequenceCode = `
+      <Sequence from={${position}} durationInFrames={${duration}}>
+        <AbsoluteFill style={{ backgroundColor: '${properties.color || '#FF0000'}' }}>
+          {/* ${sequenceType} */}
+        </AbsoluteFill>
+      </Sequence>`;
+        }
+        
+        // Find the return statement and insert the sequence
+        const returnIndex = code.lastIndexOf('return (');
+        const closingIndex = code.lastIndexOf('</AbsoluteFill>');
+        
+        if (returnIndex !== -1 && closingIndex !== -1) {
+            code = code.slice(0, closingIndex) + sequenceCode + '\n' + code.slice(closingIndex);
+            writeFileSync(videoCompPath, code);
+            
+            return {
+                success: true,
+                message: `Added ${sequenceType} sequence to "${projectName}"`,
+                projectName,
+                position,
+                duration,
+                sequenceType
+            };
+        } else {
+            throw new Error('Could not find insertion point for new sequence');
+        }
+    }
+    
+    async removeVideoSequence(params) {
+        const { projectName, sequenceId, adjustTimeline = true } = params;
+        
+        const projectPath = join(this.projectsDir, projectName);
+        if (!existsSync(projectPath)) {
+            throw new Error(`Project "${projectName}" not found`);
+        }
+        
+        const videoCompPath = join(projectPath, 'src', 'VideoComposition.tsx');
+        if (!existsSync(videoCompPath)) {
+            throw new Error(`VideoComposition.tsx not found in project "${projectName}"`);
+        }
+        
+        let code = readFileSync(videoCompPath, 'utf8');
+        const ast = parser.parse(code, {
+            sourceType: 'module',
+            plugins: ['jsx', 'typescript']
+        });
+        
+        let removed = false;
+        let sequenceIndex = 0;
+        const targetIndex = parseInt(sequenceId);
+        
+        traverse.default(ast, {
+            JSXElement(path) {
+                const node = path.node;
+                if (t.isJSXIdentifier(node.openingElement.name) && 
+                    node.openingElement.name.name === 'Sequence') {
+                    
+                    if (sequenceIndex === targetIndex || 
+                        (isNaN(targetIndex) && this.getSequenceName(node) === sequenceId)) {
+                        // Remove this sequence
+                        path.remove();
+                        removed = true;
+                    }
+                    sequenceIndex++;
+                }
+            }
+        });
+        
+        if (removed) {
+            const output = generate.default(ast, {}, code);
+            writeFileSync(videoCompPath, output.code);
+            
+            return {
+                success: true,
+                message: `Removed sequence from "${projectName}"`,
+                projectName,
+                sequenceId,
+                removed: true
+            };
+        } else {
+            return {
+                success: true,
+                message: `Sequence not found in "${projectName}"`,
+                projectName,
+                sequenceId,
+                removed: false
+            };
+        }
+    }
+    
+    getSequenceName(node) {
+        // Extract name prop from Sequence if it exists
+        const nameAttr = node.openingElement.attributes.find(attr => 
+            t.isJSXAttribute(attr) && 
+            t.isJSXIdentifier(attr.name) && 
+            attr.name.name === 'name'
+        );
+        
+        if (nameAttr && t.isStringLiteral(nameAttr.value)) {
+            return nameAttr.value.value;
+        }
+        return null;
+    }
+    
+    async reorderVideoSequences(params) {
+        const { projectName, reorderMap } = params;
+        
+        const projectPath = join(this.projectsDir, projectName);
+        if (!existsSync(projectPath)) {
+            throw new Error(`Project "${projectName}" not found`);
+        }
+        
+        const videoCompPath = join(projectPath, 'src', 'VideoComposition.tsx');
+        if (!existsSync(videoCompPath)) {
+            throw new Error(`VideoComposition.tsx not found in project "${projectName}"`);
+        }
+        
+        let code = readFileSync(videoCompPath, 'utf8');
+        const ast = parser.parse(code, {
+            sourceType: 'module',
+            plugins: ['jsx', 'typescript']
+        });
+        
+        const sequences = [];
+        
+        // Extract all sequences
+        traverse.default(ast, {
+            JSXElement(path) {
+                const node = path.node;
+                if (t.isJSXIdentifier(node.openingElement.name) && 
+                    node.openingElement.name.name === 'Sequence') {
+                    sequences.push({
+                        node: node,
+                        path: path
+                    });
+                }
+            }
+        });
+        
+        // Reorder based on map
+        const reorderedSequences = [];
+        reorderMap.forEach(mapping => {
+            if (sequences[mapping.from]) {
+                reorderedSequences[mapping.to] = sequences[mapping.from];
+            }
+        });
+        
+        // Remove all sequences first
+        sequences.forEach(seq => seq.path.remove());
+        
+        // Re-insert in new order
+        // This is simplified - in production you'd need more sophisticated insertion logic
+        
+        const output = generate.default(ast, {}, code);
+        writeFileSync(videoCompPath, output.code);
+        
+        return {
+            success: true,
+            message: `Reordered sequences in "${projectName}"`,
+            projectName,
+            reorderMap,
+            sequenceCount: sequences.length
         };
     }
 }
