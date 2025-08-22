@@ -405,10 +405,45 @@ registerRoot(RemotionRoot);`);
                 },
                 dependencies: {
                     "react": "^18.0.0",
-                    "remotion": "^4.0.0"
+                    "react-dom": "^18.0.0",
+                    "remotion": "^4.0.0",
+                    "@remotion/cli": "^4.0.0"
                 }
             };
             writeFileSync(join(projectPath, 'package.json'), JSON.stringify(packageJson, null, 2));
+            
+            // Create remotion.config.ts for proper webpack configuration
+            const remotionConfig = `import { Config } from '@remotion/cli/config';
+
+// Set the image format for videos
+Config.setVideoImageFormat('jpeg');
+
+// Allow output files to be overwritten
+Config.setOverwriteOutput(true);
+
+// Webpack overrides to handle Node.js modules and fix HMR
+Config.overrideWebpackConfig((config) => {
+  return {
+    ...config,
+    resolve: {
+      ...config.resolve,
+      fallback: {
+        ...config.resolve?.fallback,
+        // These Node.js modules aren't needed in the browser
+        fs: false,
+        path: false,
+        os: false,
+        crypto: false,
+        stream: false,
+        buffer: false,
+        util: false,
+        assert: false,
+        process: false,
+      },
+    },
+  };
+});`;
+            writeFileSync(join(projectPath, 'remotion.config.ts'), remotionConfig);
             
             // Create a root index file for Remotion registration in project root
             const rootIndex = join(projectPath, 'Root.tsx');
