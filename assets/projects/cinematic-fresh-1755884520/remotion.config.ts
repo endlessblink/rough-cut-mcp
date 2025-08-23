@@ -13,6 +13,7 @@ Config.setCachingEnabled(false);
 Config.overrideWebpackConfig((config) => {
   return {
     ...config,
+    cache: false, // Completely disable webpack cache
     resolve: {
       ...config.resolve,
       fallback: {

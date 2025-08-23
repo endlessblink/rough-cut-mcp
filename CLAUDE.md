@@ -1,10 +1,11 @@
 # 🎯 ROUGHCUT MCP - MISSION CRITICAL CONFIGURATION
 
-## ✅ STATUS: FULLY OPERATIONAL! (January 22, 2025)
+## ✅ STATUS: FULLY OPERATIONAL! (August 22, 2025)
 
-**THE MCP IS WORKING**: Claude Desktop successfully generates videos through the RoughCut MCP server.
+**THE MCP IS WORKING**: Claude Desktop successfully generates AND EDITS videos through the RoughCut MCP server.
 - **SUCCESS ACHIEVED**: MCP receives animation requests → generates Remotion code → launches studio → renders video
-- **ALL CRITICAL ISSUES RESOLVED**: WSL2 browser opening ✅ | Port detection ✅ | Studio launch ✅ | RegisterRoot ✅
+- **VIDEO EDITING SYSTEM**: Complete AST-based editing pipeline for modifying existing videos
+- **ALL CRITICAL ISSUES RESOLVED**: WSL2 browser opening ✅ | Port detection ✅ | Studio launch ✅ | RegisterRoot ✅ | Cache management ✅
 
 ## 🚫 EXPLICITLY OUT OF SCOPE
 - ❌ Alternative video generation methods
@@ -12,6 +13,8 @@
 - ❌ External API integrations (except required Remotion)
 - ❌ Manual video creation workflows
 - ❌ Any solution that bypasses the MCP
+- ❌ **DIRECT FILE EDITING** - Claude Code must NEVER edit VideoComposition.tsx files directly
+- ❌ **MANUAL CODE CHANGES** - All video edits must go through MCP tools ONLY
 
 ## ✅ MCP OPERATIONAL REQUIREMENTS
 1. **Claude Desktop Integration**: MCP must receive and process tool calls
@@ -21,10 +24,34 @@
 5. **Error Handling**: Clear feedback when operations fail
 
 ## 🔧 CRITICAL MCP COMPONENTS
+
+### Core Video Creation
 - `index-clean.js` - Main MCP server (THIS IS THE PRIORITY)
 - `create-complete-video` - Must accept compositionCode from Claude
 - `launch-remotion-studio` - Must actually launch and verify
 - `fix-project-config` - Must fix broken projects
+
+### 🎬 VIDEO EDITING SYSTEM (MCP TOOLS ONLY!)
+**MANDATORY**: Claude Desktop must use ONLY these MCP tools for video editing:
+
+#### Analysis Tools
+- `analyze-video-structure` - Parse existing videos to understand sequences, elements, timings
+
+#### Element Editing Tools  
+- `edit-video-element` - Modify text, colors, positions, animations in existing videos
+- `adjust-video-timing` - Change duration, scale animations proportionally
+- `add-video-sequence` - Insert new sequences at specific timeline positions
+- `remove-video-sequence` - Delete sequences with automatic timeline adjustment
+- `reorder-video-sequences` - Rearrange sequence order in timeline
+
+#### Project Management Tools
+- `list-video-projects` - See all available video projects
+- `open-specific-project` - Launch specific project with cache clearing
+- `clear-project-cache` - Clear all caches and restart fresh
+- `update-video-props` - Modify Zod schema props for sidebar editing
+- `get-video-props` - Retrieve current props configuration
+
+**🚨 CRITICAL RULE**: NEVER edit VideoComposition.tsx files directly through Claude Code tools. ALL video changes must go through these MCP tools ONLY.
 
 ## 🎉 WORKING FEATURES (CONFIRMED)
 1. **WSL2 Browser Auto-Opening** - Uses cmd.exe to open Windows browser from WSL2
@@ -42,7 +69,8 @@ When MCP isn't working, check IN THIS ORDER:
 5. **Are dependencies installed?** - Verify node_modules exists
 
 ## 🎬 MCP WORKFLOW VALIDATION
-The MCP must support this exact flow:
+
+### Video Creation Flow
 ```
 Claude Desktop → "Create animation of X" 
     ↓
@@ -56,7 +84,25 @@ Renders video to MP4
     ↓
 Returns success with video path
 ```
-**ANY DEVIATION FROM THIS FLOW IS A BUG TO FIX**
+
+### 🎯 VIDEO EDITING FLOW (MANDATORY FOR CLAUDE DESKTOP)
+```
+Claude Desktop → "Edit this video to center elements"
+    ↓
+MCP: analyze-video-structure → Returns video components 
+    ↓
+MCP: edit-video-element → Applies centering fixes via AST manipulation
+    ↓
+MCP: clear-project-cache → Clears all caches
+    ↓
+MCP: open-specific-project → Launches on fresh port with updates
+    ↓
+Returns success with new studio URL
+```
+
+**🚨 CRITICAL**: Claude Desktop must NEVER ask Claude Code to edit files directly. Always use MCP tools for any video changes.
+
+**ANY DEVIATION FROM THESE FLOWS IS A BUG TO FIX**
 
 ## 🚨 CRITICAL: CONCURRENT EXECUTION & FILE MANAGEMENT
 
