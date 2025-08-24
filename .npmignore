@@ -1,0 +1,294 @@
+# Source code (build/ folder is published instead)
+src/
+tsconfig.json
+.eslintrc*
+.prettierrc*
+
+# Development and testing
+tests/
+test-*/
+coverage/
+.nyc_output/
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+jest.config.js
+vitest.config.ts
+
+# Development scripts
+scripts/
+build-*.ps1
+build-*.bat
+test-*.ps1
+test-*.bat
+run-setup.ps1
+update-*.ps1
+safe-*.ps1
+fix-*.ps1
+install-*.ps1
+validate-*.ps1
+
+# Documentation source files
+Docs/
+docs/src/
+*.md.backup
+session-dropoff-*.md
+SESSION-DROPOFF-*.md
+DEPLOYMENT-GUIDE.md
+LAYERED-TOOLS-GUIDE.md
+SCRIPTS-README.md
+TESTING.md
+
+# Development configuration
+.env*
+!.env.example
+.vscode/
+.idea/
+.sublime*
+*.swp
+*.swo
+*~
+
+# Git files
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD configuration
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+azure-pipelines.yml
+appveyor.yml
+codecov.yml
+
+# Package manager files
+.npmrc
+.yarnrc
+yarn.lock
+pnpm-lock.yaml
+.pnpm-debug.log
+
+# Build artifacts not needed in package
+*.tsbuildinfo
+.eslintcache
+.cache/
+.parcel-cache/
+.webpack/
+
+# Assets that are too large for package
+assets/projects/*/
+assets/videos/
+assets/voices/
+assets/images/
+assets/sounds/
+assets/cache/
+assets/temp/
+
+# Keep essential asset directories structure
+!assets/projects/.gitkeep
+!assets/videos/.gitkeep
+!assets/voices/.gitkeep
+!assets/images/.gitkeep
+!assets/sounds/.gitkeep
+!assets/cache/.gitkeep
+!assets/temp/.gitkeep
+
+# Studio project template (keep this)
+!assets/studio-project/
+
+# Performance and testing outputs
+performance-results/
+benchmark-outputs/
+memory-profiles/
+security-reports/
+audit-results/
+
+# Local development
+local/
+dev-assets/
+dev-temp/
+.tmp/
+tmp/
+temp/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+lerna-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.fseventsd
+.DocumentRevisions-V100
+.TemporaryItems
+.AppleDouble
+.LSOverride
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Backup files
+*.backup*
+*.bak
+*~
+
+# Editor temporaries
+*.swp
+*.swo
+*.tmp
+
+# Media files (too large)
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.webm
+*.wav
+*.mp3
+*.aac
+*.flac
+*.ogg
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.bmp
+*.svg
+*.webp
+
+# Exceptions: Keep example/demo files
+!examples/**
+!docs/**/*.png
+!docs/**/*.jpg
+
+# Development dependencies that aren't needed
+node_modules/
+jspm_packages/
+
+# Optional dependencies
+.optional/
+
+# Claude Desktop config (user-specific)
+claude-config-*.json
+claude_desktop_config.json
+
+# MCP Server specific files
+.mcp.json
+
+# Database files
+*.db
+*.db-journal
+*.db-wal
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite3
+
+# Compressed files
+*.zip
+*.rar
+*.7z
+*.tar.gz
+*.tgz
+
+# Platform-specific files
+.windows-build/
+.mac-build/
+.linux-build/
+
+# IDE project files
+.project
+.settings/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Yarn
+.yarn-integrity
+.yarn/
+.pnp.*
+
+# Package lock files (not needed in published package)
+package-lock.json
+
+# Test coverage
+*.lcov
+
+# Temporary test outputs
+test-e2e-output/
+test-integration-output/
+test-performance-output/
+
+# Remotion specific
+remotion.config.ts.backup
+remotion-cache/
+
+# Generated templates (these are created at runtime)
+src/templates/animations.ts
+src/templates/generated-*.ts
+
+# Studio metadata (project-specific)
+.studio-metadata.json
+*.studio-port.json
+
+# Development helpers
+*.config.local.*
+.local.*
+
+# MacOS Finder
+Icon?
+
+# Windows
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Security
+*.key
+api-keys.json
+secrets.json
+
+# Storybook
+.out/
+.storybook-out/
+storybook-static/
+
+# Nx
+.nx/cache
+.nx/tmp
+
+# Rush
+common/temp/
+
+# IDE configurations
+.fleet/
+
+# AI and development tools
+*.prompt
+ai-prompts/

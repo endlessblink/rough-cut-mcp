@@ -1,6 +1,6 @@
 // Image generation MCP tools using Flux
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { MCPConfig } from '../types/index.js';
+import { MCPConfig, ToolHandlers } from '../types/index.js';
 import { ImageGenerationSchema } from '../utils/validation.js';
 import { FluxService } from '../services/flux.js';
 import { FileManagerService } from '../services/file-manager.js';
@@ -236,7 +236,7 @@ export function createImageTools(config: MCPConfig): Tool[] {
   ];
 }
 
-export function createImageHandlers(config: MCPConfig) {
+export function createImageHandlers(config: MCPConfig): ToolHandlers {
   const logger = getLogger().service('ImageHandlers');
   
   if (!config.apiKeys.flux) {

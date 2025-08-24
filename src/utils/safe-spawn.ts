@@ -260,6 +260,40 @@ export async function safeSpawn(
 }
 
 /**
+ * Safely install npm dependencies for a project
+ * Windows-optimized npm installation
+ */
+export async function safeNpmInstall(
+  projectPath: string,
+  timeout: number = 120000
+): Promise<SafeSpawnResult> {
+  logger.info('Installing npm dependencies', { 
+    projectPath 
+  });
+  
+  // Use npm.cmd on Windows, npm on Unix
+  const isWindows = process.platform === 'win32';
+  const npmCommand = isWindows ? 'npm.cmd' : 'npm';
+  
+  // First check if npm is available
+  const npmExists = await commandExists(npmCommand);
+  if (!npmExists) {
+    logger.error('npm not found in PATH');
+    return {
+      success: false,
+      error: 'npm is not installed or not in PATH'
+    };
+  }
+  
+  // Run npm install with safe spawn
+  return safeSpawn(npmCommand, ['install'], {
+    cwd: projectPath,
+    stdio: 'pipe',
+    timeout
+  });
+}
+
+/**
  * Get installation instructions for missing tools
  */
 export function getInstallInstructions(tool: string): string[] {
@@ -287,7 +321,7 @@ export function getInstallInstructions(tool: string): string[] {
         'To fix this:',
         '1. Ensure Node.js is installed: https://nodejs.org/',
         '2. Verify npm is in your PATH: npm --version',
-        '3. If using WSL2, you may need to reinstall Node.js in the Linux environment'
+        '3. Restart your terminal after installation'
       ];
     
     default:

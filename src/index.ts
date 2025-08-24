@@ -1,6 +1,16 @@
 #!/usr/bin/env node
 
 // Main MCP server entry point for Remotion Creative MCP Server
+
+// Platform validation - must be Windows for Claude Desktop
+if (process.platform !== 'win32') {
+  // Use stderr to avoid breaking MCP protocol on stdout
+  process.stderr.write('❌ ERROR: This MCP server only runs on Windows\n');
+  process.stderr.write(`Current platform: ${process.platform}\n`);
+  process.stderr.write('Claude Desktop is a Windows application and requires Windows execution.\n');
+  process.exit(1);
+}
+
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
@@ -8,6 +18,9 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { loadConfig, logConfig, validateApiKeys, getAssetPath } from './utils/config.js';
 import { initLogger, getLogger } from './utils/logger.js';
 import { FileManagerService } from './services/file-manager.js';
+import { ToolRegistry } from './services/tool-registry.js';
+import { ToolCategory } from './types/tool-categories.js';
+import { ToolHandlers } from './types/index.js';
 
 // Tool imports
 import { createVideoCreationTools, createVideoCreationHandlers } from './tools/video-creation.js';
@@ -15,6 +28,8 @@ import { createVoiceTools, createVoiceHandlers } from './tools/voice-tools.js';
 import { createSoundTools, createSoundHandlers } from './tools/sound-tools.js';
 import { createImageTools, createImageHandlers } from './tools/image-tools.js';
 import { createStudioTools, createStudioHandlers } from './tools/studio-tools.js';
+import { createProjectManagementTools, createProjectManagementHandlers } from './tools/project-management.js';
+import { createDiscoveryTools, createDiscoveryHandlers, getDiscoveryToolsMetadata } from './tools/discovery-tools.js';
 
 /**
  * Main server class for Remotion Creative MCP Server
@@ -24,12 +39,17 @@ class RemotionCreativeMCPServer {
   private config: any;
   private logger: any;
   private fileManager: FileManagerService;
+  private toolRegistry: ToolRegistry;
   private toolHandlers: Record<string, Function> = {};
   private tools: any[] = [];
 
   constructor() {
     // Load configuration
     this.config = loadConfig();
+    
+    // Check for legacy mode from environment or config
+    const legacyMode = process.env.MCP_LEGACY_MODE === 'true' || 
+                      this.config.toolOrganization?.legacyMode === true;
     
     // Initialize logging (disable file logging for MCP compatibility)
     this.logger = initLogger(
@@ -39,6 +59,9 @@ class RemotionCreativeMCPServer {
 
     // Initialize file manager
     this.fileManager = new FileManagerService(this.config);
+
+    // Initialize tool registry
+    this.toolRegistry = new ToolRegistry(this.config, legacyMode);
 
     // Create MCP server
     this.server = new Server(
@@ -53,7 +76,9 @@ class RemotionCreativeMCPServer {
       }
     );
 
-    this.logger.info('Rough Cut MCP Server initializing');
+    this.logger.info('Rough Cut MCP Server initializing', { 
+      mode: legacyMode ? 'legacy' : 'layered' 
+    });
   }
 
   /**
@@ -136,20 +161,52 @@ class RemotionCreativeMCPServer {
    * Register all MCP tools
    */
   private async registerTools(): Promise<void> {
-    const allTools = [];
+    // First, always register discovery tools (they're always active)
+    const discoveryTools = createDiscoveryTools(this.toolRegistry);
+    const discoveryHandlers = createDiscoveryHandlers(this.toolRegistry);
+    const discoveryMetadata = getDiscoveryToolsMetadata();
     
+    for (let i = 0; i < discoveryTools.length; i++) {
+      this.toolRegistry.registerTool(
+        discoveryTools[i],
+        discoveryHandlers[discoveryTools[i].name],
+        discoveryMetadata[i]
+      );
+    }
+    this.logger.info('Discovery tools registered');
+
+    // Register all other tools to the registry (but not necessarily activate them)
+    // The registry will handle activation based on mode and defaults
+
     // Video creation tools (core functionality)
     const videoTools = createVideoCreationTools(this.config);
     const videoHandlers = createVideoCreationHandlers(this.config);
-    allTools.push(...videoTools);
-    Object.assign(this.toolHandlers, videoHandlers);
+    for (const tool of videoTools) {
+      this.toolRegistry.registerTool(tool, videoHandlers[tool.name], {
+        name: tool.name,
+        category: ToolCategory.VIDEO_CREATION,
+        tags: ['video', 'creation', 'animation'],
+        loadByDefault: false,
+        priority: 20,
+        estimatedTokens: 200,
+      });
+    }
 
     // Voice generation tools (if ElevenLabs API key available)
     if (this.config.apiKeys.elevenlabs) {
       const voiceTools = createVoiceTools(this.config);
       const voiceHandlers = createVoiceHandlers(this.config);
-      allTools.push(...voiceTools);
-      Object.assign(this.toolHandlers, voiceHandlers);
+      for (const tool of voiceTools) {
+        this.toolRegistry.registerTool(tool, voiceHandlers[tool.name], {
+          name: tool.name,
+          category: ToolCategory.VOICE_GENERATION,
+          tags: ['voice', 'audio', 'elevenlabs', 'tts'],
+          loadByDefault: false,
+          priority: 30,
+          requiresApiKey: 'elevenlabs',
+          estimatedTokens: 150,
+        });
+      }
       this.logger.info('Voice generation tools registered');
     } else {
       this.logger.warn('ElevenLabs API key not found - voice tools disabled');
@@ -159,8 +216,17 @@ class RemotionCreativeMCPServer {
     if (this.config.apiKeys.freesound) {
       const soundTools = createSoundTools(this.config);
       const soundHandlers = createSoundHandlers(this.config);
-      allTools.push(...soundTools);
-      Object.assign(this.toolHandlers, soundHandlers);
+      for (const tool of soundTools) {
+        this.toolRegistry.registerTool(tool, soundHandlers[tool.name], {
+          name: tool.name,
+          category: ToolCategory.SOUND_EFFECTS,
+          tags: ['sound', 'audio', 'effects', 'freesound'],
+          loadByDefault: false,
+          priority: 35,
+          requiresApiKey: 'freesound',
+          estimatedTokens: 140,
+        });
+      }
       this.logger.info('Sound effects tools registered');
     } else {
       this.logger.warn('Freesound API key not found - sound tools disabled');
@@ -170,8 +236,17 @@ class RemotionCreativeMCPServer {
     if (this.config.apiKeys.flux) {
       const imageTools = createImageTools(this.config);
       const imageHandlers = createImageHandlers(this.config);
-      allTools.push(...imageTools);
-      Object.assign(this.toolHandlers, imageHandlers);
+      for (const tool of imageTools) {
+        this.toolRegistry.registerTool(tool, imageHandlers[tool.name], {
+          name: tool.name,
+          category: ToolCategory.IMAGE_GENERATION,
+          tags: ['image', 'generation', 'ai', 'flux'],
+          loadByDefault: false,
+          priority: 40,
+          requiresApiKey: 'flux',
+          estimatedTokens: 160,
+        });
+      }
       this.logger.info('Image generation tools registered');
     } else {
       this.logger.warn('Flux API key not found - image tools disabled');
@@ -179,26 +254,71 @@ class RemotionCreativeMCPServer {
 
     // Asset management tools (always available)
     this.registerAssetManagementTools();
-    allTools.push(...this.getAssetManagementTools());
+    const assetTools = this.getAssetManagementTools();
+    const assetHandlers = this.getAssetHandlers();
+    for (const tool of assetTools) {
+      this.toolRegistry.registerTool(tool, assetHandlers[tool.name], {
+        name: tool.name,
+        category: ToolCategory.MAINTENANCE,
+        tags: ['assets', 'cleanup', 'maintenance', 'disk'],
+        loadByDefault: false,
+        priority: 50,
+        estimatedTokens: 120,
+      });
+    }
 
     // Remotion Studio tools (always available)
     const studioTools = createStudioTools(this.config);
     const studioHandlers = createStudioHandlers(this.config);
-    allTools.push(...studioTools);
-    Object.assign(this.toolHandlers, studioHandlers);
+    for (const tool of studioTools) {
+      this.toolRegistry.registerTool(tool, studioHandlers[tool.name], {
+        name: tool.name,
+        category: ToolCategory.STUDIO_MANAGEMENT,
+        tags: ['studio', 'remotion', 'preview', 'development'],
+        loadByDefault: false,
+        priority: 25,
+        estimatedTokens: 125,
+      });
+    }
     this.logger.info('Remotion Studio tools registered');
 
-    this.logger.info(`Registered ${allTools.length} tools total`);
+    // Project management and video editing tools (always available)
+    const projectTools = createProjectManagementTools(this.config);
+    const projectHandlers = createProjectManagementHandlers(this.config);
+    
+    // These are core operations - should be loaded by default
+    const coreProjectTools = ['list-video-projects', 'get-project-status', 'launch-project-studio'];
+    
+    for (const tool of projectTools) {
+      const isCore = coreProjectTools.includes(tool.name);
+      this.toolRegistry.registerTool(tool, projectHandlers[tool.name], {
+        name: tool.name,
+        category: isCore ? ToolCategory.CORE_OPERATIONS : ToolCategory.VIDEO_CREATION,
+        tags: ['project', 'management', 'video', 'editing'],
+        loadByDefault: isCore,
+        priority: isCore ? 10 : 22,
+        estimatedTokens: 180,
+      });
+    }
+    this.logger.info('Project management tools registered');
 
-    // Store tools for list_tools handler
-    this.tools = allTools;
+    // Initialize default tools based on mode
+    this.toolRegistry.initializeDefaults();
+
+    const activeTools = this.toolRegistry.getActiveTools();
+    this.logger.info(`Tool registration complete`, {
+      mode: this.toolRegistry.getMode(),
+      totalRegistered: assetTools.length + discoveryTools.length + videoTools.length + 
+                      studioTools.length + projectTools.length,
+      currentlyActive: activeTools.length,
+    });
   }
 
   /**
-   * Register asset management tools
+   * Get asset management handlers
    */
-  private registerAssetManagementTools(): void {
-    const assetHandlers = {
+  private getAssetHandlers(): ToolHandlers {
+    return {
       'get-asset-statistics': async () => {
         this.logger.info('Getting asset statistics');
         const stats = await this.fileManager.getAssetStatistics();
@@ -258,7 +378,13 @@ class RemotionCreativeMCPServer {
         };
       },
     };
+  }
 
+  /**
+   * Register asset management tools
+   */
+  private registerAssetManagementTools(): void {
+    const assetHandlers = this.getAssetHandlers();
     Object.assign(this.toolHandlers, assetHandlers);
   }
 
@@ -271,7 +397,7 @@ class RemotionCreativeMCPServer {
         name: 'get-asset-statistics',
         description: 'Get comprehensive statistics about stored assets',
         inputSchema: {
-          type: 'object',
+          type: 'object' as const,
           properties: {},
         },
       },
@@ -279,7 +405,7 @@ class RemotionCreativeMCPServer {
         name: 'cleanup-old-assets',
         description: 'Clean up old assets based on age',
         inputSchema: {
-          type: 'object',
+          type: 'object' as const,
           properties: {
             maxAgeHours: {
               type: 'number',
@@ -298,7 +424,7 @@ class RemotionCreativeMCPServer {
         name: 'organize-assets',
         description: 'Organize assets by moving them to appropriate directories',
         inputSchema: {
-          type: 'object',
+          type: 'object' as const,
           properties: {},
         },
       },
@@ -306,7 +432,7 @@ class RemotionCreativeMCPServer {
         name: 'get-disk-usage',
         description: 'Get disk usage information for asset directories',
         inputSchema: {
-          type: 'object',
+          type: 'object' as const,
           properties: {},
         },
       },
@@ -317,22 +443,33 @@ class RemotionCreativeMCPServer {
    * Set up MCP request handlers
    */
   private setupRequestHandlers(): void {
-    // List tools handler
+    // List tools handler - now uses tool registry
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
+      const activeTools = this.toolRegistry.getActiveTools();
       return {
-        tools: this.tools || [],
+        tools: activeTools,
       };
     });
 
-    // Call tool handler
+    // Call tool handler - now uses tool registry
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
       
       this.logger.info(`Tool called: ${name}`, { args: Object.keys(args || {}) });
 
       try {
-        const handler = this.toolHandlers[name];
+        // Get handler from registry (which also tracks usage)
+        const handler = this.toolRegistry.getToolHandler(name);
         if (!handler) {
+          // Check if tool exists but is not active
+          const searchResults = this.toolRegistry.searchTools({ query: name, limit: 1 });
+          if (searchResults.length > 0) {
+            const tool = searchResults[0];
+            throw new Error(
+              `Tool '${name}' exists but is not active. ` +
+              `Use 'activate-toolset' with category '${tool.metadata.category}' to enable it.`
+            );
+          }
           throw new Error(`Unknown tool: ${name}`);
         }
 
@@ -386,14 +523,29 @@ class RemotionCreativeMCPServer {
    * Get registered tools (for testing)
    */
   getTools() {
-    return this.tools;
+    return this.toolRegistry.getActiveTools();
   }
 
   /**
    * Get tool handlers (for testing)
    */
   getToolHandlers() {
-    return this.toolHandlers;
+    // Return a proxy object that uses the registry
+    return new Proxy({}, {
+      get: (target, prop) => {
+        if (typeof prop === 'string') {
+          return this.toolRegistry.getToolHandler(prop);
+        }
+        return undefined;
+      }
+    });
+  }
+
+  /**
+   * Get tool registry (for advanced testing)
+   */
+  getToolRegistry() {
+    return this.toolRegistry;
   }
 
   /**
@@ -424,7 +576,8 @@ function main(): void {
   let server: RemotionCreativeMCPServer | null = null;
 
   try {
-    console.error('Starting Rough Cut MCP Server...');
+    // MCP servers must not output to console - use logger instead
+    // logger.info('Starting Rough Cut MCP Server...');
     server = new RemotionCreativeMCPServer();
 
     // Connect transport immediately - CRITICAL for MCP protocol
@@ -432,23 +585,23 @@ function main(): void {
     
     // Initialize tools and assets asynchronously (won't block protocol)
     server.initialize().then(() => {
-      console.error('✅ Rough Cut MCP Server fully initialized and ready');
+      // logger.info('✅ Rough Cut MCP Server fully initialized and ready');
     }).catch((error) => {
-      console.error('⚠️  Initialization warning:', error.message || error);
-      console.error('Server can still respond to basic protocol messages');
+      // logger.warn('⚠️  Initialization warning:', error.message || error);
+      // logger.warn('Server can still respond to basic protocol messages');
       // Log more details for debugging
       if (error.stack) {
-        console.error('Stack trace:', error.stack);
+        // logger.debug('Stack trace:', error.stack);
       }
     });
   } catch (error) {
-    console.error('❌ Failed to start MCP Server:', error);
+    // logger.error('❌ Failed to start MCP Server:', error);
     process.exit(1);
   }
 
   // Handle process signals for graceful shutdown
   process.on('SIGINT', async () => {
-    console.error('\\nReceived SIGINT, shutting down gracefully...');
+    // logger.info('Received SIGINT, shutting down gracefully...');
     if (server) {
       await server.shutdown();
     }
@@ -456,7 +609,7 @@ function main(): void {
   });
 
   process.on('SIGTERM', async () => {
-    console.error('\\nReceived SIGTERM, shutting down gracefully...');
+    // logger.info('Received SIGTERM, shutting down gracefully...');
     if (server) {
       await server.shutdown();
     }
@@ -464,12 +617,12 @@ function main(): void {
   });
 
   process.on('uncaughtException', (error) => {
-    console.error('Uncaught Exception:', error);
+    // logger.error('Uncaught Exception:', error);
     process.exit(1);
   });
 
   process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    // logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
     // Don't exit on unhandled rejections - log and continue
   });
 }

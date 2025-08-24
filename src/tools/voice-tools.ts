@@ -1,6 +1,6 @@
 // Voice generation MCP tools using ElevenLabs
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { MCPConfig } from '../types/index.js';
+import { MCPConfig, ToolHandlers } from '../types/index.js';
 import { VoiceGenerationSchema } from '../utils/validation.js';
 import { ElevenLabsService } from '../services/elevenlabs.js';
 import { FileManagerService } from '../services/file-manager.js';
@@ -120,7 +120,7 @@ export function createVoiceTools(config: MCPConfig): Tool[] {
   ];
 }
 
-export function createVoiceHandlers(config: MCPConfig) {
+export function createVoiceHandlers(config: MCPConfig): ToolHandlers {
   const logger = getLogger().service('VoiceHandlers');
   
   if (!config.apiKeys.elevenlabs) {

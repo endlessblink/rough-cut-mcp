@@ -42,8 +42,21 @@ const ConfigSchema = z.object({
  * Load and validate configuration from environment variables
  */
 export function loadConfig(): MCPConfig {
+  // Resolve assets directory - Windows paths only
+  let assetsDir = process.env.REMOTION_ASSETS_DIR;
+  
+  if (!assetsDir) {
+    // Fallback: resolve relative to the build directory (where index.js is located)
+    // For Windows: Need to go up from build/ to project root, then to assets/
+    const projectRoot = path.resolve(__dirname, '../../');
+    assetsDir = path.join(projectRoot, 'assets');
+    // logger.info(`REMOTION_ASSETS_DIR not set, using fallback: ${assetsDir}`);
+  } else {
+    // logger.info(`REMOTION_ASSETS_DIR set to: ${assetsDir}`);
+  }
+
   const rawConfig = {
-    assetsDir: process.env.REMOTION_ASSETS_DIR || './assets',
+    assetsDir: assetsDir,
     apiKeys: {
       elevenlabs: process.env.ELEVENLABS_API_KEY,
       freesound: process.env.FREESOUND_API_KEY,
@@ -72,9 +85,9 @@ export function loadConfig(): MCPConfig {
     return ConfigSchema.parse(rawConfig);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error('Configuration validation failed:');
+      // logger.error('Configuration validation failed:');
       error.errors.forEach((err) => {
-        console.error(`  ${err.path.join('.')}: ${err.message}`);
+        // logger.error(`  ${err.path.join('.')}: ${err.message}`);
       });
       throw new Error('Invalid configuration. Please check your environment variables.');
     }
@@ -106,7 +119,7 @@ export function validateApiKeys(config: MCPConfig, requiredServices: string[]): 
         }
         break;
       default:
-        console.warn(`Unknown service: ${service}`);
+        // logger.warn(`Unknown service: ${service}`);
     }
   }
 
@@ -140,6 +153,6 @@ export function logConfig(config: MCPConfig): void {
 
   // Debug logging to stderr to avoid breaking MCP protocol
   if (process.env.MCP_DEBUG === 'true') {
-    console.error('Loaded configuration:', JSON.stringify(safeConfig, null, 2));
+    // logger.debug('Loaded configuration:', JSON.stringify(safeConfig, null, 2));
   }
 }

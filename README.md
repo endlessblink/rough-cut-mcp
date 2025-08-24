@@ -1,266 +1,431 @@
-# Rough Cut MCP
+# 🎬 Rough Cut MCP
 
 A comprehensive Model Context Protocol (MCP) server that integrates Remotion video creation with AI-powered services for complete video production workflows.
 
-## Features
+[![npm version](https://badge.fury.io/js/rough-cut-mcp.svg)](https://badge.fury.io/js/rough-cut-mcp)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org/)
 
-🎬 **Complete Video Production Pipeline**
+## ✨ Features
+
+### 🎬 Complete Video Production Pipeline
 - **Remotion**: Programmatic video creation and rendering
 - **ElevenLabs**: AI voice generation for narration
-- **Freesound**: Sound effects search and download
-- **Flux (Black Forest Labs)**: AI image generation
+- **Freesound**: Sound effects search and download  
+- **Flux AI**: AI image generation for visual assets
 
-🛠 **Modular Architecture**
-- Service-based design for easy testing and maintenance
-- Comprehensive error handling and retry mechanisms
-- Asset lifecycle management with automatic cleanup
-- TypeScript with strict type checking
+### 🛠 Modular Architecture
+- **Layered Tool System**: Reduces context bloat, improves performance
+- **Port Persistence**: Projects remember their studio ports across sessions
+- **Comprehensive Error Handling**: Graceful failure recovery
+- **Asset Lifecycle Management**: Automatic cleanup and organization
+- **TypeScript**: Full type safety throughout
 
-📊 **Asset Management**
+### 📊 Smart Asset Management  
 - Automatic directory organization
-- Disk usage monitoring
-- Old asset cleanup
+- Disk usage monitoring and cleanup
 - File type validation
+- Project metadata tracking
 
-## Installation
+## 🚀 Quick Start
 
-### Prerequisites
-- Node.js 18+ 
-- API keys for the services you want to use:
-  - ElevenLabs (for voice generation)
-  - Freesound (for sound effects)
-  - Flux/Black Forest Labs (for image generation)
+### Installation
 
-### Setup
+```bash
+# Install globally
+npm install -g rough-cut-mcp
 
-1. **Clone and install dependencies:**
-   ```bash
-   git clone <repository>
-   cd remotion-creative-mcp
-   npm install
-   ```
-
-2. **Configure environment variables:**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your API keys
-   ```
-
-3. **Build the project:**
-   ```bash
-   npm run build
-   ```
-
-4. **Start the MCP server:**
-   ```bash
-   npm start
-   ```
-
-## Environment Configuration
-
-Create a `.env` file with the following variables:
-
-```env
-# Asset Storage
-REMOTION_ASSETS_DIR=./assets
-
-# API Keys (optional - tools will be disabled if not provided)
-ELEVENLABS_API_KEY=your-elevenlabs-api-key
-FREESOUND_API_KEY=your-freesound-api-key
-FLUX_API_KEY=your-flux-api-key
-
-# Optional Configuration
-REMOTION_CONCURRENCY=1
-REMOTION_TIMEOUT=30000
-CLEANUP_TEMP_FILES=true
-MAX_ASSET_AGE_HOURS=24
-LOG_LEVEL=info
+# Or install locally in your project
+npm install rough-cut-mcp
 ```
 
-## Available Tools
+### Automatic Claude Desktop Setup
 
-### Video Creation Tools
+```bash
+# Automatically configure Claude Desktop
+npx rough-cut-mcp install-to-claude
+```
 
-**`create-complete-video`** - Create a full video with AI-generated assets
-- Combines voice narration, sound effects, and images
-- Automatic asset generation and video composition
-- Customizable duration, style, and dimensions
+This will:
+1. Build the project
+2. Find your Claude Desktop configuration
+3. Add the MCP server entry
+4. Provide setup instructions
 
-**`create-text-video`** - Create simple text-only videos
-- Quick video generation with text overlay
-- Customizable styling and duration
+### Manual Configuration
 
-**`generate-video-assets`** - Generate individual assets for video projects
-- Voice tracks, images, and sound effects
-- Parallel generation for efficiency
-
-**`estimate-render-time`** - Get rendering time estimates
-- Based on duration, complexity, and asset count
-
-### Voice Generation Tools (ElevenLabs)
-
-**`generate-voice`** - Convert text to speech
-**`list-voices`** - Get available voice options
-**`get-voice-details`** - Voice information and settings
-**`test-voice-generation`** - Test voice with sample text
-**`batch-generate-voice`** - Multiple voice clips at once
-
-### Sound Effects Tools (Freesound)
-
-**`search-sound-effects`** - Search and optionally download SFX
-**`download-sound-effects`** - Download specific sound effects
-**`get-sound-details`** - Detailed sound information
-**`search-popular-sounds`** - Get popular sounds by category
-**`advanced-sound-search`** - Search with detailed filters
-
-### Image Generation Tools (Flux)
-
-**`generate-image`** - Create images from text prompts
-**`generate-image-variations`** - Multiple variations of an image
-**`generate-styled-image`** - Images with specific artistic styles
-**`batch-generate-images`** - Multiple images from different prompts
-**`optimize-image-prompt`** - Improve prompts for better results
-**`get-flux-models`** - Available models and capabilities
-
-### Asset Management Tools
-
-**`get-asset-statistics`** - Comprehensive asset statistics
-**`cleanup-old-assets`** - Remove old files based on age
-**`organize-assets`** - Sort assets into proper directories
-**`get-disk-usage`** - Storage usage information
-
-## Usage Examples
-
-### MCP Client Configuration
-
-Add to your MCP client configuration:
+Add to your Claude Desktop `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
-    "remotion-creative-mcp": {
-      "command": "node",
-      "args": ["/path/to/remotion-creative-mcp/build/index.js"]
+    "rough-cut-mcp": {
+      "command": "C:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "C:\\path\\to\\rough-cut-mcp\\build\\index.js"
+      ],
+      "env": {
+        "NODE_ENV": "production",
+        "REMOTION_ASSETS_DIR": "D:\\path\\to\\your\\assets"
+      }
     }
   }
 }
 ```
 
-### Example Tool Calls
+## 📋 Prerequisites
 
-**Create a complete video:**
-```json
-{
-  "tool": "create-complete-video",
-  "arguments": {
-    "animationDesc": "A serene morning landscape with gentle transitions",
-    "narration": "Welcome to this peaceful morning scene where nature awakens with the first light of dawn.",
-    "sfxDesc": ["gentle breeze", "bird sounds"],
-    "imageDesc": ["sunrise over mountains", "misty forest clearing"],
-    "duration": 30,
-    "style": "cinematic"
-  }
-}
-```
+- **Node.js 18+** 
+- **Windows OS** (primary platform, required for full Claude Desktop integration)
+- **macOS** (experimental support - see macOS Installation section below)
+- **API Keys** for services you want to use:
+  - [ElevenLabs](https://elevenlabs.io/) for voice generation
+  - [Freesound](https://freesound.org/apiv2/) for sound effects
+  - [Black Forest Labs](https://blackforestlabs.ai/) for Flux image generation
 
-**Generate voice narration:**
-```json
-{
-  "tool": "generate-voice",
-  "arguments": {
-    "text": "This is a sample narration for your video project.",
-    "voiceId": "Adam",
-    "modelId": "eleven_multilingual_v2"
-  }
-}
-```
+## 🍎 macOS Installation (Experimental)
 
-**Search for sound effects:**
-```json
-{
-  "tool": "search-sound-effects",
-  "arguments": {
-    "query": "ocean waves",
-    "duration": "[5 TO 20]",
-    "maxResults": 3,
-    "downloadResults": true
-  }
-}
-```
+> **⚠️ Experimental Support**: macOS compatibility is provided for sharing purposes. Windows remains the primary platform with full feature support.
 
-**Generate styled images:**
-```json
-{
-  "tool": "generate-styled-image",
-  "arguments": {
-    "prompt": "A majestic mountain landscape at sunset",
-    "style": "cinematic",
-    "width": 1920,
-    "height": 1080
-  }
-}
-```
+### Prerequisites for macOS
+- **Node.js 18+** (install via [Homebrew](https://brew.sh/) recommended)
+- **Claude Desktop for Mac** (available from [Anthropic](https://claude.ai/))
 
-## Architecture
+### Installation on macOS
 
-### Service Layer
-- **ElevenLabsService**: Voice generation with retry logic
-- **FreesoundService**: Sound search/download with licensing
-- **FluxService**: Image generation with optimization
-- **RemotionService**: Video rendering orchestration
-- **FileManagerService**: Asset lifecycle management
-
-### Data Flow
-```
-MCP Tool Request → Service Layer → External APIs → Asset Management → Remotion Render
-```
-
-### Asset Organization
-```
-assets/
-├── temp/           # Temporary processing files
-├── videos/         # Final rendered videos
-├── audio/          # Voice and sound effect files
-└── images/         # Generated visual assets
-```
-
-## Development
-
-### Commands
 ```bash
-npm run build       # Compile TypeScript
-npm run dev         # Watch mode for development
-npm run clean       # Remove build artifacts
-npm start           # Start the MCP server
+# Install Node.js via Homebrew (recommended)
+brew install node
+
+# Install the MCP server
+npm install -g rough-cut-mcp
+
+# Build the project
+cd /usr/local/lib/node_modules/rough-cut-mcp
+npm run build
 ```
 
-### Project Structure
+### macOS Claude Desktop Configuration
+
+Add to your Claude Desktop `claude_desktop_config.json` (typically located at `~/Library/Application Support/Claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "rough-cut-mcp": {
+      "command": "/usr/local/bin/node",
+      "args": [
+        "/usr/local/lib/node_modules/rough-cut-mcp/build/index.js"
+      ],
+      "env": {
+        "NODE_ENV": "production",
+        "REMOTION_ASSETS_DIR": "/Users/yourusername/Documents/rough-cut-assets"
+      }
+    }
+  }
+}
 ```
-src/
-├── index.ts        # Main server entry point
-├── types/          # TypeScript type definitions
-├── services/       # Core service implementations
-├── tools/          # MCP tool handlers
-├── utils/          # Utilities (config, validation, logging)
-└── templates/      # Remotion composition templates
+
+### Alternative Node.js Paths on macOS
+
+Depending on your Node.js installation:
+
+```bash
+# Homebrew installation
+"command": "/usr/local/bin/node"
+
+# Node Version Manager (nvm)
+"command": "/Users/yourusername/.nvm/versions/node/v20.x.x/bin/node"
+
+# Official Node.js installer
+"command": "/usr/local/bin/node"
 ```
 
-## License
+### macOS Limitations & Known Issues
 
-MIT License - see LICENSE file for details.
+- **Remotion Studio**: May have launch issues - Windows has better integration
+- **File Paths**: Some tools may expect Windows-style paths
+- **Performance**: Not optimized for macOS filesystem
+- **Testing**: Limited testing compared to Windows platform
 
-## Contributing
+### Getting Your Node.js Path on macOS
+
+```bash
+# Find your Node.js installation
+which node
+
+# Verify Node.js version
+node --version
+```
+
+### macOS Asset Directory Setup
+
+```bash
+# Create asset directory
+mkdir -p ~/Documents/rough-cut-assets
+
+# Set permissions
+chmod 755 ~/Documents/rough-cut-assets
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Create a `.env` file in your assets directory:
+
+```env
+# Required for voice generation
+ELEVENLABS_API_KEY=your_elevenlabs_key_here
+
+# Required for sound effects
+FREESOUND_API_KEY=your_freesound_key_here
+
+# Required for image generation  
+FLUX_API_KEY=your_flux_key_here
+```
+
+### Tool Organization
+
+The MCP server uses a **layered tool architecture** for better performance:
+
+- **Discovery Tools** (always active): Tool management and exploration
+- **Core Operations** (default): Basic project and studio operations
+- **On-Demand Categories**: Video creation, voice generation, image tools, etc.
+
+## 🎯 Usage
+
+### Basic Workflow
+
+1. **Discover Available Tools**:
+   ```
+   Use "discover-capabilities" to see all tool categories
+   ```
+
+2. **Activate Tool Categories**:
+   ```
+   Use "activate-toolset" to load specific tool sets:
+   - video-creation
+   - studio-management
+   - voice-generation (requires API key)
+   - sound-effects (requires API key)
+   - image-generation (requires API key)
+   ```
+
+3. **Create and Edit Videos**:
+   ```
+   - "create-complete-video" - Generate full video projects
+   - "launch-project-studio" - Open Remotion Studio for editing
+   - "edit-video-element" - Programmatically modify video elements
+   ```
+
+### Example Commands
+
+```bash
+# List all video projects
+"list-video-projects"
+
+# Create a new animated video
+"create-complete-video" with parameters:
+{
+  "name": "my-awesome-video",
+  "template": "text-animation",
+  "duration": 300
+}
+
+# Launch Remotion Studio for a specific project
+"launch-project-studio" with parameters:
+{
+  "projectName": "my-awesome-video"
+}
+```
+
+## 🛠 Available Tools
+
+### Core Operations (Always Active)
+- `list-video-projects` - List all animation projects
+- `get-project-status` - Get project information and health
+- `launch-project-studio` - Launch Remotion Studio with port persistence
+
+### Video Creation Tools
+- `create-complete-video` - Create new video with React components
+- `create-text-video` - Simple text-based animations
+- `edit-video-element` - Modify specific elements in compositions
+- `analyze-video-structure` - Understand project composition
+
+### Studio Management Tools
+- `launch-remotion-studio` - Start Remotion Studio dashboard
+- `stop-remotion-studio` - Stop running studio instances
+- `get-studio-status` - Check studio health and status
+- `launch-studio-with-project` - Launch studio for specific project
+
+### Voice Generation Tools (ElevenLabs)
+- `generate-voice` - Create AI voiceovers
+- `list-voices` - Browse available voices
+- `clone-voice` - Clone custom voices
+
+### Sound Effects Tools (Freesound)
+- `search-sound-effects` - Find sound effects
+- `download-sound-effects` - Download audio files
+- `get-sound-info` - Audio file details
+
+### Image Generation Tools (Flux)
+- `generate-image` - Create AI images
+- `generate-styled-image` - Images with specific styles
+- `upscale-image` - Enhance image resolution
+
+### Asset Management Tools
+- `get-asset-statistics` - Disk usage and file counts
+- `cleanup-old-assets` - Remove temporary files
+- `organize-assets` - Sort files by type
+
+## 🔍 Advanced Features
+
+### Port Persistence
+Projects automatically remember their Remotion Studio port assignments:
+- First launch assigns a port (7400-7600 range)
+- Subsequent launches reuse the same port
+- Metadata stored in `.studio-metadata.json`
+
+### Smart Tool Loading
+The layered architecture improves performance:
+- Initial load: 9 tools instead of 40+
+- Dynamic loading based on needs
+- Reduced context and faster responses
+
+### Asset Lifecycle Management
+- Automatic cleanup of temporary files
+- Disk usage monitoring
+- Project organization and categorization
+
+## 📁 Project Structure
+
+```
+rough-cut-mcp/
+├── build/                 # Compiled TypeScript
+├── src/                   # Source code
+│   ├── tools/            # MCP tool implementations
+│   ├── services/         # Core services
+│   ├── utils/           # Utilities
+│   └── types/           # TypeScript definitions
+├── assets/              # Asset storage
+│   ├── projects/        # Video projects
+│   ├── voices/          # Generated audio
+│   ├── images/          # Generated images
+│   └── sounds/          # Sound effects
+└── tests/               # Test suites
+```
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+npm test
+
+# Test specific components
+npm run test-layered      # Test tool architecture
+npm run test-routing      # Test tool routing fixes
+npm run test-studio       # Test studio integration
+```
+
+## 🚀 Publishing & Distribution
+
+### For NPM Package
+
+```bash
+# Build and test before publishing
+npm run prepublishOnly
+
+# Publish to NPM
+npm publish
+```
+
+### For Local Development
+
+```bash
+# Build project
+npm run build
+
+# Install to Claude Desktop
+npm run install-to-claude
+```
+
+## 📝 API Reference
+
+### Tool Categories
+
+| Category | Description | Requires API Key |
+|----------|-------------|-----------------|
+| `discovery` | Tool management and exploration | No |
+| `core-operations` | Basic project operations | No |
+| `video-creation` | Video and animation tools | No |
+| `studio-management` | Remotion Studio control | No |
+| `voice-generation` | ElevenLabs TTS | Yes |
+| `sound-effects` | Freesound integration | Yes |
+| `image-generation` | Flux AI images | Yes |
+| `maintenance` | Asset management | No |
+
+### MCP Protocol Compliance
+
+This server fully implements the Model Context Protocol:
+- ✅ Tool discovery and listing
+- ✅ Dynamic tool activation
+- ✅ JSON-RPC over stdio
+- ✅ Error handling and recovery
+- ✅ Resource management
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Q: Tools not appearing after activation**  
+A: Check that the MCP server is running and Claude Desktop configuration is correct.
+
+**Q: Remotion Studio won't launch**  
+A: Ensure you're on Windows and have Node.js 18+ installed. Check port availability (7400-7600).
+
+**Q: API-dependent tools missing**  
+A: Verify API keys are set in environment variables or config.
+
+**Q: Build fails on non-Windows platforms**  
+A: Windows is the primary platform. macOS support is experimental - see macOS Installation section.
+
+### Debug Mode
+
+Set debug logging in your environment:
+
+```env
+NODE_ENV=development
+LOG_LEVEL=debug
+```
+
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
 4. Add tests if applicable
-5. Submit a pull request
+5. Run `npm run prepublishOnly` to validate
+6. Submit a pull request
 
-## Support
+## 📄 License
 
-For issues and questions:
-- Check the documentation in `Docs/Remotion Documentation/`
-- Review the comprehensive type definitions
-- Check logs for detailed error information
-- Ensure all required API keys are configured
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [Remotion](https://www.remotion.dev/) for programmatic video creation
+- [Model Context Protocol](https://modelcontextprotocol.io/) for the integration standard
+- [ElevenLabs](https://elevenlabs.io/) for AI voice generation
+- [Freesound](https://freesound.org/) for sound effects database
+- [Black Forest Labs](https://blackforestlabs.ai/) for Flux image generation
+
+## 📞 Support
+
+- 🐛 [Report Issues](https://github.com/yourusername/rough-cut-mcp/issues)
+- 💬 [Discussions](https://github.com/yourusername/rough-cut-mcp/discussions)
+- 📧 Support: your.email@example.com
+
+---
+
+**Made with ❤️ for the Claude Desktop and Remotion communities**

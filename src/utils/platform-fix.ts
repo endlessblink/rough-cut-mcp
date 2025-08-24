@@ -1,10 +1,10 @@
-// Platform-specific fixes for Windows/WSL2 spawn issues
+// Platform-specific fixes for Windows spawn issues
 import { spawn, SpawnOptions } from 'child_process';
 import * as childProcess from 'child_process';
 import os from 'os';
 
 /**
- * Fix for Windows/WSL2 spawn EINVAL issues
+ * Fix for Windows spawn EINVAL issues
  * Wraps child_process.spawn with proper shell configuration
  */
 export function createRemotionProcess(
@@ -13,10 +13,9 @@ export function createRemotionProcess(
   options: SpawnOptions = {}
 ): ReturnType<typeof spawn> {
   const isWindows = process.platform === 'win32';
-  const isWSL = process.platform === 'linux' && os.release().toLowerCase().includes('microsoft');
   
-  if (isWindows || isWSL) {
-    // Use shell: true for Windows/WSL2
+  if (isWindows) {
+    // Use shell: true for Windows
     return spawn(command, args, { 
       ...options, 
       shell: true,
@@ -44,9 +43,8 @@ export function normalizePath(filePath: string): string {
  */
 export function getBundlerOptions() {
   const isWindows = process.platform === 'win32';
-  const isWSL = process.platform === 'linux' && os.release().toLowerCase().includes('microsoft');
   
-  if (isWindows || isWSL) {
+  if (isWindows) {
     return {
       // Add Windows-specific options
       webpackOverride: (config: any) => {
@@ -76,7 +74,7 @@ export function getBundlerOptions() {
 export function patchRemotionSpawn() {
   // Override global spawn
   (global as any).spawn = function(command: string, args?: string[], options?: SpawnOptions) {
-    console.error(`[PLATFORM-FIX] Intercepting spawn call: ${command}`);
+    // logger.debug(`[PLATFORM-FIX] Intercepting spawn call: ${command}`);
     return createRemotionProcess(command, args || [], options || {});
   };
   

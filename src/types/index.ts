@@ -1,5 +1,8 @@
 // Core type definitions for Remotion Creative MCP Server
 
+// Type for tool handler functions
+export type ToolHandlers = Record<string, (args?: any) => Promise<any>>;
+
 export interface MCPConfig {
   assetsDir: string;
   apiKeys: {

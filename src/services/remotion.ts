@@ -530,7 +530,13 @@ registerRoot(() => (
     await fs.ensureDir(srcPath);
 
     // Generate composition code
-    const { generateBasicComposition, generateIndexFile, generatePackageJson } = await import('../templates/simple-compositions.js');
+    const { 
+      generateBasicComposition, 
+      generateIndexFile, 
+      generateCompletePackageJson,
+      generateRemotionConfig,
+      generateTsConfig 
+    } = await import('../templates/simple-compositions.js');
     
     const compositionCode = await generateBasicComposition({
       animationDesc: request.animationDesc,
@@ -559,9 +565,29 @@ import { RemotionVideo } from './Video';
 registerRoot(RemotionVideo);`;
     await fs.writeFile(path.join(srcPath, 'index.ts'), rootIndexCode);
 
-    // Create package.json
-    const packageJsonContent = generatePackageJson();
+    // Create ALL required configuration files
+    const packageJsonContent = generateCompletePackageJson();
     await fs.writeFile(path.join(projectPath, 'package.json'), packageJsonContent);
+    
+    const remotionConfigContent = generateRemotionConfig();
+    await fs.writeFile(path.join(projectPath, 'remotion.config.ts'), remotionConfigContent);
+    
+    const tsconfigContent = generateTsConfig();
+    await fs.writeFile(path.join(projectPath, 'tsconfig.json'), tsconfigContent);
+
+    // Install dependencies immediately
+    this.logger.info('Installing project dependencies...');
+    const { safeNpmInstall } = await import('../utils/safe-spawn.js');
+    const installResult = await safeNpmInstall(projectPath);
+
+    if (!installResult.success) {
+      this.logger.error('Failed to install dependencies', { error: installResult.error });
+      // Don't throw - project is still created, just missing dependencies
+      // They will be installed on first launch
+      this.logger.warn('Project created but dependencies not installed. They will be installed on first launch.');
+    } else {
+      this.logger.info('Dependencies installed successfully');
+    }
 
     // Create public directory and copy assets
     const publicPath = path.join(projectPath, 'public');

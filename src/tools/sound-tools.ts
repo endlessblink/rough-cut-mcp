@@ -1,6 +1,6 @@
 // Sound effects MCP tools using Freesound
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { MCPConfig } from '../types/index.js';
+import { MCPConfig, ToolHandlers } from '../types/index.js';
 import { SoundEffectSearchSchema } from '../utils/validation.js';
 import { FreesoundService } from '../services/freesound.js';
 import { FileManagerService } from '../services/file-manager.js';
@@ -173,7 +173,7 @@ export function createSoundTools(config: MCPConfig): Tool[] {
   ];
 }
 
-export function createSoundHandlers(config: MCPConfig) {
+export function createSoundHandlers(config: MCPConfig): ToolHandlers {
   const logger = getLogger().service('SoundHandlers');
   
   if (!config.apiKeys.freesound) {

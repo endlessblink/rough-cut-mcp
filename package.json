@@ -1,13 +1,14 @@
 {
   "name": "rough-cut-mcp",
   "version": "1.0.0",
-  "description": "A robust MCP server for rapid video creation integrating Remotion with AI voice generation, sound effects, and image generation",
+  "description": "A robust cross-platform MCP server for rapid video creation integrating Remotion with AI voice generation, sound effects, and image generation. Primary support for Windows, experimental macOS compatibility.",
   "main": "build/index.js",
   "type": "module",
   "scripts": {
     "clean-tsx": "node -e \"try { require('fs').unlinkSync('src/templates/animations.ts'); } catch {}\"",
-    "prebuild": "npm run clean-tsx",
+    "prebuild": "node scripts/check-platform.js && npm run clean-tsx",
     "build": "tsc",
+    "build:dev": "npm run clean-tsx && tsc",
     "start": "node build/index.js",
     "dev": "tsc --watch",
     "clean": "node -e \"try { require('fs-extra').removeSync('build'); } catch {}\"",
@@ -16,8 +17,17 @@
     "studio": "cd assets/studio-project && npm start",
     "setup": "node install.js",
     "test": "node tests/test-mcp-protocol.js",
+    "test:e2e": "node tests/test-mcp-end-to-end.js",
+    "test:integration": "node tests/integration-complete.js",
+    "test:performance": "node --expose-gc tests/performance-benchmarks.js",
+    "test:coverage": "node tests/coverage-runner.js",
+    "test:all": "npm run test && npm run test:integration && npm run test:performance",
     "test-studio": "node tests/test-studio-complete.js",
-    "postinstall": "echo 'Run npm run setup to complete installation'"
+    "test-layered": "node test-layered-tools.js",
+    "test-routing": "node test-tool-routing-fix.js",
+    "prepublishOnly": "npm run build && npm test",
+    "postinstall": "echo 'Run npm run setup to complete installation'",
+    "prepare": "npm run build"
   },
   "bin": {
     "install-rough-cut-mcp": "./install-to-claude.js"
@@ -30,10 +40,33 @@
     "creative",
     "elevenlabs",
     "freesound",
-    "flux"
+    "flux",
+    "cross-platform",
+    "windows",
+    "macos",
+    "claude-desktop",
+    "model-context-protocol",
+    "video-creation",
+    "ai-video"
   ],
-  "author": "Your Name",
+  "author": "Your Name <your.email@example.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/rough-cut-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/rough-cut-mcp/issues"
+  },
+  "homepage": "https://github.com/yourusername/rough-cut-mcp#readme",
+  "files": [
+    "build/",
+    "assets/studio-project/",
+    "install-to-claude.js",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
   "dependencies": {
     "@babel/generator": "^7.28.3",
     "@babel/parser": "^7.28.3",
@@ -55,11 +88,17 @@
     "zod": "^3.22.0"
   },
   "devDependencies": {
+    "@istanbuljs/nyc-config-typescript": "^1.0.2",
+    "@types/babel__generator": "^7.27.0",
+    "@types/babel__traverse": "^7.28.0",
     "@types/cross-spawn": "^6.0.6",
     "@types/fs-extra": "^11.0.0",
     "@types/mime-types": "^2.1.0",
     "@types/node": "^20.10.0",
     "@types/uuid": "^9.0.0",
+    "c8": "^10.1.3",
+    "nyc": "^17.1.0",
+    "prettier": "^3.6.2",
     "typescript": "^5.3.0"
   },
   "engines": {

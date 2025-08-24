@@ -1,7 +1,7 @@
 // Main video creation MCP tools
 import { z } from 'zod';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { MCPConfig } from '../types/index.js';
+import { MCPConfig, ToolHandlers } from '../types/index.js';
 import { VideoCreationSchema } from '../utils/validation.js';
 import { ElevenLabsService } from '../services/elevenlabs.js';
 import { FreesoundService } from '../services/freesound.js';
@@ -9,6 +9,8 @@ import { FluxService } from '../services/flux.js';
 import { RemotionService } from '../services/remotion.js';
 import { FileManagerService } from '../services/file-manager.js';
 import { getLogger } from '../utils/logger.js';
+import * as fs from 'fs-extra';
+import path from 'path';
 import { validateApiKeys } from '../utils/config.js';
 
 export function createVideoCreationTools(config: MCPConfig): Tool[] {
@@ -17,28 +19,43 @@ export function createVideoCreationTools(config: MCPConfig): Tool[] {
   return [
     {
       name: 'create-complete-video',
-      description: `ATTENTION CLAUDE: You MUST generate complete Remotion React component code before calling this tool.
+      description: `ATTENTION CLAUDE: You MUST generate complete Remotion React component code using PROPER SEQUENCING.
+
+⭐ CRITICAL: Use <Series> and <Series.Sequence> for multiple scenes to create SEPARATE TIMELINE CLIPS!
 
 MANDATORY STEPS:
 1. Generate a complete React component using Remotion hooks
-2. Include the code in the compositionCode parameter
-3. The component must use useCurrentFrame() for animations
+2. Use <Series> for multiple scenes/segments (NOT conditional rendering based on frames)
+3. Include the code in the compositionCode parameter
 
-REQUIRED CODE STRUCTURE:
+✅ CORRECT STRUCTURE FOR MULTIPLE SCENES:
 import React from 'react';
-import { AbsoluteFill, useCurrentFrame, interpolate } from 'remotion';
+import { AbsoluteFill, useCurrentFrame, interpolate, Series } from 'remotion';
 
 export const VideoComposition: React.FC = () => {
-  const frame = useCurrentFrame();
-  // Your animation logic here
   return (
-    <AbsoluteFill style={{backgroundColor: 'white'}}>
-      {/* Animated elements */}
-    </AbsoluteFill>
+    <Series>
+      <Series.Sequence durationInFrames={120}>
+        <Scene1 />
+      </Series.Sequence>
+      <Series.Sequence durationInFrames={90}>
+        <Scene2 />
+      </Series.Sequence>
+    </Series>
   );
 };
 
-DO NOT call this tool without providing compositionCode!`,
+const Scene1: React.FC = () => {
+  const frame = useCurrentFrame();
+  // Scene 1 animations using frame 0-119
+  return <AbsoluteFill>{/* Scene 1 content */}</AbsoluteFill>;
+};
+
+❌ WRONG: Do NOT use conditional rendering like {frame < 120 && <Scene1 />}
+❌ WRONG: Do NOT use frame offsets like frame - 120 for scenes
+✅ RIGHT: Each scene uses useCurrentFrame() starting from 0
+
+DO NOT call this tool without providing compositionCode with proper Series structure!`,
       inputSchema: {
         type: 'object',
         properties: {
@@ -274,10 +291,34 @@ DO NOT call this tool without providing compositionCode!`,
         required: ['animationType']
       }
     },
+
+    {
+      name: 'fix-composition-timeline',
+      description: 'Fix existing Remotion compositions to use proper Series structure for separate timeline clips',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          projectName: {
+            type: 'string',
+            description: 'Name of the project to fix (e.g., "personal-brand-intro")'
+          },
+          compositionFilePath: {
+            type: 'string',
+            description: 'Optional: Path to the composition file. If not provided, will search for VideoComposition.tsx'
+          },
+          backupOriginal: {
+            type: 'boolean',
+            description: 'Whether to create a backup of the original file',
+            default: true
+          }
+        },
+        required: ['projectName']
+      }
+    },
   ];
 }
 
-export function createVideoCreationHandlers(config: MCPConfig) {
+export function createVideoCreationHandlers(config: MCPConfig): ToolHandlers {
   const logger = getLogger().service('VideoHandlers');
 
   // Initialize services
@@ -306,8 +347,8 @@ export function createVideoCreationHandlers(config: MCPConfig) {
 
   return {
     'create-complete-video': async (args: any) => {
-      // Add logging to see what Claude is sending
-      console.log('[DEBUG] Received parameters:', {
+      // Add logging to see what Claude is sending (using logger, not console)
+      logger.debug('Received parameters:', {
         hasAnimationDesc: !!args.animationDesc,
         hasCompositionCode: !!args.compositionCode,
         codeLength: args.compositionCode?.length || 0
@@ -431,6 +472,43 @@ export const VideoComposition: React.FC = () => {
           images,
         });
 
+        // Verify project completeness
+        const requiredFiles = [
+          'package.json',
+          'remotion.config.ts',
+          'tsconfig.json',
+          'src/index.ts',
+          'src/Composition.tsx',
+          'src/Video.tsx'
+        ];
+
+        const missingFiles = [];
+        for (const file of requiredFiles) {
+          const filePath = path.join(studioProjectPath, file);
+          if (!await fs.pathExists(filePath)) {
+            missingFiles.push(file);
+            logger.error(`Required file missing: ${file}`);
+          }
+        }
+
+        if (missingFiles.length > 0) {
+          throw new Error(`Project creation incomplete. Missing files: ${missingFiles.join(', ')}`);
+        }
+
+        // Verify dependencies are installed
+        const nodeModulesPath = path.join(studioProjectPath, 'node_modules');
+        if (!await fs.pathExists(nodeModulesPath)) {
+          logger.warn('Dependencies not installed, attempting to install now...');
+          const { safeNpmInstall } = await import('../utils/safe-spawn.js');
+          const installResult = await safeNpmInstall(studioProjectPath, 120000);
+          
+          if (!installResult.success) {
+            logger.error('Failed to install dependencies', { error: installResult.error });
+            // Don't throw error, just warn - dependencies will be installed on studio launch
+            logger.warn('Dependencies will be installed when studio launches');
+          }
+        }
+
         logger.info('Video creation completed successfully', { 
           videoPath: result.videoPath,
           studioProjectPath 
@@ -457,7 +535,7 @@ export const VideoComposition: React.FC = () => {
         };
 
       } catch (error) {
-        console.error('[ERROR] Video creation failed:', error);
+        logger.error('Video creation failed:', error);
         logger.error('Video creation failed', { error: error instanceof Error ? error.message : String(error) });
         throw error;
       }
@@ -641,6 +719,125 @@ export const VideoComposition: React.FC = () => {
           assetAdjustment,
         },
       };
+    },
+
+    'fix-composition-timeline': async (args: any) => {
+      logger.info('Fixing composition timeline structure', { 
+        projectName: args.projectName,
+        backupOriginal: args.backupOriginal 
+      });
+
+      try {
+        const projectPath = path.join(config.assetsDir, 'projects', args.projectName);
+        
+        // Check if project exists
+        if (!await fs.pathExists(projectPath)) {
+          throw new Error(`Project '${args.projectName}' not found in assets/projects`);
+        }
+
+        // Find the composition file
+        const compositionFile = args.compositionFilePath || 
+          path.join(projectPath, 'src', 'VideoComposition.tsx');
+        
+        if (!await fs.pathExists(compositionFile)) {
+          throw new Error(`Composition file not found: ${compositionFile}`);
+        }
+
+        // Read the current composition code
+        const originalCode = await fs.readFile(compositionFile, 'utf-8');
+        
+        // Import analysis functions
+        const { analyzeCompositionStructure, transformToSeriesStructure } = await import('../utils/composition-templates.js');
+        
+        // Analyze the composition structure
+        const analysis = analyzeCompositionStructure(originalCode);
+        
+        // Check if transformation is needed
+        if (!analysis.needsTransformation) {
+          return {
+            success: true,
+            message: `Project '${args.projectName}' already uses proper Series structure`,
+            analysis: {
+              sceneCount: analysis.sceneCount,
+              usesSeries: analysis.usesSeries,
+              usesConditionalRendering: analysis.usesConditionalRendering,
+              recommendedStructure: analysis.recommendedStructure
+            }
+          };
+        }
+
+        // Create backup if requested
+        if (args.backupOriginal !== false) {
+          const backupFile = compositionFile + '.backup.' + Date.now();
+          await fs.writeFile(backupFile, originalCode);
+          logger.info('Original file backed up', { backupFile });
+        }
+
+        // Transform the composition
+        const transformedCode = transformToSeriesStructure(originalCode, analysis);
+        
+        // Write the transformed code
+        await fs.writeFile(compositionFile, transformedCode);
+        
+        // Also update the duration in the schema files if needed
+        const videoTsxPath = path.join(projectPath, 'src', 'Video.tsx');
+        const indexTsxPath = path.join(projectPath, 'src', 'index.tsx');
+        
+        for (const filePath of [videoTsxPath, indexTsxPath]) {
+          if (await fs.pathExists(filePath)) {
+            const content = await fs.readFile(filePath, 'utf-8');
+            // Update duration to match total scene durations
+            const totalDuration = analysis.detectedScenes.reduce((sum, scene) => 
+              sum + (scene.duration || 90), 0);
+            
+            if (totalDuration > 0) {
+              const updatedContent = content.replace(
+                /durationInFrames={(\d+)}/g,
+                `durationInFrames={${totalDuration}}`
+              );
+              await fs.writeFile(filePath, updatedContent);
+            }
+          }
+        }
+
+        logger.info('Composition transformation completed', { 
+          projectName: args.projectName,
+          scenesDetected: analysis.sceneCount,
+          transformedFrom: 'conditional rendering',
+          transformedTo: 'Series structure'
+        });
+
+        return {
+          success: true,
+          message: `Successfully transformed '${args.projectName}' to use Series structure`,
+          transformation: {
+            originalStructure: 'conditional rendering',
+            newStructure: 'Series with separate sequences',
+            scenesDetected: analysis.sceneCount,
+            detectedScenes: analysis.detectedScenes.map(s => ({
+              name: s.name,
+              duration: s.duration,
+              startFrame: s.startFrame
+            }))
+          },
+          files: {
+            transformed: compositionFile,
+            backup: args.backupOriginal !== false ? compositionFile + '.backup.*' : null
+          },
+          instructions: [
+            `Project '${args.projectName}' has been transformed to use Series structure`,
+            'Each scene will now appear as a separate clip in the Remotion Studio timeline',
+            'Launch the project with launch-project-studio to see the separate clips',
+            'You can now edit each scene independently in the timeline'
+          ]
+        };
+
+      } catch (error) {
+        logger.error('Failed to fix composition timeline', { 
+          error: error instanceof Error ? error.message : String(error) 
+        });
+        throw error;
+      }
     },
 
     'generate-remotion-code': async (args: any) => {

@@ -55,22 +55,14 @@ class Logger {
   private writeLog(entry: LogEntry): void {
     const formattedMessage = this.formatMessage(entry);
     
-    // Console output with colors
-    const colors = {
-      debug: '\x1b[36m', // Cyan
-      info: '\x1b[32m',  // Green
-      warn: '\x1b[33m',  // Yellow
-      error: '\x1b[31m', // Red
-    };
+    // For MCP servers, NEVER output to console (stdout or stderr)
+    // Only write to file to avoid breaking JSON-RPC protocol
     
-    const reset = '\x1b[0m';
-    // Use stderr for all logging to avoid breaking MCP protocol
-    console.error(`${colors[entry.level]}${formattedMessage}${reset}`);
-    
-    // File output
+    // File output only - no console output for MCP compatibility
     if (this.logFile) {
       fs.appendFileSync(this.logFile, formattedMessage + '\n');
     }
+    // If no log file configured, silently drop logs to maintain MCP protocol
   }
 
   debug(message: string, data?: any, service?: string): void {
@@ -109,11 +101,13 @@ class Logger {
 
   // Performance timing utility
   time(label: string): void {
-    console.time(label);
+    // MCP compatibility: console.time disabled
+    // console.time(label);
   }
 
   timeEnd(label: string): void {
-    console.timeEnd(label);
+    // MCP compatibility: console.timeEnd disabled
+    // console.timeEnd(label);
   }
 
   // Error with stack trace

@@ -1,376 +1,417 @@
-# 🎯 ROUGHCUT MCP - MISSION CRITICAL CONFIGURATION
+# 🦾 ROUGHCUT MCP - END-TO-END WINDOWS EXECUTION GUIDE
 
-## ✅ STATUS: FULLY OPERATIONAL! (August 22, 2025)
-
-**THE MCP IS WORKING**: Claude Desktop successfully generates AND EDITS videos through the RoughCut MCP server.
-- **SUCCESS ACHIEVED**: MCP receives animation requests → generates Remotion code → launches studio → renders video
-- **VIDEO EDITING SYSTEM**: Complete AST-based editing pipeline for modifying existing videos
-- **ALL CRITICAL ISSUES RESOLVED**: WSL2 browser opening ✅ | Port detection ✅ | Studio launch ✅ | RegisterRoot ✅ | Cache management ✅
-
-## 🚫 EXPLICITLY OUT OF SCOPE
-- ❌ Alternative video generation methods
-- ❌ Template-based systems  
-- ❌ External API integrations (except required Remotion)
-- ❌ Manual video creation workflows
-- ❌ Any solution that bypasses the MCP
-- ❌ **DIRECT FILE EDITING** - Claude Code must NEVER edit VideoComposition.tsx files directly
-- ❌ **MANUAL CODE CHANGES** - All video edits must go through MCP tools ONLY
-
-## ✅ MCP OPERATIONAL REQUIREMENTS
-1. **Claude Desktop Integration**: MCP must receive and process tool calls
-2. **Code Generation**: Claude must provide complete Remotion React components
-3. **Studio Launch**: Must actually start and be accessible on specified port
-4. **Video Rendering**: Must produce valid MP4 files in output directory
-5. **Error Handling**: Clear feedback when operations fail
-
-## 🔧 CRITICAL MCP COMPONENTS
-
-### Core Video Creation
-- `index-clean.js` - Main MCP server (THIS IS THE PRIORITY)
-- `create-complete-video` - Must accept compositionCode from Claude
-- `launch-remotion-studio` - Must actually launch and verify
-- `fix-project-config` - Must fix broken projects
-
-### 🎬 VIDEO EDITING SYSTEM (MCP TOOLS ONLY!)
-**MANDATORY**: Claude Desktop must use ONLY these MCP tools for video editing:
-
-#### Analysis Tools
-- `analyze-video-structure` - Parse existing videos to understand sequences, elements, timings
-
-#### Element Editing Tools  
-- `edit-video-element` - Modify text, colors, positions, animations in existing videos
-- `adjust-video-timing` - Change duration, scale animations proportionally
-- `add-video-sequence` - Insert new sequences at specific timeline positions
-- `remove-video-sequence` - Delete sequences with automatic timeline adjustment
-- `reorder-video-sequences` - Rearrange sequence order in timeline
-
-#### Project Management Tools
-- `list-video-projects` - See all available video projects
-- `open-specific-project` - Launch specific project with cache clearing
-- `clear-project-cache` - Clear all caches and restart fresh
-- `update-video-props` - Modify Zod schema props for sidebar editing
-- `get-video-props` - Retrieve current props configuration
-
-**🚨 CRITICAL RULE**: NEVER edit VideoComposition.tsx files directly through Claude Code tools. ALL video changes must go through these MCP tools ONLY.
-
-## 🎉 WORKING FEATURES (CONFIRMED)
-1. **WSL2 Browser Auto-Opening** - Uses cmd.exe to open Windows browser from WSL2
-2. **Dynamic Port Detection** - Automatically finds available ports (7400-7410)
-3. **Studio Launch Verification** - waitForServer() confirms studio is accessible
-4. **Project Structure** - Correct registerRoot() implementation in src/index.tsx
-5. **Browser Tab Opens** - Automatically opens on studio launch
-
-## 🔍 MCP TROUBLESHOOTING CHECKLIST
-When MCP isn't working, check IN THIS ORDER:
-1. **Is compositionCode being passed?** - Check if Claude is generating React code
-2. **Is project structure correct?** - src/index.tsx with registerRoot(), remotion.config.ts exists
-3. **Is studio actually launching?** - Check with `ps aux | grep remotion` and port availability
-4. **Is render command working?** - Check cwd and entry point paths
-5. **Are dependencies installed?** - Verify node_modules exists
-
-## 🎬 MCP WORKFLOW VALIDATION
-
-### Video Creation Flow
+## 🔴 CRITICAL: THE #1 RULE TO REMEMBER 🔴
 ```
-Claude Desktop → "Create animation of X" 
-    ↓
-MCP receives request with compositionCode
-    ↓
-Creates project with correct structure
-    ↓
-Launches studio (and verifies it's running)
-    ↓
-Renders video to MP4
-    ↓
-Returns success with video path
+WSL PATHS (/mnt/d/...) SHOULD NEVER EXIST IN THE FIRST PLACE!
+- Build on Windows → Get Windows paths
+- Run on Windows → Use Windows paths  
+- NEVER build in WSL2 → NEVER get WSL paths!
 ```
-
-### 🎯 VIDEO EDITING FLOW (MANDATORY FOR CLAUDE DESKTOP)
-```
-Claude Desktop → "Edit this video to center elements"
-    ↓
-MCP: analyze-video-structure → Returns video components 
-    ↓
-MCP: edit-video-element → Applies centering fixes via AST manipulation
-    ↓
-MCP: clear-project-cache → Clears all caches
-    ↓
-MCP: open-specific-project → Launches on fresh port with updates
-    ↓
-Returns success with new studio URL
-```
-
-**🚨 CRITICAL**: Claude Desktop must NEVER ask Claude Code to edit files directly. Always use MCP tools for any video changes.
-
-**ANY DEVIATION FROM THESE FLOWS IS A BUG TO FIX**
-
-## 🚨 CRITICAL: CONCURRENT EXECUTION & FILE MANAGEMENT
-
-**ABSOLUTE RULES**:
-1. ALL operations MUST be concurrent/parallel in a single message
-2. **NEVER save working files, text/mds and tests to the root folder**
-3. ALWAYS organize files in appropriate subdirectories 
-
-### ⚡ GOLDEN RULE: "1 MESSAGE = ALL RELATED OPERATIONS"
-
-**MANDATORY PATTERNS:**
-- **TodoWrite**: ALWAYS batch ALL todos in ONE call (5-10+ todos minimum)
-- **Task tool**: ALWAYS spawn ALL agents in ONE message with full instructions
-- **File operations**: ALWAYS batch ALL reads/writes/edits in ONE message
-- **Bash commands**: ALWAYS batch ALL terminal operations in ONE message
-- **Memory operations**: ALWAYS batch ALL memory store/retrieve in ONE message
-
-### 📁 File Organization Rules
-
-**NEVER save to root folder. Use these directories:**
-- `/src` - Source code files
-- `/tests` - Test files
-- `/docs` - Documentation and markdown files
-- `/config` - Configuration files
-- `/scripts` - Utility scripts
-- `/examples` - Example code
-
-## Project Overview
-
-This project uses SPARC (Specification, Pseudocode, Architecture, Refinement, Completion) methodology with Claude-Flow orchestration for systematic Test-Driven Development.
-
-## SPARC Commands
-
-### Core Commands
-- `npx claude-flow sparc modes` - List available modes
-- `npx claude-flow sparc run <mode> "<task>"` - Execute specific mode
-- `npx claude-flow sparc tdd "<feature>"` - Run complete TDD workflow
-- `npx claude-flow sparc info <mode>` - Get mode details
-
-### Batchtools Commands
-- `npx claude-flow sparc batch <modes> "<task>"` - Parallel execution
-- `npx claude-flow sparc pipeline "<task>"` - Full pipeline processing
-- `npx claude-flow sparc concurrent <mode> "<tasks-file>"` - Multi-task processing
-
-### Build Commands
-- `npm run build` - Build project
-- `npm run test` - Run tests
-- `npm run lint` - Linting
-- `npm run typecheck` - Type checking
-
-## SPARC Workflow Phases
-
-1. **Specification** - Requirements analysis (`sparc run spec-pseudocode`)
-2. **Pseudocode** - Algorithm design (`sparc run spec-pseudocode`)
-3. **Architecture** - System design (`sparc run architect`)
-4. **Refinement** - TDD implementation (`sparc tdd`)
-5. **Completion** - Integration (`sparc run integration`)
-
-## Code Style & Best Practices
-
-- **Modular Design**: Files under 500 lines
-- **Environment Safety**: Never hardcode secrets
-- **Test-First**: Write tests before implementation
-- **Clean Architecture**: Separate concerns
-- **Documentation**: Keep updated
-
-## 🚀 Available Agents (54 Total)
-
-### Core Development
-`coder`, `reviewer`, `tester`, `planner`, `researcher`
-
-### Swarm Coordination
-`hierarchical-coordinator`, `mesh-coordinator`, `adaptive-coordinator`, `collective-intelligence-coordinator`, `swarm-memory-manager`
-
-### Consensus & Distributed
-`byzantine-coordinator`, `raft-manager`, `gossip-coordinator`, `consensus-builder`, `crdt-synchronizer`, `quorum-manager`, `security-manager`
-
-### Performance & Optimization
-`perf-analyzer`, `performance-benchmarker`, `task-orchestrator`, `memory-coordinator`, `smart-agent`
-
-### GitHub & Repository
-`github-modes`, `pr-manager`, `code-review-swarm`, `issue-tracker`, `release-manager`, `workflow-automation`, `project-board-sync`, `repo-architect`, `multi-repo-swarm`
-
-### SPARC Methodology
-`sparc-coord`, `sparc-coder`, `specification`, `pseudocode`, `architecture`, `refinement`
-
-### Specialized Development
-`backend-dev`, `mobile-dev`, `ml-developer`, `cicd-engineer`, `api-docs`, `system-architect`, `code-analyzer`, `base-template-generator`
-
-### Testing & Validation
-`tdd-london-swarm`, `production-validator`
-
-### Migration & Planning
-`migration-planner`, `swarm-init`
-
-## 🎯 Claude Code vs MCP Tools
-
-### Claude Code Handles ALL:
-- File operations (Read, Write, Edit, MultiEdit, Glob, Grep)
-- Code generation and programming
-- Bash commands and system operations
-- Implementation work
-- Project navigation and analysis
-- TodoWrite and task management
-- Git operations
-- Package management
-- Testing and debugging
-
-### MCP Tools ONLY:
-- Coordination and planning
-- Memory management
-- Neural features
-- Performance tracking
-- Swarm orchestration
-- GitHub integration
-
-**KEY**: MCP coordinates, Claude Code executes.
-
-## 🚀 Quick Setup
-
-```bash
-# Add Claude Flow MCP server
-claude mcp add claude-flow npx claude-flow@alpha mcp start
-```
-
-## MCP Tool Categories
-
-### Coordination
-`swarm_init`, `agent_spawn`, `task_orchestrate`
-
-### Monitoring
-`swarm_status`, `agent_list`, `agent_metrics`, `task_status`, `task_results`
-
-### Memory & Neural
-`memory_usage`, `neural_status`, `neural_train`, `neural_patterns`
-
-### GitHub Integration
-`github_swarm`, `repo_analyze`, `pr_enhance`, `issue_triage`, `code_review`
-
-### System
-`benchmark_run`, `features_detect`, `swarm_monitor`
-
-## 📋 Agent Coordination Protocol
-
-### Every Agent MUST:
-
-**1️⃣ BEFORE Work:**
-```bash
-npx claude-flow@alpha hooks pre-task --description "[task]"
-npx claude-flow@alpha hooks session-restore --session-id "swarm-[id]"
-```
-
-**2️⃣ DURING Work:**
-```bash
-npx claude-flow@alpha hooks post-edit --file "[file]" --memory-key "swarm/[agent]/[step]"
-npx claude-flow@alpha hooks notify --message "[what was done]"
-```
-
-**3️⃣ AFTER Work:**
-```bash
-npx claude-flow@alpha hooks post-task --task-id "[task]"
-npx claude-flow@alpha hooks session-end --export-metrics true
-```
-
-## 🎯 Concurrent Execution Examples
-
-### ✅ CORRECT (Single Message):
-```javascript
-[BatchTool]:
-  // Initialize swarm
-  mcp__claude-flow__swarm_init { topology: "mesh", maxAgents: 6 }
-  mcp__claude-flow__agent_spawn { type: "researcher" }
-  mcp__claude-flow__agent_spawn { type: "coder" }
-  mcp__claude-flow__agent_spawn { type: "tester" }
-  
-  // Spawn agents with Task tool
-  Task("Research agent: Analyze requirements...")
-  Task("Coder agent: Implement features...")
-  Task("Tester agent: Create test suite...")
-  
-  // Batch todos
-  TodoWrite { todos: [
-    {id: "1", content: "Research", status: "in_progress", priority: "high"},
-    {id: "2", content: "Design", status: "pending", priority: "high"},
-    {id: "3", content: "Implement", status: "pending", priority: "high"},
-    {id: "4", content: "Test", status: "pending", priority: "medium"},
-    {id: "5", content: "Document", status: "pending", priority: "low"}
-  ]}
-  
-  // File operations
-  Bash "mkdir -p app/{src,tests,docs}"
-  Write "app/src/index.js"
-  Write "app/tests/index.test.js"
-  Write "app/docs/README.md"
-```
-
-### ❌ WRONG (Multiple Messages):
-```javascript
-Message 1: mcp__claude-flow__swarm_init
-Message 2: Task("agent 1")
-Message 3: TodoWrite { todos: [single todo] }
-Message 4: Write "file.js"
-// This breaks parallel coordination!
-```
-
-## Performance Benefits
-
-- **84.8% SWE-Bench solve rate**
-- **32.3% token reduction**
-- **2.8-4.4x speed improvement**
-- **27+ neural models**
-
-## Hooks Integration
-
-### Pre-Operation
-- Auto-assign agents by file type
-- Validate commands for safety
-- Prepare resources automatically
-- Optimize topology by complexity
-- Cache searches
-
-### Post-Operation
-- Auto-format code
-- Train neural patterns
-- Update memory
-- Analyze performance
-- Track token usage
-
-### Session Management
-- Generate summaries
-- Persist state
-- Track metrics
-- Restore context
-- Export workflows
-
-## Advanced Features (v2.0.0)
-
-- 🚀 Automatic Topology Selection
-- ⚡ Parallel Execution (2.8-4.4x speed)
-- 🧠 Neural Training
-- 📊 Bottleneck Analysis
-- 🤖 Smart Auto-Spawning
-- 🛡️ Self-Healing Workflows
-- 💾 Cross-Session Memory
-- 🔗 GitHub Integration
-
-## Integration Tips
-
-1. Start with basic swarm init
-2. Scale agents gradually
-3. Use memory for context
-4. Monitor progress regularly
-5. Train patterns from success
-6. Enable hooks automation
-7. Use GitHub tools first
-
-## Support
-
-- Documentation: https://github.com/ruvnet/claude-flow
-- Issues: https://github.com/ruvnet/claude-flow/issues
 
 ---
 
-Remember: **Claude Flow coordinates, Claude Code creates!**
+## 🚨 STRICT REQUIREMENT: WINDOWS-ONLY EXECUTION (E2E) 🚨
 
-# important-instruction-reminders
-Do what has been asked; nothing more, nothing less.
-NEVER create files unless they're absolutely necessary for achieving your goal.
-ALWAYS prefer editing an existing file to creating a new one.
-NEVER proactively create documentation files (*.md) or README files. Only create documentation files if explicitly requested by the User.
-Never save working files, text/mds and tests to the root folder.
+### ⚠️ THE GOLDEN RULE: NO WSL PATHS SHOULD EVER EXIST ⚠️
+**If you see `/mnt/d/...` paths ANYWHERE, you're doing it wrong!**
+
+### DO NOT RUN ANY MCP OR REMOTION WORKLOADS IN WSL2
+
+- ✅ **Windows Native Execution Only**: All MCP, Remotion Studio, and associated tools must be run exclusively through Windows executables and Windows paths.
+- ✅ **Project Development May Occur in WSL2**: You may **edit, git, and manage** files using WSL2 or VS Code WSL integration, but all build, serve, and tool launch must be done on Windows.
+- ✅ **Project and Asset Locations Must Be Windows Paths**: E.g. `D:\MY PROJECTS\AI\LLM\AI Code Gen\my-builds\Video + Motion\RoughCut`
+- ❌ **NO Operations in WSL2 Paths**: Never use `/mnt/d/...` or any Linux-only or pseudo-Linux path for execution. MCP, Remotion CLI, and Node.js scripts must never reference or launch in WSL2 paths.
+- ❌ **NO Linux-Only Node.js, npm, or Remotion**: Do not install or run Node.js or dependencies inside a WSL2 Linux environment for anything production related.
+
+**WHY:**  
+- **Building in WSL2 creates WSL paths** that Windows cannot execute
+- **WSL paths (`/mnt/d/...`) should NEVER exist** in the compiled code
+- **All paths must be Windows native (`D:\...`) from the start**
+- Mixing execution environments causes "Process exited with code 1" failures
+
+---
+
+## ✳️ DEV/PROD FLOW
+
+| Step                   | Where                  | How                                     | Path Style                |
+|------------------------|------------------------|------------------------------------------|---------------------------|
+| 1. **Edit code**       | WSL2 (optional)        | Via VS Code WSL, shell, or git           | `/mnt/d/...`              |
+| 2. **Build/Run**       | **Windows native**     | Always run build, serve, and CLI tools   | `D:\MY PROJECTS\...`      |
+| 3. **CLI Tools**       | **Windows native**     | Spawn, npm, npx from Windows Node.js     | `D:\MY PROJECTS\...`      |
+| 4. **Asset paths**     | **Windows naming**     | Only Windows paths in configs and tools  | `D:\MY PROJECTS\...`      |
+
+**Note:**  
+All execution, launches, spawns, builds, and MCP JSON output must use Windows-native paths and environments.
+
+---
+
+## 🏗️ PROJECT STRUCTURE (WINDOWS PATHS ONLY)
+
+```
+D:\MY PROJECTS\AI\LLM\AI Code Gen\my-builds\Video + Motion\RoughCut\
+├── build\index.js                    # Compiled MCP server (run only in Windows)
+├── src\                             # Source code (edit in WSL2 OK)
+│   ├── index.ts
+│   ├── tools\
+│   ├── services\
+│   ├── utils\
+│   └── types\
+├── assets\
+│   └── projects\                   # All Remotion projects (Windows path)
+│   └── videos\
+│   └── cache\
+├── package.json
+├── tsconfig.json
+└── CLAUDE.md   # (this file)
+```
+
+---
+
+## 🛑 WINDOWS CONFIGURATION - MCP JSON-RPC STRICTNESS
+
+- MCP runs as a **JSON-RPC over stdio** process from Windows Claude Desktop.
+- ⭐ **Do not use any console.log, console.error, etc. in MCP!**
+- ⭐ Use only file-based logging.
+- **MCP config file must only use Windows paths:**
+
+```json
+{
+  "mcpServers": {
+    "rough-cut-mcp": {
+      "command": "C:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\my-builds\\Video + Motion\\RoughCut\\build\\index.js"
+      ],
+      "env": {
+        "NODE_ENV": "production",
+        "REMOTION_ASSETS_DIR": "D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\my-builds\\Video + Motion\\RoughCut\\assets"
+      }
+    }
+  }
+}
+```
+
+---
+
+## 🚨 CRITICAL: MCP JSON-RPC PROTOCOL REQUIREMENTS 🚨
+
+**NEVER ADD CONSOLE OUTPUT TO MCP SERVER CODE!**
+- ❌ **NO console.log()** - Breaks JSON-RPC communication
+- ❌ **NO console.error()** - Causes "Unexpected token" JSON parse errors  
+- ❌ **NO console.warn()** - Corrupts MCP protocol messages
+- ❌ **NO console.debug()** - Interferes with Claude Desktop communication
+- ❌ **NO console.time()/timeEnd()** - Outputs to stdout breaking protocol
+- ✅ **USE logger.info/debug/error** - Writes to files only, not stdout/stderr
+- ✅ **ALWAYS REBUILD** after removing console statements: `npm run build`
+
+**WHY THIS MATTERS:**
+- MCP uses JSON-RPC over stdio (stdin/stdout)
+- ANY console output corrupts the JSON stream
+- Results in errors like: "Unexpected token 'D', '[DEBUG] Rec'... is not valid JSON"
+- This is a RECURRING issue that breaks Claude Desktop integration
+
+---
+
+## ⚡ KEY EXECUTION RULES - BUILD AND RUN ON WINDOWS ONLY!
+
+### 🚨 CRITICAL BUILD STEPS (WINDOWS ONLY):
+1. **Open Windows PowerShell or CMD** (NOT WSL2 terminal!)
+2. **Navigate to project in Windows:**
+   ```powershell
+   cd "D:\MY PROJECTS\AI\LLM\AI Code Gen\my-builds\Video + Motion\RoughCut"
+   ```
+3. **Install dependencies with Windows npm:**
+   ```powershell
+   npm install
+   ```
+4. **Build with Windows Node.js:**
+   ```powershell
+   npm run build
+   ```
+
+### WHY THIS IS CRITICAL:
+- **Building in WSL2 bakes WSL paths into the code** (`/mnt/d/...`)
+- **Windows can't execute WSL paths** → "Process exited with code 1"
+- **All paths must be Windows native from the start** (`D:\...`)
+
+### NEVER DO THIS:
+```bash
+# ❌ WRONG - WSL2 terminal
+cd /mnt/d/MY\ PROJECTS/...
+npm run build  # This creates WSL paths!
+```
+
+### ALWAYS DO THIS:
+```powershell
+# ✅ CORRECT - Windows PowerShell/CMD
+cd "D:\MY PROJECTS\..."
+npm run build  # This creates Windows paths!
+```
+
+- **Launch MCP ONLY via Windows:**  
+  Either through Claude Desktop auto-discovery or manually with:
+  ```
+  "C:\Program Files\nodejs\node.exe" "D:\...\RoughCut\build\index.js"
+  ```
+
+- **Remotion Studio Launches:**  
+  Must be from Windows, with `cwd` and config paths as Windows native.  
+  No `/mnt/...` or Linux home dir references allowed.
+
+---
+
+## 🧑‍💻 DEVELOPMENT FLOW (FOR DEVELOPERS)
+
+### ⚠️ REMEMBER: WSL PATHS SHOULD NEVER EXIST IN THE FIRST PLACE! ⚠️
+
+1. **You MAY edit source files in WSL2 or with any IDE.**
+2. **NEVER build using `npm run build` in WSL2** - This bakes WSL paths into the code!
+3. **NEVER run using `node` or `npx` in WSL2** - This uses WSL paths!
+4. **When ready to test:**
+    - **MUST** switch to Windows PowerShell/CMD
+    - **MUST** navigate using Windows path: `cd "D:\MY PROJECTS\..."`
+    - **MUST** build with Windows npm: `npm run build`
+    - **MUST** run all commands from Windows terminal
+5. **All paths everywhere must be Windows paths** - Never `/mnt/d/...`!
+
+---
+
+## ✅ EXAMPLES OF ACCEPTABLE vs. UNACCEPTABLE USAGE
+
+| Acceptable (✔)                    | Not Acceptable (✗)                |
+|------------------------------------|-----------------------------------|
+| `"D:\MY PROJECTS\foo\bar.js"`      | `"/mnt/d/MY PROJECTS/foo/bar.js"` |
+| `C:\Program Files\nodejs\node.exe` | `node` (if Linux node in WSL2)    |
+| Run in Windows terminal/cmd/pwsh   | Run in WSL2 shell                 |
+| Windows-based npm, Remotion, etc.  | Linux npm/node/Remotion           |
+| Build in Windows, edit in WSL2     | Build in WSL2                     |
+| Asset/project paths use `\`        | Asset project paths use `/`       |
+
+---
+
+## 🗂️ WHY THIS MATTERS
+
+- **Reliability:** Prevents exec/spawn failures, inaccessible paths, and cross-platform bugs.
+- **Performance:** Windows Node.js is optimized for NTFS and Windows processes on Windows drives.
+- **Claude Desktop Integration:** Desktop MCP can ONLY access Windows paths, not Linux, and expects MCP tools to do the same.
+
+---
+
+## 🎯 LAYERED TOOL ARCHITECTURE (Implemented Jan 26, 2025)
+
+### Overview
+The MCP server now implements a **layered tool architecture** that dramatically improves performance by reducing initial tool exposure from 43 tools to just 9 tools. This addresses LLM performance degradation that occurs when too many tools are presented at once.
+
+### Why This Was Implemented
+- **Research shows** LLMs get confused with 40+ tools
+- **Reduces context bloat** by 79% (from ~8,600 to ~1,800 tokens)
+- **Improves tool selection accuracy** through better organization
+- **Enables scalability** for future tool additions
+
+### Tool Organization Structure
+
+#### Layer 1: Discovery Tools (Always Active - 6 tools)
+- `discover-capabilities` - Show available tool categories
+- `activate-toolset` - Load specific tool categories
+- `search-tools` - Find tools by name/functionality
+- `get-active-tools` - List currently loaded tools
+- `suggest-tools` - Get intelligent recommendations
+- `get-tool-usage-stats` - View usage analytics
+
+#### Layer 2: Core Operations (Default Loaded - 3 tools)
+- `list-video-projects` - List all animation projects
+- `get-project-status` - Get project information
+- `launch-project-studio` - Launch Remotion Studio
+
+#### Layer 3: On-Demand Categories (30+ tools total)
+- **Video Creation** (9 tools) - Animation creation/editing
+- **Studio Management** (11 tools) - Remotion Studio control
+- **Voice Generation** (5 tools) - ElevenLabs TTS (requires API key)
+- **Sound Effects** (5 tools) - Freesound integration (requires API key)
+- **Image Generation** (6 tools) - Flux AI images (requires API key)
+- **Maintenance** (4 tools) - Asset cleanup/organization
+
+### How to Use
+
+#### Discovering Available Tools
+```
+1. Use `discover-capabilities` to see all categories
+2. Use `get-active-tools` to see currently loaded tools
+3. Use `search-tools` with a query to find specific tools
+```
+
+#### Activating Tool Categories
+```
+Use `activate-toolset` with:
+- categories: ["video-creation", "studio-management"]
+- exclusive: true/false (whether to deactivate others first)
+```
+
+#### Example Workflow
+```
+1. Start → 9 tools available (6 discovery + 3 core)
+2. Need to create video → activate-toolset { categories: ["video-creation"] }
+3. Need voice → activate-toolset { categories: ["voice-generation"] }
+4. Tools are now available for use
+```
+
+### Configuration Options
+
+#### Default Mode (Layered - Recommended)
+- Starts with only 9 tools
+- Load additional tools on demand
+- Better performance and accuracy
+
+#### Legacy Mode (All Tools)
+Set environment variable to load all 43 tools at once:
+```powershell
+$env:MCP_LEGACY_MODE = "true"
+```
+
+### Performance Improvements
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| Initial Tools | 43 | 9 | 79% reduction |
+| Context Tokens | ~8,600 | ~1,800 | 79% reduction |
+| Tool Organization | None | 9 categories | Better structure |
+| Dynamic Loading | No | Yes | On-demand |
+
+### Key Implementation Files
+- `src/services/tool-registry.ts` - Dynamic tool management system
+- `src/tools/discovery-tools.ts` - Discovery layer implementation
+- `src/types/tool-categories.ts` - Tool category definitions
+- `src/index.ts` - Updated to use tool registry
+- `LAYERED-TOOLS-GUIDE.md` - Detailed documentation
+- `test-layered-tools.js` - Test script for verification
+
+### Testing the Architecture
+```powershell
+# Build on Windows
+.\build-windows.ps1
+
+# Test the layered system
+node test-layered-tools.js
+```
+
+---
+
+## 🛠️ COMPLETE MCP TOOLS REFERENCE
+
+### ✅ Project Management Tools (WORKING)
+- **`list-video-projects`** - Lists all video projects in assets/projects
+- **`get-project-status`** - Gets detailed information about projects
+- **`analyze-video-structure`** - Analyzes VideoComposition.tsx structure
+- **`launch-project-studio`** - Launches Remotion Studio for specific project
+- **`edit-video-element`** - Edits video elements (needs AST implementation)
+- **`install-project-dependencies`** - Installs npm dependencies for a project
+- **`repair-project`** - Repairs broken projects by adding missing files
+
+### ✅ Video Creation Tools
+- **`create-complete-video`** - Creates new video with React component code
+- **`create-text-video`** - Creates simple text-only video
+- **`generate-video-assets`** - Generates voice/images/sounds for videos
+
+### ✅ Studio Management Tools (WORKING)
+- **`launch-remotion-studio`** - Launches Remotion Studio dashboard
+- **`stop-remotion-studio`** - Stops running Remotion Studio instance
+- **`get-studio-status`** - Checks studio status and running instances
+- **`launch-studio-with-project`** - Launches studio with specific project
+
+### ✅ Asset Management Tools
+- **`get-asset-statistics`** - Gets comprehensive asset statistics
+- **`cleanup-old-assets`** - Cleans up old temporary files
+- **`organize-assets`** - Organizes asset directories
+- **`get-disk-usage`** - Gets disk usage information
+
+---
+
+## 📝 MAINTAINING THE E2E WINDOWS PROMISE
+
+### 🔴 THE CORE PRINCIPLE: NO WSL PATHS SHOULD EVER EXIST! 🔴
+
+- **Build on Windows** = Windows paths in compiled code
+- **Run on Windows** = Windows paths at runtime
+- **Never build in WSL2** = Never get WSL paths in the first place!
+
+- MCP, Remotion Studio, and all processes must run natively on Windows.
+- WSL2 is for developer convenience only, *never* for launching/serving/building/CLI.
+- All logs, outputs, scripts, and references must be Windows-native.
+- Any breakage in this pattern will result in launch, spawn, or process failure (exit code 1, path not found, or process not discovered).
+
+**If you see `/mnt/d/...` ANYWHERE in logs, output, or errors - STOP! You're building/running from WSL2!**
+
+---
+
+> **Edit code where you want, but BUILD, LAUNCH, and RUN everything in Windows. Nothing leaves Windows. No `/mnt/`, no `/home/`, no bash/npx under WSL2. If it's an MCP server, tool, or Remotion process, it is Windows-only e2e.**
+
+---
+
+## 📝 POWERSHELL SCRIPTING GUIDELINES FOR WINDOWS
+
+When creating PowerShell scripts for this project, follow these rules to ensure compatibility:
+
+### ✅ DO:
+1. **Use simple ASCII text** - Avoid Unicode characters in scripts
+2. **Put `else` on a new line** after the closing brace:
+   ```powershell
+   if ($condition) {
+       # code
+   }
+   else {
+       # code
+   }
+   ```
+3. **Use basic Write-Host** for output
+4. **Test scripts in actual Windows PowerShell** before deploying
+5. **Keep variable names simple** without special characters
+
+### ❌ DON'T:
+1. **Don't use emoji or Unicode** in comments or strings (causes parsing errors)
+2. **Don't put `else` on same line as `}`** - This syntax fails:
+   ```powershell
+   } else {  # WRONG - causes "Unexpected token" error
+   ```
+3. **Don't write scripts in WSL2** - Different line endings can cause issues
+4. **Don't use complex nested structures** without testing
+
+### Example Working Script Structure:
+```powershell
+Write-Host "Starting..." -ForegroundColor Cyan
+
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "Success" -ForegroundColor Green
+}
+else {
+    Write-Host "Failed" -ForegroundColor Red
+    exit 1
+}
+```
+
+---
+
+## 🎬 MCP WORKFLOW VALIDATION
+
+Claude Desktop MUST support this exact flow:
+```
+1. Claude Desktop → "List the animations we have" 
+   ↓ (calls list-video-projects)
+   MCP finds all projects in assets/projects (Windows paths)
+
+2. Claude Desktop → "Launch the GitHub animation"
+   ↓ (calls launch-project-studio)
+   Studio launches with Windows paths
+
+3. Claude Desktop → "Create a new bouncing ball animation"
+   ↓ (calls create-complete-video)
+   Creates project with all required files using Windows paths
+
+4. Claude Desktop → "Kill current studio and restart fresh"
+   ↓ (calls stop-remotion-studio then launch-project-studio)
+   Studio restarts with Windows paths
+```
+
+**ANY PATH ISSUES OR CROSS-SUBSYSTEM EXECUTION WILL CAUSE FAILURES**
+
+---
+
+**THE MCP IS OPERATIONAL WITH WINDOWS-ONLY EXECUTION!**
