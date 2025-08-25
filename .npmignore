@@ -22,12 +22,17 @@ build-*.ps1
 build-*.bat
 test-*.ps1
 test-*.bat
+test-*.cjs
+test-*.js
 run-setup.ps1
 update-*.ps1
 safe-*.ps1
 fix-*.ps1
 install-*.ps1
 validate-*.ps1
+run-windows-tests.ps1
+test-windows-quick.ps1
+test-mcp-protocol.cjs
 
 # Documentation source files
 Docs/
@@ -39,6 +44,9 @@ DEPLOYMENT-GUIDE.md
 LAYERED-TOOLS-GUIDE.md
 SCRIPTS-README.md
 TESTING.md
+WINDOWS-ONLY-REFACTORING-COMPLETE.md
+test-installation-validation/
+vectors/
 
 # Development configuration
 .env*
