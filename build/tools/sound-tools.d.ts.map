@@ -1,0 +1,1 @@
+{"version":3,"file":"sound-tools.d.ts","sourceRoot":"","sources":["../../src/tools/sound-tools.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,IAAI,EAAE,MAAM,oCAAoC,CAAC;AAC1D,OAAO,EAAE,SAAS,EAAE,YAAY,EAAE,MAAM,mBAAmB,CAAC;AAM5D,wBAAgB,gBAAgB,CAAC,MAAM,EAAE,SAAS,GAAG,IAAI,EAAE,CAqK1D;AAED,wBAAgB,mBAAmB,CAAC,MAAM,EAAE,SAAS,GAAG,YAAY,CAuTnE"}

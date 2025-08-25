@@ -3,6 +3,11 @@
   "frequentFiles": {},
   "commonWorkflows": [],
   "searchPatterns": {},
-  "errorPatterns": {},
+  "errorPatterns": {
+    "the module '/path'\nwas compiled against a different node.js version using\nnode_module_version 115. this version of node.js requires\nnode_module_version 127. please try re-compiling or re-installing\nthe module (for instance, using `npm rebuild` or `npm install`).": {
+      "count": 2,
+      "resolutions": []
+    }
+  },
   "sessionSummaries": []
 }

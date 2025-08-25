@@ -22,6 +22,11 @@
     "test:performance": "node --expose-gc tests/performance-benchmarks.js",
     "test:coverage": "node tests/coverage-runner.js",
     "test:all": "npm run test && npm run test:integration && npm run test:performance",
+    "test:validate-install": "node tests/validate-installation.js",
+    "test:check-deps": "node tests/check-dependencies.js",
+    "test:workflow": "node tests/test-complete-workflow.js",
+    "test:fresh-install": "node scripts/test-fresh-install.js",
+    "test:e2e-complete": "npm run test:validate-install && npm run test:check-deps && npm run test:workflow",
     "test-studio": "node tests/test-studio-complete.js",
     "test-layered": "node test-layered-tools.js",
     "test-routing": "node test-tool-routing-fix.js",
@@ -49,23 +54,25 @@
     "video-creation",
     "ai-video"
   ],
-  "author": "Your Name <your.email@example.com>",
+  "author": "endlessblink",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/yourusername/rough-cut-mcp.git"
+    "url": "git+https://github.com/endlessblink/rough-cut-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/rough-cut-mcp/issues"
+    "url": "https://github.com/endlessblink/rough-cut-mcp/issues"
   },
-  "homepage": "https://github.com/yourusername/rough-cut-mcp#readme",
+  "homepage": "https://github.com/endlessblink/rough-cut-mcp#readme",
   "files": [
     "build/",
-    "assets/studio-project/",
+    "scripts/check-platform.js",
     "install-to-claude.js",
     "README.md",
     "CHANGELOG.md",
-    "LICENSE"
+    "LICENSE",
+    "CLAUDE.md",
+    "LAYERED-TOOLS-GUIDE.md"
   ],
   "dependencies": {
     "@babel/generator": "^7.28.3",

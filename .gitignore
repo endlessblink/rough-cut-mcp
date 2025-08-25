@@ -6,7 +6,8 @@ yarn-error.log*
 lerna-debug.log*
 
 # Build outputs
-build/
+# Note: build/ is included in git for easier GitHub installation
+# build/
 dist/
 out/
 *.tsbuildinfo
@@ -164,6 +165,10 @@ Temporary Items
 local/
 dev-assets/
 dev-temp/
+memories/
+tasks/
+SESSION-MEMORY-DROPOFF.md
+"D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\my-builds\\Video + Motion\\RoughCut\\SESSION-MEMORY-DROPOFF.md"
 
 # Performance testing
 performance-results/

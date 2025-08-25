@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // Test MCP protocol communication
-import { RemotionCreativeMCPServer } from './build/index.js';
+import { RemotionCreativeMCPServer } from '../build/index.js';
 
 console.log('🧪 Testing MCP Protocol Communication\n');
 

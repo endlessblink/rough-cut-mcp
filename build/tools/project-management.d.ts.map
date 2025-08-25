@@ -1,0 +1,1 @@
+{"version":3,"file":"project-management.d.ts","sourceRoot":"","sources":["../../src/tools/project-management.ts"],"names":[],"mappings":"AAEA,OAAO,EAAE,IAAI,EAAE,MAAM,oCAAoC,CAAC;AAC1D,OAAO,EAAE,SAAS,EAAE,YAAY,EAAE,MAAM,mBAAmB,CAAC;AAK5D,wBAAgB,4BAA4B,CAAC,MAAM,EAAE,SAAS,GAAG,IAAI,EAAE,CAyhBtE;AAED,wBAAgB,+BAA+B,CAAC,MAAM,EAAE,SAAS,GAAG,YAAY,CAwzD/E"}
