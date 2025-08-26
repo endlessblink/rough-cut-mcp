@@ -296,4 +296,4 @@ Docs/debugging/
 
 # MCP server runtime directories
 .claude-flow/
-.swarm/
+.swarm/.claude-flow/
