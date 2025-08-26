@@ -146,9 +146,21 @@ if (!existsSync(claudeConfigDir)) {
 }
 
 // Get the installed package location
+// When installed globally via npm, __dirname will be in the global node_modules
+// e.g., C:\Users\username\AppData\Roaming\npm\node_modules\rough-cut-mcp\scripts
 const packageRoot = join(__dirname, '..');
 const buildPath = join(packageRoot, 'build', 'index.js');
 const assetsPath = join(packageRoot, 'assets');
+
+console.log(`📦 Package installed at: ${packageRoot}`);
+
+// Verify the build files exist
+if (!existsSync(buildPath)) {
+  console.error(`❌ Error: Build file not found at ${buildPath}`);
+  console.error('   The package may not have been built correctly.');
+  console.error('   Try reinstalling or contact support.');
+  process.exit(1);
+}
 
 // Read existing config or create new one
 let config = { mcpServers: {} };
@@ -170,14 +182,22 @@ const nodeCommand = getNodeExecutablePath();
 
 // Add or update rough-cut-mcp server configuration
 config.mcpServers = config.mcpServers || {};
+
+// For Windows paths in JSON, we need proper escaping
+// But only escape if we're on Windows
+const escapedBuildPath = platform() === 'win32' ? buildPath.replace(/\\/g, '\\\\') : buildPath;
+const escapedAssetsPath = platform() === 'win32' ? assetsPath.replace(/\\/g, '\\\\') : assetsPath;
+
 config.mcpServers['rough-cut-mcp'] = {
   command: nodeCommand,
-  args: [buildPath.replace(/\\/g, '\\\\')],
+  args: [escapedBuildPath],
   env: {
-    REMOTION_ASSETS_DIR: assetsPath.replace(/\\/g, '\\\\'),
+    REMOTION_ASSETS_DIR: escapedAssetsPath,
     NODE_ENV: 'production'
   }
 };
+
+console.log(`🎯 MCP server will run from: ${buildPath}`);
 
 // Write updated config
 try {
