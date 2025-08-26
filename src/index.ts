@@ -343,12 +343,50 @@ export class RemotionCreativeMCPServer {
    * Set up MCP request handlers
    */
   private setupRequestHandlers(): void {
-    // List tools handler - now uses tool registry
+    // List tools handler - now uses tool registry with proper serialization
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-      const activeTools = this.toolRegistry.getActiveTools();
-      return {
-        tools: activeTools,
-      };
+      try {
+        const activeTools = this.toolRegistry.getActiveTools();
+        
+        // Convert enhanced registry objects to MCP-compliant format
+        // This ensures no Map/Set/Proxy objects break JSON serialization
+        const mcpTools = activeTools.map(tool => {
+          // Ensure we have a plain object without Maps/Proxies/Sets
+          const cleanTool = {
+            name: String(tool.name || ''),
+            description: String(tool.description || ''),
+            inputSchema: tool.inputSchema ? {
+              type: tool.inputSchema.type || 'object',
+              properties: tool.inputSchema.properties || {},
+              required: tool.inputSchema.required || []
+            } : {
+              type: 'object',
+              properties: {},
+              required: []
+            }
+          };
+          
+          // Verify it's JSON serializable
+          try {
+            JSON.stringify(cleanTool);
+            return cleanTool;
+          } catch (e) {
+            this.logger.error(`Tool ${tool.name} failed serialization`, { error: e });
+            return null;
+          }
+        }).filter(tool => tool !== null);
+        
+        this.logger.info(`Returning ${mcpTools.length} tools to Claude`, { 
+          tools: mcpTools.map(t => t.name) 
+        });
+        
+        return {
+          tools: mcpTools,
+        };
+      } catch (error) {
+        this.logger.error('Error in ListToolsRequestSchema handler', { error });
+        return { tools: [] };
+      }
     });
 
     // Call tool handler - now uses tool registry
