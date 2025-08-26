@@ -4,6 +4,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { homedir, platform } from 'os';
 import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -20,6 +21,114 @@ console.log('\n🎬 Rough Cut MCP Server - Installation\n');
 if (platform() !== 'win32') {
   console.warn('⚠️  WARNING: This MCP server is designed for Windows.');
   console.warn('   Installation will continue, but functionality may be limited on other platforms.\n');
+}
+
+/**
+ * Robust Node.js executable path detection
+ * Tries multiple methods to find the correct Node.js path
+ */
+function getNodeExecutablePath() {
+  const debugLog = (msg) => {
+    if (process.env.DEBUG_MCP_INSTALL) {
+      console.error(`[DEBUG] ${msg}`);
+    }
+  };
+
+  debugLog('Starting Node.js path detection...');
+  debugLog(`process.execPath: ${process.execPath}`);
+  debugLog(`npm_node_execpath: ${process.env.npm_node_execpath}`);
+  debugLog(`npm_execpath: ${process.env.npm_execpath}`);
+
+  // Method 1: Check environment variables first (most reliable for npm installs)
+  if (process.env.npm_node_execpath && existsSync(process.env.npm_node_execpath)) {
+    debugLog(`Found via npm_node_execpath: ${process.env.npm_node_execpath}`);
+    return process.env.npm_node_execpath;
+  }
+
+  // Method 2: Use npm config get prefix
+  try {
+    const npmPrefix = execSync('npm config get prefix', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+    const nodeExe = platform() === 'win32' ? 'node.exe' : 'node';
+    const nodePath = join(npmPrefix, nodeExe);
+    
+    if (existsSync(nodePath)) {
+      debugLog(`Found via npm prefix: ${nodePath}`);
+      return nodePath;
+    }
+  } catch (e) {
+    debugLog(`npm prefix method failed: ${e.message}`);
+  }
+
+  // Method 3: Use which/where command
+  try {
+    const whichCmd = platform() === 'win32' ? 'where node' : 'which node';
+    const result = execSync(whichCmd, { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+    const paths = result.split('\n').map(p => p.trim()).filter(p => p);
+    
+    for (const nodePath of paths) {
+      if (existsSync(nodePath)) {
+        debugLog(`Found via where/which command: ${nodePath}`);
+        return nodePath;
+      }
+    }
+  } catch (e) {
+    debugLog(`where/which method failed: ${e.message}`);
+  }
+
+  // Method 4: Use npm bin command
+  try {
+    const npmBin = execSync('npm bin -g', { encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+    const nodeExe = platform() === 'win32' ? 'node.exe' : 'node';
+    const nodePath = join(dirname(npmBin), nodeExe);
+    
+    if (existsSync(nodePath)) {
+      debugLog(`Found via npm bin: ${nodePath}`);
+      return nodePath;
+    }
+  } catch (e) {
+    debugLog(`npm bin method failed: ${e.message}`);
+  }
+
+  // Method 5: Check npm_execpath (derive node from npm location)
+  if (process.env.npm_execpath) {
+    const npmDir = dirname(process.env.npm_execpath);
+    const nodeExe = platform() === 'win32' ? 'node.exe' : 'node';
+    const nodePath = join(npmDir, nodeExe);
+    
+    if (existsSync(nodePath)) {
+      debugLog(`Found via npm_execpath: ${nodePath}`);
+      return nodePath;
+    }
+  }
+
+  // Method 6: Check common Windows paths
+  if (platform() === 'win32') {
+    const commonPaths = [
+      'C:\\Program Files\\nodejs\\node.exe',
+      'C:\\Program Files (x86)\\nodejs\\node.exe',
+      'C:\\nodejs\\node.exe',
+      'C:\\pinokio\\bin\\miniconda\\node.exe'
+    ];
+    
+    for (const path of commonPaths) {
+      if (existsSync(path)) {
+        debugLog(`Found at common path: ${path}`);
+        return path;
+      }
+    }
+  }
+
+  // Method 7: Check process.execPath if it's valid
+  if (process.execPath && existsSync(process.execPath) && !process.execPath.includes('\\Temp\\')) {
+    debugLog(`Using process.execPath: ${process.execPath}`);
+    return process.execPath;
+  }
+
+  // Fallback: Just use 'node' command and hope it's in PATH
+  debugLog('Falling back to "node" command (relies on PATH)');
+  console.warn('⚠️  Could not detect Node.js installation path.');
+  console.warn('   Using "node" command - ensure Node.js is in your PATH.\n');
+  return 'node';
 }
 
 // Find Claude Desktop config location
@@ -56,15 +165,11 @@ if (existsSync(configPath)) {
   console.log('✓ Creating new Claude Desktop configuration');
 }
 
+// Get the Node.js command using our robust detection
+const nodeCommand = getNodeExecutablePath();
+
 // Add or update rough-cut-mcp server configuration
 config.mcpServers = config.mcpServers || {};
-
-// Use the Node.js that's running this script (works for global npm installs)
-// Or fallback to 'node' command which should be in PATH
-const nodeCommand = process.platform === 'win32' ? 
-  (process.execPath || 'node') : 
-  'node';
-
 config.mcpServers['rough-cut-mcp'] = {
   command: nodeCommand,
   args: [buildPath.replace(/\\/g, '\\\\')],
@@ -104,4 +209,7 @@ console.log('\n🎯 Quick test commands:');
 console.log('  • "Show available tool categories" - Lists all tools');
 console.log('  • "Create a simple text animation" - Creates your first video');
 console.log('  • "Launch Remotion Studio" - Opens the video editor');
-console.log('\n📖 Full documentation: https://github.com/YOUR_USERNAME/RoughCut\n');
+console.log('\n📖 Full documentation: https://github.com/endlessblink/rough-cut-mcp\n');
+
+// Debug mode hint
+console.log('💡 Tip: Set DEBUG_MCP_INSTALL=true to see detailed path detection info\n');
