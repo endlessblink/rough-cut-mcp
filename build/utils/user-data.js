@@ -2,6 +2,7 @@
 import path from 'path';
 import os from 'os';
 import fs from 'fs-extra';
+import { fileURLToPath } from 'url';
 import { getLogger } from './logger.js';
 const logger = getLogger().service('UserData');
 /**
@@ -100,10 +101,14 @@ export async function copyEssentialTemplates(sourceTemplatesDir, userTemplatesDi
  */
 export function getInstallationDirectory() {
     // This should be the directory where the MCP package is installed
-    // In development, it's the project root
-    // In production, it would be node_modules/rough-cut-mcp or global npm location
-    // For now, try to detect based on current file location
-    const currentDir = process.cwd();
+    // Use environment variable if available to avoid process.cwd() issues
+    const envAssetDir = process.env.REMOTION_ASSETS_DIR;
+    if (envAssetDir) {
+        // Go up one level from assets directory to get project root
+        return path.dirname(envAssetDir);
+    }
+    // Fallback: try to detect based on __dirname equivalent
+    const currentDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
     const packageJsonPath = path.join(currentDir, 'package.json');
     if (fs.existsSync(packageJsonPath)) {
         try {

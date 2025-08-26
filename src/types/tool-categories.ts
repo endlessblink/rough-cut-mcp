@@ -50,6 +50,24 @@ export interface ToolMetadata {
 }
 
 /**
+ * Sub-category definition for hierarchical tool organization
+ */
+export interface SubCategoryDefinition {
+  name: string;
+  tools: string[];
+  exclusive?: boolean; // Whether to unload other sub-categories
+  autoLoad?: string[]; // Dependencies to load with this category
+}
+
+/**
+ * Category definition with sub-categories
+ */
+export interface CategoryDefinition {
+  name: string;
+  subCategories: Map<string, SubCategoryDefinition>;
+}
+
+/**
  * Extended tool with metadata
  */
 export interface ExtendedTool extends Tool {
@@ -192,6 +210,40 @@ export const TOOL_CATEGORIES: Record<ToolCategory, ToolCategoryInfo> = {
 };
 
 /**
+ * Tool sub-category definitions for hierarchical organization
+ * Updated for consolidated tools (~20 tools total)
+ */
+export const TOOL_SUBCATEGORIES = {
+  'discovery': {
+    'discovery': ['discover', 'activate', 'search']
+  },
+  'core-operations': {
+    'project': ['project'],
+    'studio': ['studio'],
+    'editing': ['composition'],
+    'dependencies': ['dependencies']
+  },
+  'video-creation': {
+    'basic': ['create-video'],
+    'advanced': ['analyze-video', 'render'],
+    'generation': ['generate-assets']
+  },
+  'maintenance': {
+    'assets': ['assets'],
+    'cache': ['cache']
+  },
+  'voice-generation': {
+    'management': ['voices']
+  },
+  'sound-effects': {
+    'search': ['sounds']
+  },
+  'image-generation': {
+    'management': ['image-models']
+  }
+};
+
+/**
  * Default tool loading configuration
  */
 export const DEFAULT_TOOL_CONFIGURATION = {
@@ -199,11 +251,10 @@ export const DEFAULT_TOOL_CONFIGURATION = {
   maxInitialTools: 10,
   /** Categories to load by default */
   defaultCategories: [
-    ToolCategory.DISCOVERY,
-    ToolCategory.CORE_OPERATIONS,
+    ToolCategory.DISCOVERY, // Only discovery tools by default
   ],
-  /** Enable legacy mode (load all tools) */
-  legacyMode: false,
+  /** Default sub-categories to load */
+  defaultSubCategories: [], // No sub-categories load by default
   /** Enable usage tracking for smart defaults */
   trackUsage: true,
   /** Auto-suggest tools based on context */

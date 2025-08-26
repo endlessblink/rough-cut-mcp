@@ -1,438 +1,326 @@
 /**
- * Discovery Tools for Dynamic Tool Management
- *
- * These tools are always exposed and allow LLMs to discover and activate
- * other tools on demand, implementing the layered architecture pattern.
+ * Discovery Tools - Minimal set for tool discovery and activation
+ * Works with Enhanced Registry's layered architecture
  */
-import { ToolCategory, } from '../types/tool-categories.js';
-import { getLogger } from '../utils/logger.js';
-/**
- * Create discovery tools that are always available
- */
-export function createDiscoveryTools(registry) {
-    const logger = getLogger().service('DiscoveryTools');
-    return [
-        {
-            name: 'discover-capabilities',
-            description: 'Discover available tool categories and their descriptions. Use this to understand what capabilities are available.',
-            inputSchema: {
-                type: 'object',
-                properties: {
-                    includeStats: {
-                        type: 'boolean',
-                        description: 'Include usage statistics and tool counts',
-                        default: false,
-                    },
+import { ToolCategory, TOOL_CATEGORIES, TOOL_SUBCATEGORIES } from '../types/tool-categories.js';
+export function registerDiscoveryTools(server) {
+    const logger = server.logger.child({ service: 'discovery-tools' });
+    /**
+     * 1. Discover - Single tool for all discovery needs
+     */
+    server.toolRegistry.registerTool({
+        name: 'discover',
+        description: 'Discover available capabilities, categories, and tools',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                type: {
+                    type: 'string',
+                    enum: ['all', 'categories', 'active', 'stats', 'recommendations'],
+                    description: 'What to discover',
+                    default: 'all'
                 },
-            },
-        },
-        {
-            name: 'activate-toolset',
-            description: 'Activate a specific category or set of tools. Use this to load tools for specific tasks.',
-            inputSchema: {
-                type: 'object',
-                properties: {
-                    categories: {
-                        type: 'array',
-                        items: {
-                            type: 'string',
-                            enum: Object.values(ToolCategory),
-                        },
-                        description: 'Tool categories to activate',
-                    },
-                    tools: {
-                        type: 'array',
-                        items: {
-                            type: 'string',
-                        },
-                        description: 'Specific tool names to activate',
-                    },
-                    exclusive: {
-                        type: 'boolean',
-                        description: 'If true, deactivate other tools first (except discovery tools)',
-                        default: false,
-                    },
-                },
-            },
-        },
-        {
-            name: 'search-tools',
-            description: 'Search for tools by name, description, or functionality. Use this to find specific tools.',
-            inputSchema: {
-                type: 'object',
-                properties: {
-                    query: {
-                        type: 'string',
-                        description: 'Search query for tool names, descriptions, or tags',
-                    },
-                    categories: {
-                        type: 'array',
-                        items: {
-                            type: 'string',
-                            enum: Object.values(ToolCategory),
-                        },
-                        description: 'Filter by specific categories',
-                    },
-                    hasApiKey: {
-                        type: 'boolean',
-                        description: 'Filter to only show tools with available API keys',
-                    },
-                    limit: {
-                        type: 'number',
-                        description: 'Maximum number of results to return',
-                        default: 10,
-                        minimum: 1,
-                        maximum: 50,
-                    },
-                },
-            },
-        },
-        {
-            name: 'get-active-tools',
-            description: 'Get a list of currently active/loaded tools. Use this to see what tools are available right now.',
-            inputSchema: {
-                type: 'object',
-                properties: {
-                    includeMetadata: {
-                        type: 'boolean',
-                        description: 'Include detailed metadata for each tool',
-                        default: false,
-                    },
-                },
-            },
-        },
-        {
-            name: 'suggest-tools',
-            description: 'Get tool suggestions based on a task description. Use this for intelligent tool recommendations.',
-            inputSchema: {
-                type: 'object',
-                properties: {
-                    taskDescription: {
-                        type: 'string',
-                        description: 'Description of the task you want to accomplish',
-                    },
-                    limit: {
-                        type: 'number',
-                        description: 'Maximum number of suggestions',
-                        default: 5,
-                        minimum: 1,
-                        maximum: 20,
-                    },
-                },
-                required: ['taskDescription'],
-            },
-        },
-        {
-            name: 'get-tool-usage-stats',
-            description: 'Get usage statistics to understand which tools are most frequently used.',
-            inputSchema: {
-                type: 'object',
-                properties: {
-                    topN: {
-                        type: 'number',
-                        description: 'Number of top tools to show',
-                        default: 10,
-                        minimum: 1,
-                        maximum: 50,
-                    },
-                },
-            },
-        },
-    ];
-}
-/**
- * Create handlers for discovery tools
- */
-export function createDiscoveryHandlers(registry) {
-    const logger = getLogger().service('DiscoveryHandlers');
-    return {
-        'discover-capabilities': async (args) => {
-            try {
-                const categories = registry.getCategories();
-                const response = {
-                    mode: registry.getMode(),
-                    categories: categories.map(cat => ({
-                        id: cat.id,
-                        name: cat.name,
-                        description: cat.description,
-                        loadedByDefault: cat.loadByDefault,
-                        toolCount: args.includeStats ? cat.toolCount : undefined,
-                        estimatedTokens: args.includeStats ? cat.estimatedTokens : undefined,
-                        requiredApiKeys: cat.requiredApiKeys,
-                    })),
-                };
-                if (args.includeStats) {
-                    const stats = registry.getUsageStatistics();
-                    response.statistics = {
-                        totalToolsRegistered: categories.reduce((sum, cat) => sum + (cat.toolCount || 0), 0),
-                        currentlyActive: registry.getActiveTools().length,
-                        mostUsedCategory: Object.entries(stats.categoryUsage)
-                            .sort(([, a], [, b]) => b - a)[0]?.[0],
+                context: {
+                    type: 'string',
+                    description: 'Context for recommendations'
+                }
+            }
+        }
+    }, async (args) => {
+        try {
+            const type = args.type || 'all';
+            switch (type) {
+                case 'all':
+                case 'categories': {
+                    const categories = Object.entries(TOOL_CATEGORIES).map(([id, info]) => {
+                        const subCats = TOOL_SUBCATEGORIES[id.replace('_', '-').toLowerCase()] || {};
+                        const subCategoryList = Object.entries(subCats)
+                            .map(([name, tools]) => `  - ${name}: ${tools.length} tools`)
+                            .join('\n');
+                        return `**${info.name}** (${id})
+${info.description}
+${info.loadByDefault ? '✅ Loaded by default' : '⏸️ On-demand'}
+${subCategoryList ? 'Sub-categories:\n' + subCategoryList : ''}`;
+                    }).join('\n\n');
+                    return {
+                        content: [{
+                                type: 'text',
+                                text: `🎯 Available Tool Categories:\n\n${categories}\n\nUse 'activate' to load categories or sub-categories.`
+                            }]
                     };
                 }
-                logger.info('Capabilities discovered', {
-                    categoriesCount: categories.length,
-                    mode: registry.getMode(),
-                });
-                return {
-                    success: true,
-                    ...response,
-                };
-            }
-            catch (error) {
-                logger.error('Failed to discover capabilities', { error });
-                return {
-                    success: false,
-                    error: error instanceof Error ? error.message : String(error),
-                };
-            }
-        },
-        'activate-toolset': async (args) => {
-            try {
-                const result = registry.activateTools({
-                    categories: args.categories,
-                    tools: args.tools,
-                    exclusive: args.exclusive,
-                });
-                logger.info('Toolset activation completed', {
-                    activated: result.activated.length,
-                    deactivated: result.deactivated.length,
-                });
-                return {
-                    success: result.success,
-                    message: result.message,
-                    activated: result.activated,
-                    deactivated: result.deactivated,
-                    totalActive: registry.getActiveTools().length,
-                };
-            }
-            catch (error) {
-                logger.error('Failed to activate toolset', { error });
-                return {
-                    success: false,
-                    error: error instanceof Error ? error.message : String(error),
-                };
-            }
-        },
-        'search-tools': async (args) => {
-            try {
-                const results = registry.searchTools({
-                    query: args.query,
-                    categories: args.categories,
-                    hasApiKey: args.hasApiKey,
-                    limit: args.limit || 10,
-                });
-                const tools = results.map(tool => ({
-                    name: tool.name,
-                    description: tool.description,
-                    category: tool.metadata.category,
-                    tags: tool.metadata.tags,
-                    requiresApiKey: tool.metadata.requiresApiKey,
-                    isActive: registry.getActiveTools().some(t => t.name === tool.name),
-                    priority: tool.metadata.priority,
-                    usageCount: tool.metadata.usageFrequency || 0,
-                }));
-                logger.info('Tool search completed', {
-                    query: args.query,
-                    resultsCount: tools.length,
-                });
-                return {
-                    success: true,
-                    tools,
-                    totalResults: tools.length,
-                };
-            }
-            catch (error) {
-                logger.error('Failed to search tools', { error });
-                return {
-                    success: false,
-                    error: error instanceof Error ? error.message : String(error),
-                };
-            }
-        },
-        'get-active-tools': async (args) => {
-            try {
-                const activeTools = registry.getActiveTools();
-                const tools = activeTools.map(tool => {
-                    const extendedTool = tool;
-                    const base = {
-                        name: tool.name,
-                        description: tool.description,
-                    };
-                    if (args.includeMetadata && extendedTool.metadata) {
+                case 'active': {
+                    const activeTools = server.toolRegistry.getActiveTools();
+                    const stats = server.toolRegistry.getUsageStatistics();
+                    if (activeTools.length === 0) {
                         return {
-                            ...base,
-                            category: extendedTool.metadata.category,
-                            tags: extendedTool.metadata.tags,
-                            priority: extendedTool.metadata.priority,
-                            requiresApiKey: extendedTool.metadata.requiresApiKey,
+                            content: [{
+                                    type: 'text',
+                                    text: 'No tools currently active. Use "activate" to load tools.'
+                                }]
                         };
                     }
-                    return base;
-                });
-                // Group by category for better organization
-                const byCategory = {};
-                for (const tool of tools) {
-                    const category = tool.category || 'uncategorized';
-                    if (!byCategory[category]) {
-                        byCategory[category] = [];
-                    }
-                    byCategory[category].push(tool);
+                    const toolList = activeTools.map((tool) => `• ${tool.name} (${tool.metadata.category})`).join('\n');
+                    return {
+                        content: [{
+                                type: 'text',
+                                text: `✅ Active Tools (${activeTools.length}):\n\n${toolList}\n\nTotal context weight: ${stats.totalActiveWeight || 'N/A'}`
+                            }]
+                    };
                 }
-                logger.info('Active tools retrieved', {
-                    totalActive: tools.length,
-                    categories: Object.keys(byCategory).length,
-                });
+                case 'stats': {
+                    // Get enhanced statistics if available
+                    const stats = server.toolRegistry.getEnhancedStatistics?.() ||
+                        server.toolRegistry.getUsageStatistics();
+                    let output = '📊 Tool Registry Statistics:\n\n';
+                    if (stats.base) {
+                        output += `Base Stats:
+• Total tools: ${stats.base.totalTools}
+• Active tools: ${stats.base.activeTools}
+• Categories loaded: ${stats.base.categoriesLoaded}\n\n`;
+                    }
+                    if (stats.context) {
+                        output += `Context Management:
+• Current weight: ${stats.context.totalWeight}/${stats.context.maxWeight}
+• Pressure: ${stats.context.pressure}
+• Active items: ${stats.context.activeItems}\n\n`;
+                    }
+                    if (stats.layers) {
+                        output += `Layer Management:
+• Active layers: ${stats.layers.activeLayers}
+• Total layers: ${stats.layers.totalLayers}\n\n`;
+                    }
+                    return {
+                        content: [{
+                                type: 'text',
+                                text: output
+                            }]
+                    };
+                }
+                case 'recommendations': {
+                    const context = args.context || 'general';
+                    const recommendations = server.toolRegistry.getSuggestions(context);
+                    if (recommendations.length === 0) {
+                        return {
+                            content: [{
+                                    type: 'text',
+                                    text: 'No specific recommendations. Use "discover" to see all categories.'
+                                }]
+                        };
+                    }
+                    const recList = recommendations.map((tool, i) => `${i + 1}. ${tool} - Recommended for "${context}"`).join('\n');
+                    return {
+                        content: [{
+                                type: 'text',
+                                text: `💡 Recommended tools for "${context}":\n\n${recList}`
+                            }]
+                    };
+                }
+                default:
+                    throw new Error(`Unknown discovery type: ${type}`);
+            }
+        }
+        catch (error) {
+            logger.error('Discovery failed', { error });
+            throw error;
+        }
+    }, {
+        name: 'discover',
+        category: ToolCategory.DISCOVERY,
+        subCategory: 'discovery',
+        tags: ['discover', 'capabilities', 'help'],
+        loadByDefault: true,
+        priority: 0,
+        estimatedTokens: 80
+    });
+    /**
+     * 2. Activate - Single tool for activation
+     */
+    server.toolRegistry.registerTool({
+        name: 'activate',
+        description: 'Activate tool categories, sub-categories, or specific tools',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                categories: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Categories to activate (e.g., ["video-creation", "studio-management"])'
+                },
+                subCategories: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Sub-categories to activate (e.g., ["video-creation/basic", "project-management/editing"])'
+                },
+                tools: {
+                    type: 'array',
+                    items: { type: 'string' },
+                    description: 'Specific tools to activate'
+                },
+                exclusive: {
+                    type: 'boolean',
+                    description: 'Deactivate other tools first',
+                    default: false
+                }
+            }
+        }
+    }, async (args) => {
+        try {
+            // Handle sub-category activation
+            if (args.subCategories && args.subCategories.length > 0) {
+                const results = [];
+                for (const subCat of args.subCategories) {
+                    const [category, subCategory] = subCat.split('/');
+                    if (!category || !subCategory) {
+                        results.push(`❌ Invalid format: ${subCat} (use "category/subcategory")`);
+                        continue;
+                    }
+                    try {
+                        const result = server.toolRegistry.activateSubCategory(category, subCategory, args.exclusive);
+                        if (result.success) {
+                            results.push(`✅ Activated ${subCat}: ${result.activated.length} tools`);
+                        }
+                        else {
+                            results.push(`❌ Failed ${subCat}: ${result.message}`);
+                        }
+                    }
+                    catch (error) {
+                        results.push(`❌ Error activating ${subCat}: ${error.message}`);
+                    }
+                }
                 return {
-                    success: true,
-                    totalActive: tools.length,
-                    tools: args.includeMetadata ? byCategory : tools,
-                    mode: registry.getMode(),
+                    content: [{
+                            type: 'text',
+                            text: results.join('\n')
+                        }]
                 };
             }
-            catch (error) {
-                logger.error('Failed to get active tools', { error });
-                return {
-                    success: false,
-                    error: error instanceof Error ? error.message : String(error),
-                };
+            // Handle category or tool activation
+            const request = {
+                categories: args.categories,
+                tools: args.tools,
+                exclusive: args.exclusive
+            };
+            // Use enhanced activation if available
+            const result = server.toolRegistry.activateToolsEnhanced?.(request) ||
+                server.toolRegistry.activateTools(request);
+            let output = '';
+            if (result.success) {
+                output = '✅ Activation successful:\n';
+                if (result.activated.length > 0) {
+                    output += `Activated: ${result.activated.join(', ')}\n`;
+                }
+                if (result.deactivated?.length > 0) {
+                    output += `Deactivated: ${result.deactivated.join(', ')}\n`;
+                }
+                if (result.dependencies?.length > 0) {
+                    output += `Dependencies loaded: ${result.dependencies.join(', ')}\n`;
+                }
+                if (result.contextWeight) {
+                    output += `Context weight: ${result.contextWeight}`;
+                }
             }
-        },
-        'suggest-tools': async (args) => {
-            try {
-                const { taskDescription, limit = 5 } = args;
-                // Get suggestions based on task description
-                const suggestions = registry.getSuggestions(taskDescription);
-                // If not enough suggestions from keywords, search more broadly
-                if (suggestions.length < limit) {
-                    const searchResults = registry.searchTools({
-                        query: taskDescription,
-                        limit: limit - suggestions.length,
-                    });
-                    for (const tool of searchResults) {
-                        if (!suggestions.includes(tool.name)) {
-                            suggestions.push(tool.name);
+            else {
+                output = `❌ Activation failed: ${result.message}`;
+            }
+            return {
+                content: [{
+                        type: 'text',
+                        text: output
+                    }]
+            };
+        }
+        catch (error) {
+            logger.error('Activation failed', { error });
+            throw error;
+        }
+    }, {
+        name: 'activate',
+        category: ToolCategory.DISCOVERY,
+        subCategory: 'discovery',
+        tags: ['activate', 'load', 'enable'],
+        loadByDefault: true,
+        priority: 0,
+        estimatedTokens: 60
+    });
+    /**
+     * 3. Search - Find tools by query
+     */
+    server.toolRegistry.registerTool({
+        name: 'search',
+        description: 'Search for tools by name, tag, or functionality',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                query: {
+                    type: 'string',
+                    description: 'Search query'
+                },
+                filter: {
+                    type: 'object',
+                    properties: {
+                        categories: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Filter by categories'
+                        },
+                        tags: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Filter by tags'
+                        },
+                        active: {
+                            type: 'boolean',
+                            description: 'Only show active tools'
                         }
                     }
                 }
-                // Get tool details for suggestions
-                const toolDetails = suggestions.slice(0, limit).map(name => {
-                    const tools = registry.searchTools({ query: name, limit: 1 });
-                    if (tools.length > 0) {
-                        const tool = tools[0];
-                        return {
-                            name: tool.name,
-                            description: tool.description,
-                            category: tool.metadata.category,
-                            requiresApiKey: tool.metadata.requiresApiKey,
-                            isActive: registry.getActiveTools().some(t => t.name === tool.name),
-                        };
-                    }
-                    return null;
-                }).filter(Boolean);
-                // Determine which categories might be needed
-                const neededCategories = new Set();
-                for (const tool of toolDetails) {
-                    if (tool && !tool.isActive) {
-                        neededCategories.add(tool.category);
-                    }
-                }
-                logger.info('Tool suggestions generated', {
-                    taskDescription: taskDescription.substring(0, 50),
-                    suggestionsCount: toolDetails.length,
-                });
+            },
+            required: ['query']
+        }
+    }, async (args) => {
+        try {
+            const results = server.toolRegistry.searchTools({
+                query: args.query,
+                categories: args.filter?.categories,
+                tags: args.filter?.tags,
+                limit: 20
+            });
+            if (results.length === 0) {
                 return {
-                    success: true,
-                    suggestions: toolDetails,
-                    activationNeeded: Array.from(neededCategories),
-                    message: neededCategories.size > 0
-                        ? `To use these tools, activate categories: ${Array.from(neededCategories).join(', ')}`
-                        : 'All suggested tools are already active',
+                    content: [{
+                            type: 'text',
+                            text: `No tools found for "${args.query}"`
+                        }]
                 };
             }
-            catch (error) {
-                logger.error('Failed to suggest tools', { error });
-                return {
-                    success: false,
-                    error: error instanceof Error ? error.message : String(error),
-                };
-            }
-        },
-        'get-tool-usage-stats': async (args) => {
-            try {
-                const stats = registry.getUsageStatistics();
-                const topN = args.topN || 10;
-                return {
-                    success: true,
-                    mostUsed: stats.mostUsed.slice(0, topN),
-                    recentlyActivated: stats.recentlyActivated.slice(0, 5),
-                    categoryUsage: stats.categoryUsage,
-                    mode: registry.getMode(),
-                };
-            }
-            catch (error) {
-                logger.error('Failed to get usage stats', { error });
-                return {
-                    success: false,
-                    error: error instanceof Error ? error.message : String(error),
-                };
-            }
-        },
-    };
-}
-/**
- * Get metadata for discovery tools
- */
-export function getDiscoveryToolsMetadata() {
-    return [
-        {
-            name: 'discover-capabilities',
-            category: ToolCategory.DISCOVERY,
-            tags: ['discovery', 'capabilities', 'categories', 'organization'],
-            loadByDefault: true,
-            priority: 1,
-            estimatedTokens: 100,
-        },
-        {
-            name: 'activate-toolset',
-            category: ToolCategory.DISCOVERY,
-            tags: ['activation', 'loading', 'management', 'dynamic'],
-            loadByDefault: true,
-            priority: 2,
-            estimatedTokens: 80,
-        },
-        {
-            name: 'search-tools',
-            category: ToolCategory.DISCOVERY,
-            tags: ['search', 'discovery', 'finding', 'query'],
-            loadByDefault: true,
-            priority: 3,
-            estimatedTokens: 90,
-        },
-        {
-            name: 'get-active-tools',
-            category: ToolCategory.DISCOVERY,
-            tags: ['active', 'current', 'loaded', 'available'],
-            loadByDefault: true,
-            priority: 4,
-            estimatedTokens: 70,
-        },
-        {
-            name: 'suggest-tools',
-            category: ToolCategory.DISCOVERY,
-            tags: ['suggestions', 'recommendations', 'intelligent', 'context'],
-            loadByDefault: true,
-            priority: 5,
-            estimatedTokens: 100,
-        },
-        {
-            name: 'get-tool-usage-stats',
-            category: ToolCategory.DISCOVERY,
-            tags: ['statistics', 'usage', 'analytics', 'tracking'],
-            loadByDefault: true,
-            priority: 6,
-            estimatedTokens: 80,
-        },
-    ];
+            const activeTools = new Set(server.toolRegistry.getActiveTools().map((t) => t.name));
+            const toolList = results.map((tool) => {
+                const active = activeTools.has(tool.name);
+                const status = active ? '✅' : '⏸️';
+                return `${status} **${tool.name}** (${tool.metadata.category})
+   ${tool.description}
+   Tags: ${tool.metadata.tags.join(', ')}`;
+            }).join('\n\n');
+            return {
+                content: [{
+                        type: 'text',
+                        text: `🔍 Found ${results.length} tool(s):\n\n${toolList}`
+                    }]
+            };
+        }
+        catch (error) {
+            logger.error('Search failed', { error });
+            throw error;
+        }
+    }, {
+        name: 'search',
+        category: ToolCategory.DISCOVERY,
+        subCategory: 'discovery',
+        tags: ['search', 'find', 'lookup'],
+        loadByDefault: true,
+        priority: 0,
+        estimatedTokens: 60
+    });
 }
 //# sourceMappingURL=discovery-tools.js.map

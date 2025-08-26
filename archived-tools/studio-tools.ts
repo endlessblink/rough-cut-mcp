@@ -352,7 +352,7 @@ export function createStudioHandlers(config: MCPConfig): ToolHandlers {
         validatePort(port);
         
         // Use the last created project if available, otherwise fallback to dedicated studio project
-        let projectPath = args.projectPath || lastCreatedProjectPath || path.join(process.cwd(), 'assets', 'studio-project');
+        let projectPath = args.projectPath || lastCreatedProjectPath || path.join(config.assetsDir, 'studio-project');
         
         // Ensure we have a valid Windows path
 
@@ -600,7 +600,7 @@ export function createStudioHandlers(config: MCPConfig): ToolHandlers {
         }
 
         // Copy video to Studio project assets
-        const projectPath = process.cwd();
+        const projectPath = config.assetsDir;
         const assetsPath = path.join(projectPath, 'public');
         await fs.ensureDir(assetsPath);
 
@@ -643,7 +643,7 @@ export function createStudioHandlers(config: MCPConfig): ToolHandlers {
       });
 
       try {
-        const projectPath = path.join(process.cwd(), args.projectName);
+        const projectPath = path.join(config.assetsDir, 'projects', args.projectName);
         
         // Check if project already exists
         if (await fs.pathExists(projectPath)) {
@@ -1357,7 +1357,7 @@ export function createStudioHandlers(config: MCPConfig): ToolHandlers {
       logger.info('Checking for Remotion version conflicts');
       
       try {
-        const projectPath = args.projectPath || process.cwd();
+        const projectPath = args.projectPath || config.assetsDir;
         const { promisify } = await import('util');
         const execAsync = promisify(require('child_process').exec);
         

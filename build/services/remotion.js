@@ -8,7 +8,7 @@ import { getAssetPath } from '../utils/config.js';
 import { getLogger } from '../utils/logger.js';
 import { patchRemotionSpawn, getBundlerOptions, normalizePath } from '../utils/platform-fix.js';
 import { validateTextContent, validateDuration } from '../utils/validation.js';
-import { setLastCreatedProject } from '../tools/studio-tools.js';
+// import { setLastCreatedProject } from '../tools/studio-tools.js'; // Removed - tools archived
 export class RemotionService {
     config;
     logger = getLogger().service('Remotion');
@@ -505,7 +505,7 @@ registerRoot(RemotionVideo);`;
         }
         this.logger.info('Studio project created', { projectPath });
         // Update the tracking so Studio will launch with this project
-        setLastCreatedProject(projectPath);
+        // setLastCreatedProject(projectPath); // Removed - function archived
         return projectPath;
     }
     /**

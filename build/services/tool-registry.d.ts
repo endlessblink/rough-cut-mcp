@@ -5,18 +5,19 @@
  * and improve performance by dynamically loading tools on demand.
  */
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { ToolMetadata, ExtendedTool, ToolActivationRequest, ToolSearchCriteria, ToolCategoryInfo } from '../types/tool-categories.js';
+import { ToolMetadata, ExtendedTool, ToolRegistryState, ToolActivationRequest, ToolSearchCriteria, ToolCategoryInfo } from '../types/tool-categories.js';
 /**
  * Tool Registry for managing and organizing MCP tools
  */
 export declare class ToolRegistry {
-    private state;
-    private logger;
-    private config;
-    private toolHandlers;
-    private usageStatsFile;
-    private legacyMode;
-    constructor(config: any, legacyMode?: boolean);
+    protected state: ToolRegistryState;
+    protected logger: any;
+    protected config: any;
+    protected toolHandlers: Map<string, Function>;
+    protected usageStatsFile: string;
+    protected activeSubCategories: Set<string>;
+    protected alwaysActiveTools: Set<string>;
+    constructor(config: any);
     /**
      * Register a tool with metadata
      */
@@ -35,6 +36,15 @@ export declare class ToolRegistry {
      * not execution (call_tool). Any registered tool can be called regardless of activation.
      */
     getToolHandler(toolName: string): Function | undefined;
+    /**
+     * Safe getter with explicit type assertion after check
+     * Prevents TypeScript Map undefined issues
+     */
+    getToolHandlerSafe(toolName: string): Function | undefined;
+    /**
+     * Check if a tool handler exists
+     */
+    hasToolHandler(toolName: string): boolean;
     /**
      * Activate tools based on request
      */
@@ -99,12 +109,17 @@ export declare class ToolRegistry {
      */
     initializeDefaults(): void;
     /**
-     * Get current mode (legacy or layered)
+     * Get current mode (always layered now)
      */
     getMode(): string;
     /**
-     * Toggle between legacy and layered mode
+     * Activate a sub-category of tools
      */
-    setMode(legacyMode: boolean): void;
+    activateSubCategory(category: string, subCategory: string, exclusive?: boolean): {
+        success: boolean;
+        activated: string[];
+        deactivated: string[];
+        message: string;
+    };
 }
 //# sourceMappingURL=tool-registry.d.ts.map

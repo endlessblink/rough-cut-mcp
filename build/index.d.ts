@@ -1,14 +1,14 @@
 #!/usr/bin/env node
-import { ToolRegistry } from './services/tool-registry.js';
+import { EnhancedToolRegistry } from './services/enhanced-tool-registry.js';
 /**
  * Main server class for Remotion Creative MCP Server
  */
-declare class RemotionCreativeMCPServer {
+export declare class RemotionCreativeMCPServer {
     private server;
-    private config;
-    private logger;
+    config: any;
+    logger: any;
     private fileManager;
-    private toolRegistry;
+    toolRegistry: EnhancedToolRegistry;
     private toolHandlers;
     private tools;
     constructor();
@@ -20,6 +20,10 @@ declare class RemotionCreativeMCPServer {
      * Validate configuration and environment
      */
     private validateConfiguration;
+    /**
+     * Helper to find sub-category for a tool
+     */
+    private findToolSubCategory;
     /**
      * Register all MCP tools
      */
@@ -68,11 +72,11 @@ declare class RemotionCreativeMCPServer {
     /**
      * Get tool registry (for advanced testing)
      */
-    getToolRegistry(): ToolRegistry;
+    getToolRegistry(): EnhancedToolRegistry;
     /**
      * Graceful shutdown
      */
     shutdown(): Promise<void>;
 }
-export { RemotionCreativeMCPServer };
+export type MCPServer = RemotionCreativeMCPServer;
 //# sourceMappingURL=index.d.ts.map

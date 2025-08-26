@@ -132,9 +132,10 @@ export function validateApiKeys(config: MCPConfig, requiredServices: string[]): 
  * Get absolute path for assets directory
  */
 export function getAssetPath(config: MCPConfig, subpath: string = ''): string {
+  // Use the configured assets directory, which should always be an absolute Windows path
   const basePath = path.isAbsolute(config.assetsDir) 
     ? config.assetsDir 
-    : path.resolve(process.cwd(), config.assetsDir);
+    : path.resolve(config.assetsDir); // Avoid process.cwd() to prevent WSL paths
   
   return subpath ? path.join(basePath, subpath) : basePath;
 }

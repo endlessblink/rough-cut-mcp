@@ -25,16 +25,16 @@ import * as path from 'path';
  * Tool Registry for managing and organizing MCP tools
  */
 export class ToolRegistry {
-  private state: ToolRegistryState;
-  private logger: any;
-  private config: any;
-  private toolHandlers: Map<string, Function>;
-  private usageStatsFile: string;
-  private legacyMode: boolean;
+  protected state: ToolRegistryState;
+  protected logger: any;
+  protected config: any;
+  protected toolHandlers: Map<string, Function>;
+  protected usageStatsFile: string;
+  protected activeSubCategories = new Set<string>();
+  protected alwaysActiveTools = new Set<string>(); // Discovery tools
 
-  constructor(config: any, legacyMode: boolean = false) {
+  constructor(config: any) {
     this.config = config;
-    this.legacyMode = legacyMode;
     this.logger = getLogger().service('ToolRegistry');
     
     // Initialize state
@@ -50,7 +50,7 @@ export class ToolRegistry {
     
     // Set usage stats file path
     this.usageStatsFile = path.join(
-      config.assetsDir || process.cwd(),
+      config.assetsDir,
       '.tool-usage-stats.json'
     );
 
@@ -58,7 +58,6 @@ export class ToolRegistry {
     this.loadUsageStats();
 
     this.logger.info('Tool Registry initialized', { 
-      legacyMode, 
       assetsDir: config.assetsDir 
     });
   }
@@ -82,9 +81,10 @@ export class ToolRegistry {
     }
     this.state.toolsByCategory.get(metadata.category)!.push(extendedTool);
 
-    // In legacy mode, activate all tools immediately
-    if (this.legacyMode) {
+    // Discovery tools are always active
+    if (metadata.category === ToolCategory.DISCOVERY) {
       this.state.activeTools.add(tool.name);
+      this.alwaysActiveTools.add(tool.name);
     }
     // Otherwise, only activate if it should be loaded by default
     else if (metadata.loadByDefault) {
@@ -119,16 +119,23 @@ export class ToolRegistry {
    * Get currently active tools for MCP list_tools response
    */
   getActiveTools(): Tool[] {
-    if (this.legacyMode) {
-      // In legacy mode, return all tools
-      return Array.from(this.state.allTools.values());
-    }
-
     const activeTools: Tool[] = [];
-    for (const toolName of this.state.activeTools) {
+    
+    // Always include discovery tools
+    for (const toolName of this.alwaysActiveTools) {
       const tool = this.state.allTools.get(toolName);
       if (tool) {
         activeTools.push(tool);
+      }
+    }
+    
+    // Add tools from active sub-categories
+    for (const toolName of this.state.activeTools) {
+      if (!this.alwaysActiveTools.has(toolName)) {
+        const tool = this.state.allTools.get(toolName);
+        if (tool) {
+          activeTools.push(tool);
+        }
       }
     }
 
@@ -154,6 +161,25 @@ export class ToolRegistry {
     // Return handler if it exists, regardless of activation state
     // This is the correct MCP protocol behavior - tools can be called even if not active
     return this.toolHandlers.get(toolName);
+  }
+
+  /**
+   * Safe getter with explicit type assertion after check
+   * Prevents TypeScript Map undefined issues
+   */
+  getToolHandlerSafe(toolName: string): Function | undefined {
+    if (!this.toolHandlers.has(toolName)) {
+      return undefined;
+    }
+    // Use non-null assertion after explicit check
+    return this.toolHandlers.get(toolName)!;
+  }
+
+  /**
+   * Check if a tool handler exists
+   */
+  hasToolHandler(toolName: string): boolean {
+    return this.toolHandlers.has(toolName);
   }
 
   /**
@@ -492,12 +518,6 @@ export class ToolRegistry {
    * Initialize default tools based on configuration
    */
   initializeDefaults(): void {
-    if (this.legacyMode) {
-      // In legacy mode, all tools are already activated
-      this.logger.info('Legacy mode: all tools activated');
-      return;
-    }
-
     const request: ToolActivationRequest = {
       categories: DEFAULT_TOOL_CONFIGURATION.defaultCategories,
       exclusive: false,
@@ -508,29 +528,58 @@ export class ToolRegistry {
   }
 
   /**
-   * Get current mode (legacy or layered)
+   * Get current mode (always layered now)
    */
   getMode(): string {
-    return this.legacyMode ? 'legacy' : 'layered';
+    return 'layered';
   }
 
   /**
-   * Toggle between legacy and layered mode
+   * Activate a sub-category of tools
    */
-  setMode(legacyMode: boolean): void {
-    this.legacyMode = legacyMode;
+  activateSubCategory(category: string, subCategory: string, exclusive: boolean = false): {
+    success: boolean;
+    activated: string[];
+    deactivated: string[];
+    message: string;
+  } {
+    const activated: string[] = [];
+    const deactivated: string[] = [];
     
-    if (legacyMode) {
-      // Activate all tools
-      for (const tool of this.state.allTools.keys()) {
-        this.state.activeTools.add(tool);
+    if (exclusive) {
+      // Deactivate all non-discovery tools first
+      for (const toolName of this.state.activeTools) {
+        if (!this.alwaysActiveTools.has(toolName)) {
+          this.state.activeTools.delete(toolName);
+          deactivated.push(toolName);
+        }
       }
-      this.logger.info('Switched to legacy mode: all tools activated');
-    } else {
-      // Reset to defaults
-      this.state.activeTools.clear();
-      this.initializeDefaults();
-      this.logger.info('Switched to layered mode: default tools activated');
+      this.activeSubCategories.clear();
     }
+    
+    // Activate the requested sub-category
+    const categoryPath = `${category}/${subCategory}`;
+    this.activeSubCategories.add(categoryPath);
+    
+    // Find and activate tools in this sub-category
+    for (const [toolName, tool] of this.state.allTools) {
+      const metadata = (tool as ExtendedTool).metadata;
+      if (metadata.category === category && metadata.subCategory === subCategory) {
+        if (!this.state.activeTools.has(toolName)) {
+          this.state.activeTools.add(toolName);
+          activated.push(toolName);
+        }
+      }
+    }
+    
+    const message = `Activated ${activated.length} tools in ${categoryPath}, deactivated ${deactivated.length} tools`;
+    this.logger.info(message, { activated, deactivated });
+    
+    return {
+      success: true,
+      activated,
+      deactivated,
+      message
+    };
   }
 }

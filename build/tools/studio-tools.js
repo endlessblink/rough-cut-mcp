@@ -321,7 +321,7 @@ export function createStudioHandlers(config) {
                 const port = args.port || 7400;
                 validatePort(port);
                 // Use the last created project if available, otherwise fallback to dedicated studio project
-                let projectPath = args.projectPath || lastCreatedProjectPath || path.join(process.cwd(), 'assets', 'studio-project');
+                let projectPath = args.projectPath || lastCreatedProjectPath || path.join(config.assetsDir, 'studio-project');
                 // Ensure we have a valid Windows path
                 // Check if project has Remotion setup
                 const packageJsonPath = path.join(projectPath, 'package.json');
@@ -543,7 +543,7 @@ export function createStudioHandlers(config) {
                     });
                 }
                 // Copy video to Studio project assets
-                const projectPath = process.cwd();
+                const projectPath = config.assetsDir;
                 const assetsPath = path.join(projectPath, 'public');
                 await fs.ensureDir(assetsPath);
                 const videoFileName = path.basename(args.videoPath);
@@ -581,7 +581,7 @@ export function createStudioHandlers(config) {
                 template: args.template
             });
             try {
-                const projectPath = path.join(process.cwd(), args.projectName);
+                const projectPath = path.join(config.assetsDir, 'projects', args.projectName);
                 // Check if project already exists
                 if (await fs.pathExists(projectPath)) {
                     return {
@@ -1209,7 +1209,7 @@ export function createStudioHandlers(config) {
         'check-version-conflicts': async (args) => {
             logger.info('Checking for Remotion version conflicts');
             try {
-                const projectPath = args.projectPath || process.cwd();
+                const projectPath = args.projectPath || config.assetsDir;
                 const { promisify } = await import('util');
                 const execAsync = promisify(require('child_process').exec);
                 // Read local project package.json

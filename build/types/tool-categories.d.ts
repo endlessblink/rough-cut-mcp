@@ -46,6 +46,22 @@ export interface ToolMetadata {
     usageFrequency?: number;
 }
 /**
+ * Sub-category definition for hierarchical tool organization
+ */
+export interface SubCategoryDefinition {
+    name: string;
+    tools: string[];
+    exclusive?: boolean;
+    autoLoad?: string[];
+}
+/**
+ * Category definition with sub-categories
+ */
+export interface CategoryDefinition {
+    name: string;
+    subCategories: Map<string, SubCategoryDefinition>;
+}
+/**
  * Extended tool with metadata
  */
 export interface ExtendedTool extends Tool {
@@ -114,6 +130,39 @@ export interface ToolRegistryState {
  */
 export declare const TOOL_CATEGORIES: Record<ToolCategory, ToolCategoryInfo>;
 /**
+ * Tool sub-category definitions for hierarchical organization
+ * Updated for consolidated tools (~20 tools total)
+ */
+export declare const TOOL_SUBCATEGORIES: {
+    discovery: {
+        discovery: string[];
+    };
+    'core-operations': {
+        project: string[];
+        studio: string[];
+        editing: string[];
+        dependencies: string[];
+    };
+    'video-creation': {
+        basic: string[];
+        advanced: string[];
+        generation: string[];
+    };
+    maintenance: {
+        assets: string[];
+        cache: string[];
+    };
+    'voice-generation': {
+        management: string[];
+    };
+    'sound-effects': {
+        search: string[];
+    };
+    'image-generation': {
+        management: string[];
+    };
+};
+/**
  * Default tool loading configuration
  */
 export declare const DEFAULT_TOOL_CONFIGURATION: {
@@ -121,8 +170,8 @@ export declare const DEFAULT_TOOL_CONFIGURATION: {
     maxInitialTools: number;
     /** Categories to load by default */
     defaultCategories: ToolCategory[];
-    /** Enable legacy mode (load all tools) */
-    legacyMode: boolean;
+    /** Default sub-categories to load */
+    defaultSubCategories: never[];
     /** Enable usage tracking for smart defaults */
     trackUsage: boolean;
     /** Auto-suggest tools based on context */
