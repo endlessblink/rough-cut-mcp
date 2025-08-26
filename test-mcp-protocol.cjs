@@ -65,10 +65,15 @@ async function testMCPProtocol() {
   // Clean shutdown
   child.stdin.end();
   
+  // Force kill after a short delay to ensure clean exit
+  setTimeout(() => {
+    child.kill('SIGTERM');
+  }, 500);
+  
   // Wait for process to exit
   await new Promise(resolve => {
     child.on('close', resolve);
-    setTimeout(resolve, 2000); // Timeout after 2 seconds
+    setTimeout(resolve, 1000); // Timeout after 1 second
   });
 
   console.log('\n=== STDOUT Response ===');
@@ -93,6 +98,9 @@ async function testMCPProtocol() {
   }
 
   console.log('\n=== Test Complete ===');
+  
+  // Force clean exit to prevent hanging
+  process.exit(0);
 }
 
 testMCPProtocol().catch(console.error);

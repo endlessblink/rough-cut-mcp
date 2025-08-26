@@ -58,10 +58,15 @@ if (existsSync(configPath)) {
 
 // Add or update rough-cut-mcp server configuration
 config.mcpServers = config.mcpServers || {};
+
+// Use the Node.js that's running this script (works for global npm installs)
+// Or fallback to 'node' command which should be in PATH
+const nodeCommand = process.platform === 'win32' ? 
+  (process.execPath || 'node') : 
+  'node';
+
 config.mcpServers['rough-cut-mcp'] = {
-  command: process.platform === 'win32' ? 
-    'C:\\Program Files\\nodejs\\node.exe' : 
-    'node',
+  command: nodeCommand,
   args: [buildPath.replace(/\\/g, '\\\\')],
   env: {
     REMOTION_ASSETS_DIR: assetsPath.replace(/\\/g, '\\\\'),
@@ -77,6 +82,7 @@ try {
   writeFileSync(configPath, JSON.stringify(config, null, 2));
   console.log('✓ Updated Claude Desktop configuration');
   console.log(`  Configuration saved to: ${configPath}`);
+  console.log(`  Using Node.js: ${nodeCommand}`);
 } catch (error) {
   console.error('Error writing config:', error.message);
   console.log('\nPlease manually add the following to your claude_desktop_config.json:');
