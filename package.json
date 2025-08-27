@@ -40,8 +40,7 @@
     "diagnose": "powershell -ExecutionPolicy Bypass -File test-environments/diagnose-environment.ps1",
     "diagnose:save": "powershell -ExecutionPolicy Bypass -File test-environments/diagnose-environment.ps1 -SaveToFile",
     "prepublishOnly": "npm run validate:pre-publish",
-    "postinstall": "node scripts/postinstall.js",
-    "prepare": "npm run build"
+    "postinstall": "node scripts/postinstall.js"
   },
   "bin": {
     "rough-cut-mcp": "./build/index.js",

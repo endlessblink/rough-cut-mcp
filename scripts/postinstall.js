@@ -9,7 +9,8 @@ import { execSync } from 'child_process';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // Only run postinstall when installed globally or via npm, not during development
-if (process.env.npm_lifecycle_event !== 'postinstall') {
+// Skip in CI environments
+if (process.env.npm_lifecycle_event !== 'postinstall' || process.env.CI || process.env.GITHUB_ACTIONS) {
   process.exit(0);
 }
 
