@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "rough-cut-mcp": {
+      "command": "C:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\my-builds\\Video + Motion\\RoughCut\\build\\index.js"
+      ],
+      "env": {
+        "NODE_ENV": "production",
+        "REMOTION_ASSETS_DIR": "D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\my-builds\\Video + Motion\\RoughCut\\assets",
+        "MCP_LEGACY_MODE": "false"
+      }
+    }
+  }
+}
