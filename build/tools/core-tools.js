@@ -13,7 +13,7 @@ const execAsync = promisify(exec);
 export function registerCoreTools(server) {
     const remotionService = new RemotionService(server.config);
     // const projectManager = new ProjectManagerService(server.config);
-    const logger = server.logger.child({ service: 'core-tools' });
+    const logger = server.baseLogger.service('core-tools');
     /**
      * 1. Project Management - All CRUD operations
      */

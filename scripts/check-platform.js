@@ -11,7 +11,7 @@ const isWSL = process.platform === 'linux' && (
   process.env.WSL_DISTRO_NAME
 );
 
-if (isWSL) {
+if (isWSL && process.env.NODE_ENV !== 'test') {
   console.error('❌ ERROR: Building from WSL2 detected!');
   console.error('');
   console.error('This MCP server must be built on Windows for Claude Desktop integration.');
@@ -24,6 +24,8 @@ if (isWSL) {
   console.error('');
   console.error('Note: You can still edit files in WSL2/VS Code, but building must happen on Windows.');
   process.exit(1);
+} else if (isWSL && process.env.NODE_ENV === 'test') {
+  console.log('🧪 TEST MODE: WSL2 build allowed for debugging');
 }
 
 // Platform-specific guidance

@@ -1,0 +1,48 @@
+# Alpine Linux with Node.js for lightweight testing
+FROM node:20-alpine
+
+# Install build dependencies
+RUN apk add --no-cache python3 make g++ git
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Build the project
+RUN npm run build
+
+# Create test script
+RUN echo '#!/bin/sh\n\
+echo "Testing MCP server build..."\n\
+if [ -f "build/index.js" ]; then\n\
+  echo "✅ Build successful"\n\
+else\n\
+  echo "❌ Build failed"\n\
+  exit 1\n\
+fi\n\
+\n\
+echo "Testing MCP server initialization..."\n\
+timeout 3 node build/index.js < /dev/null > /dev/null 2>&1 &\n\
+PID=$!\n\
+sleep 2\n\
+if ps -p $PID > /dev/null; then\n\
+  echo "✅ Server starts without errors"\n\
+  kill $PID 2>/dev/null\n\
+else\n\
+  echo "❌ Server failed to start"\n\
+  exit 1\n\
+fi\n\
+\n\
+echo "All tests passed!"\n\
+' > /app/test.sh && chmod +x /app/test.sh
+
+# Default command
+CMD ["/app/test.sh"]

@@ -11,11 +11,14 @@ export declare class RemotionCreativeMCPServer {
     toolRegistry: EnhancedToolRegistry;
     private toolHandlers;
     private tools;
+    private initializationComplete;
+    private initializationPromise;
     constructor();
     /**
      * Initialize the server and register all tools
      */
     initialize(): Promise<void>;
+    private performInitialization;
     /**
      * Validate configuration and environment
      */
@@ -43,7 +46,7 @@ export declare class RemotionCreativeMCPServer {
     /**
      * Set up MCP request handlers
      */
-    private setupRequestHandlers;
+    setupRequestHandlers(): void;
     /**
      * Connect transport immediately for MCP communication
      */

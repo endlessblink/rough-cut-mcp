@@ -25,6 +25,7 @@ async function testMCPProtocol() {
 
   child.stderr.on('data', (data) => {
     errorOutput += data.toString();
+    console.log('[STDERR]:', data.toString());
   });
 
   // Send initialize request
@@ -46,7 +47,7 @@ async function testMCPProtocol() {
   child.stdin.write(JSON.stringify(initRequest) + '\n');
 
   // Wait for response
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise(resolve => setTimeout(resolve, 2000));
 
   // Send list tools request
   const listToolsRequest = {
@@ -60,7 +61,7 @@ async function testMCPProtocol() {
   child.stdin.write(JSON.stringify(listToolsRequest) + '\n');
 
   // Wait for response
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise(resolve => setTimeout(resolve, 2000));
 
   // Clean shutdown
   child.stdin.end();
@@ -68,7 +69,7 @@ async function testMCPProtocol() {
   // Force kill after a short delay to ensure clean exit
   setTimeout(() => {
     child.kill('SIGTERM');
-  }, 500);
+  }, 1000);
   
   // Wait for process to exit
   await new Promise(resolve => {

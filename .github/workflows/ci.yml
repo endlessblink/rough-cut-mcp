@@ -7,20 +7,22 @@ on:
     branches: [ main, master ]
 
 jobs:
+  # Basic build and test job
   test:
     runs-on: ${{ matrix.os }}
     
     strategy:
+      fail-fast: false
       matrix:
         os: [windows-latest, macos-latest]
         node-version: [18.x, 20.x]
         
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         
       - name: Setup Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           
@@ -30,13 +32,192 @@ jobs:
       - name: Build project
         run: npm run build
         
-      - name: Run validation tests
-        run: |
-          node tests/validate-installation.js
-          node tests/check-dependencies.js
-        continue-on-error: true
-        timeout-minutes: 5
-        
       - name: Check TypeScript
         run: npx tsc --noEmit
-        continue-on-error: true
+        
+      - name: Run MCP protocol tests
+        run: npm test
+        timeout-minutes: 5
+
+  # Comprehensive Windows environment testing
+  test-windows-environments:
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2019, windows-2022, windows-latest]
+        node-version: [18, 20, 22]
+        node-source: [official, nvm, volta]
+        include:
+          # Test with different npm versions
+          - os: windows-latest
+            node-version: 20
+            npm-version: 8
+            node-source: official
+          - os: windows-latest  
+            node-version: 20
+            npm-version: 10
+            node-source: official
+        exclude:
+          # Exclude combinations that don't make sense
+          - os: windows-2019
+            node-source: volta
+          
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (Official)
+        if: matrix.node-source == 'official'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Setup Node.js (NVM)
+        if: matrix.node-source == 'nvm'
+        run: |
+          # Install NVM for Windows
+          Invoke-WebRequest -Uri "https://github.com/coreybutler/nvm-windows/releases/download/1.1.12/nvm-setup.zip" -OutFile "nvm.zip"
+          Expand-Archive nvm.zip
+          ./nvm/nvm-setup.exe /S
+          # Add to PATH for this job
+          echo "C:\Users\runneradmin\AppData\Roaming\nvm" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          echo "C:\Program Files\nodejs" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          Start-Sleep 5
+          nvm install ${{ matrix.node-version }}
+          nvm use ${{ matrix.node-version }}
+        shell: powershell
+
+      - name: Setup Node.js (Volta) 
+        if: matrix.node-source == 'volta'
+        run: |
+          # Install Volta
+          $voltaVersion = "1.1.1"
+          Invoke-WebRequest -Uri "https://github.com/volta-cli/volta/releases/download/v$voltaVersion/volta-$voltaVersion-windows-x86_64.msi" -OutFile "volta.msi"
+          Start-Process msiexec -ArgumentList '/i', 'volta.msi', '/quiet', '/norestart' -NoNewWindow -Wait
+          # Add to PATH for this job  
+          echo "$env:USERPROFILE\AppData\Local\Volta\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          Start-Sleep 5
+          volta install node@${{ matrix.node-version }}
+        shell: powershell
+
+      - name: Verify Node.js Installation
+        run: |
+          Write-Host "Node version: $(node --version)"
+          Write-Host "npm version: $(npm --version)"
+          Write-Host "Node path: $(where.exe node)"
+          Write-Host "npm path: $(where.exe npm)"
+        shell: powershell
+
+      - name: Install specific npm version
+        if: matrix.npm-version
+        run: npm install -g npm@${{ matrix.npm-version }}
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Test npm Global Install
+        run: |
+          npm pack
+          $package = Get-ChildItem -Filter "rough-cut-mcp-*.tgz" | Select-Object -First 1
+          npm install -g $package.FullName
+        shell: powershell
+
+      - name: Test Node.js Path Detection
+        run: |
+          # Test our postinstall script's Node.js detection logic
+          $env:DEBUG_MCP_INSTALL = "true"
+          node scripts/postinstall.js
+        shell: powershell
+        env:
+          npm_lifecycle_event: postinstall
+          npm_config_global: true
+
+      - name: Test MCP Server Startup
+        run: |
+          # Test that server starts and responds to ping
+          $mcpPath = Join-Path $env:APPDATA "npm\node_modules\rough-cut-mcp\build\index.js"
+          if (-not (Test-Path $mcpPath)) {
+            Write-Error "MCP server not found at expected path: $mcpPath"
+            exit 1
+          }
+          
+          $server = Start-Process -FilePath "node" -ArgumentList $mcpPath -PassThru -RedirectStandardInput "input.json" -RedirectStandardOutput "output.json" -RedirectStandardError "error.log"
+          Start-Sleep 3
+          
+          # Send ping request
+          @{
+            jsonrpc = "2.0"
+            id = 1
+            method = "initialize"
+            params = @{
+              protocolVersion = "2024-11-05"
+              capabilities = @{}
+              clientInfo = @{
+                name = "test-client"
+                version = "1.0.0"
+              }
+            }
+          } | ConvertTo-Json | Out-File -FilePath "input.json" -Encoding utf8
+          
+          Start-Sleep 2
+          $server.Kill()
+          
+          if (Test-Path "output.json") {
+            $output = Get-Content "output.json" -Raw
+            Write-Host "MCP Server Output: $output"
+            if ($output -match '"result"') {
+              Write-Host "✓ MCP Server responding correctly"
+            } else {
+              Write-Error "✗ MCP Server not responding correctly"
+              if (Test-Path "error.log") {
+                Write-Host "Error log:"
+                Get-Content "error.log" | Write-Host
+              }
+              exit 1
+            }
+          } else {
+            Write-Error "✗ No output from MCP Server"
+            exit 1
+          }
+        shell: powershell
+
+      - name: Test Claude Desktop Integration
+        run: |
+          # Simulate Claude Desktop config update
+          $claudeConfig = "$env:APPDATA\Claude\claude_desktop_config.json"
+          New-Item -Path "$env:APPDATA\Claude" -ItemType Directory -Force
+          if (-not (Test-Path $claudeConfig)) {
+            '{"mcpServers":{}}' | Out-File -FilePath $claudeConfig -Encoding utf8
+          }
+
+          # Test that our config is valid JSON and contains our server
+          try {
+            $config = Get-Content $claudeConfig | ConvertFrom-Json
+            if ($config.mcpServers."rough-cut-mcp") {
+              Write-Host "✓ Claude Desktop config updated successfully"
+              Write-Host "Node command: $($config.mcpServers."rough-cut-mcp".command)"
+              Write-Host "Args: $($config.mcpServers."rough-cut-mcp".args -join ' ')"
+            } else {
+              Write-Error "✗ Claude Desktop config not updated correctly"
+              exit 1
+            }
+          } catch {
+            Write-Error "✗ Claude Desktop config is not valid JSON: $_"
+            exit 1
+          }
+        shell: powershell
+
+      - name: Upload artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-logs-${{ matrix.os }}-${{ matrix.node-version }}-${{ matrix.node-source }}
+          path: |
+            output.json
+            error.log
+            input.json

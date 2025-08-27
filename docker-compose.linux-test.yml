@@ -1,0 +1,95 @@
+version: '3.8'
+
+services:
+  # Test with standard Node.js on Alpine Linux
+  test-node-alpine:
+    build:
+      context: .
+      dockerfile: test/docker/Dockerfile.linux-node
+    container_name: roughcut-mcp-linux-test
+    environment:
+      - NODE_ENV=test
+      - TEST_SCENARIO=linux-alpine
+    volumes:
+      - ./test-results:/app/test-results
+    command: |
+      sh -c "
+        echo '=== Testing MCP Server on Linux ===' &&
+        npm test 2>&1 | tee /app/test-results/linux-test.log &&
+        echo '=== Test Complete ===' 
+      "
+    
+  # Test with Node.js via nvm on Ubuntu
+  test-node-ubuntu-nvm:
+    build:
+      context: .
+      dockerfile: test/docker/Dockerfile.ubuntu-nvm
+    container_name: roughcut-mcp-ubuntu-nvm-test
+    environment:
+      - NODE_ENV=test
+      - TEST_SCENARIO=ubuntu-nvm
+    volumes:
+      - ./test-results:/app/test-results
+    command: |
+      bash -c "
+        echo '=== Testing with NVM on Ubuntu ===' &&
+        source ~/.nvm/nvm.sh &&
+        nvm use default &&
+        npm test 2>&1 | tee /app/test-results/ubuntu-nvm-test.log &&
+        echo '=== Test Complete ==='
+      "
+
+  # Test npm global installation
+  test-npm-global:
+    build:
+      context: .
+      dockerfile: test/docker/Dockerfile.npm-global
+    container_name: roughcut-mcp-npm-global-test
+    environment:
+      - NODE_ENV=test
+      - TEST_SCENARIO=npm-global
+    volumes:
+      - ./test-results:/app/test-results
+    command: |
+      sh -c "
+        echo '=== Testing NPM Global Install ===' &&
+        npm pack &&
+        npm install -g rough-cut-mcp-*.tgz &&
+        echo 'Checking global install...' &&
+        ls -la /usr/local/lib/node_modules/rough-cut-mcp/ &&
+        node /usr/local/lib/node_modules/rough-cut-mcp/build/index.js --version 2>&1 | tee /app/test-results/npm-global-test.log &&
+        echo '=== Test Complete ==='
+      "
+
+  # Results collector
+  test-results-collector:
+    image: alpine:latest
+    container_name: roughcut-test-results
+    volumes:
+      - ./test-results:/results
+    command: |
+      sh -c "
+        echo 'Waiting for tests to complete...' &&
+        sleep 30 &&
+        echo '=== Test Results Summary ===' &&
+        if [ -d /results ]; then
+          for file in /results/*.log; do
+            if [ -f \"$$file\" ]; then
+              echo \"--- $$file ---\" &&
+              cat \"$$file\" &&
+              echo ''
+            fi
+          done
+        else
+          echo 'No test results found'
+        fi &&
+        echo '=== All Tests Complete ==='
+      "
+    depends_on:
+      - test-node-alpine
+      - test-node-ubuntu-nvm
+      - test-npm-global
+
+networks:
+  default:
+    name: roughcut-test-network

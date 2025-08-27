@@ -1,0 +1,67 @@
+# Ubuntu with NVM for testing Node version management scenarios
+FROM ubuntu:22.04
+
+# Avoid prompts from apt
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install prerequisites
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install NVM and Node.js
+ENV NVM_DIR=/root/.nvm
+ENV NODE_VERSION=20.11.0
+
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash && \
+    . "$NVM_DIR/nvm.sh" && \
+    nvm install ${NODE_VERSION} && \
+    nvm alias default ${NODE_VERSION} && \
+    nvm use default
+
+# Add node to PATH
+ENV PATH="${NVM_DIR}/versions/node/v${NODE_VERSION}/bin:${PATH}"
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci
+
+# Copy source code
+COPY . .
+
+# Build the project
+RUN npm run build
+
+# Create test script
+RUN echo '#!/bin/bash\n\
+source ~/.nvm/nvm.sh\n\
+echo "Node version: $(node --version)"\n\
+echo "NPM version: $(npm --version)"\n\
+echo "Testing MCP server..."\n\
+if [ -f "build/index.js" ]; then\n\
+  echo "✅ Build verified"\n\
+  # Test that server starts\n\
+  timeout 3 node build/index.js < /dev/null > /dev/null 2>&1 &\n\
+  PID=$!\n\
+  sleep 2\n\
+  if ps -p $PID > /dev/null; then\n\
+    echo "✅ Server runs with NVM Node"\n\
+    kill $PID 2>/dev/null\n\
+  else\n\
+    echo "❌ Server failed with NVM Node"\n\
+    exit 1\n\
+  fi\n\
+else\n\
+  echo "❌ Build not found"\n\
+  exit 1\n\
+fi\n\
+' > /app/test.sh && chmod +x /app/test.sh
+
+CMD ["/app/test.sh"]

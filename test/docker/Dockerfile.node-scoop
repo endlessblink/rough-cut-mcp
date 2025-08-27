@@ -1,0 +1,60 @@
+# Windows container with Scoop package manager Node.js installation
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
+
+# Install Scoop
+RUN powershell -Command " \
+    Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force; \
+    iex (new-object net.webclient).downloadstring('https://get.scoop.sh')"
+
+# Add Scoop to PATH
+RUN powershell -Command " \
+    $env:PATH = \"C:\Users\ContainerAdministrator\scoop\shims;$env:PATH\"; \
+    [Environment]::SetEnvironmentVariable('PATH', $env:PATH, 'User')"
+
+# Install Node.js via Scoop
+RUN powershell -Command " \
+    $env:PATH = \"C:\Users\ContainerAdministrator\scoop\shims;$env:PATH\"; \
+    scoop install nodejs"
+
+# Verify Node.js installation
+RUN powershell -Command " \
+    $env:PATH = \"C:\Users\ContainerAdministrator\scoop\shims;$env:PATH\"; \
+    node --version; npm --version"
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Copy the entire project
+COPY . .
+
+# Build the project
+RUN powershell -Command " \
+    $env:PATH = \"C:\Users\ContainerAdministrator\scoop\shims;$env:PATH\"; \
+    npm ci; npm run build"
+
+# Test npm global installation with Scoop
+RUN powershell -Command " \
+    $env:PATH = \"C:\Users\ContainerAdministrator\scoop\shims;$env:PATH\"; \
+    npm pack; \
+    $package = Get-ChildItem -Filter 'rough-cut-mcp-*.tgz' | Select-Object -First 1; \
+    npm install -g $package.FullName"
+
+# Test that the MCP server can be found with Scoop paths
+RUN powershell -Command " \
+    $env:PATH = \"C:\Users\ContainerAdministrator\scoop\shims;$env:PATH\"; \
+    $nodePath = where.exe node; \
+    $mcpPath = Join-Path $env:APPDATA 'npm\node_modules\rough-cut-mcp\build\index.js'; \
+    Write-Host 'Node path (Scoop):' $nodePath; \
+    Write-Host 'MCP path:' $mcpPath; \
+    if (Test-Path $mcpPath) { \
+        Write-Host 'MCP server successfully installed with Scoop'; \
+    } else { \
+        Write-Error 'MCP server not found with Scoop setup'; \
+        exit 1; \
+    }"
+
+# Run the test command
+CMD ["powershell", "-Command", "$env:PATH = \"C:\\Users\\ContainerAdministrator\\scoop\\shims;$env:PATH\"; npm test"]

@@ -8,7 +8,7 @@ import * as path from 'path';
 import * as fs from 'fs-extra';
 export function registerCreationTools(server) {
     const animationGenerator = new AnimationGeneratorService();
-    const logger = server.logger.child({ service: 'creation-tools' });
+    const logger = server.baseLogger.service('creation-tools');
     /**
      * 1. Create Video - All video types in one tool
      */

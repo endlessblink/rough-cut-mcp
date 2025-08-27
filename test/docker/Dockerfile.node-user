@@ -1,0 +1,78 @@
+# Windows container with user-space Node.js installation (no admin rights)
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
+
+# Create a non-admin user context by installing Node.js to user directory
+RUN powershell -Command " \
+    $ProgressPreference = 'SilentlyContinue'; \
+    $nodeVersion = 'v20.11.0'; \
+    $nodeUrl = \"https://nodejs.org/dist/$nodeVersion/node-$nodeVersion-win-x64.zip\"; \
+    $userNodePath = \"$env:LOCALAPPDATA\nodejs\"; \
+    New-Item -Path $userNodePath -ItemType Directory -Force; \
+    Invoke-WebRequest -Uri $nodeUrl -OutFile 'node.zip'; \
+    Expand-Archive -Path 'node.zip' -DestinationPath $env:TEMP -Force; \
+    $extractedFolder = Get-ChildItem -Path $env:TEMP -Filter 'node-*' -Directory | Select-Object -First 1; \
+    Copy-Item -Path \"$($extractedFolder.FullName)\*\" -Destination $userNodePath -Recurse -Force; \
+    Remove-Item 'node.zip' -Force; \
+    Remove-Item $extractedFolder.FullName -Recurse -Force"
+
+# Set up user-level PATH and npm prefix
+RUN powershell -Command " \
+    $userNodePath = \"$env:LOCALAPPDATA\nodejs\"; \
+    $userNpmPath = \"$env:LOCALAPPDATA\npm\"; \
+    New-Item -Path $userNpmPath -ItemType Directory -Force; \
+    [Environment]::SetEnvironmentVariable('PATH', \"$userNodePath;$userNpmPath;$env:PATH\", 'User'); \
+    $env:PATH = \"$userNodePath;$userNpmPath;$env:PATH\"; \
+    & \"$userNodePath\npm.cmd\" config set prefix $userNpmPath"
+
+# Verify Node.js installation
+RUN powershell -Command " \
+    $userNodePath = \"$env:LOCALAPPDATA\nodejs\"; \
+    $userNpmPath = \"$env:LOCALAPPDATA\npm\"; \
+    $env:PATH = \"$userNodePath;$userNpmPath;$env:PATH\"; \
+    & \"$userNodePath\node.exe\" --version; \
+    & \"$userNodePath\npm.cmd\" --version"
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Copy the entire project
+COPY . .
+
+# Build the project with user-space Node.js
+RUN powershell -Command " \
+    $userNodePath = \"$env:LOCALAPPDATA\nodejs\"; \
+    $userNpmPath = \"$env:LOCALAPPDATA\npm\"; \
+    $env:PATH = \"$userNodePath;$userNpmPath;$env:PATH\"; \
+    & \"$userNodePath\npm.cmd\" ci; \
+    & \"$userNodePath\npm.cmd\" run build"
+
+# Test npm global installation in user space
+RUN powershell -Command " \
+    $userNodePath = \"$env:LOCALAPPDATA\nodejs\"; \
+    $userNpmPath = \"$env:LOCALAPPDATA\npm\"; \
+    $env:PATH = \"$userNodePath;$userNpmPath;$env:PATH\"; \
+    & \"$userNodePath\npm.cmd\" pack; \
+    $package = Get-ChildItem -Filter 'rough-cut-mcp-*.tgz' | Select-Object -First 1; \
+    & \"$userNodePath\npm.cmd\" install -g $package.FullName"
+
+# Test that the MCP server can be found with user-space paths
+RUN powershell -Command " \
+    $userNodePath = \"$env:LOCALAPPDATA\nodejs\"; \
+    $userNpmPath = \"$env:LOCALAPPDATA\npm\"; \
+    $env:PATH = \"$userNodePath;$userNpmPath;$env:PATH\"; \
+    $nodePath = \"$userNodePath\node.exe\"; \
+    $mcpPath = Join-Path $userNpmPath 'node_modules\rough-cut-mcp\build\index.js'; \
+    Write-Host 'Node path (User-space):' $nodePath; \
+    Write-Host 'MCP path:' $mcpPath; \
+    if (Test-Path $mcpPath) { \
+        Write-Host 'MCP server successfully installed in user-space'; \
+    } else { \
+        Write-Error 'MCP server not found in user-space setup'; \
+        exit 1; \
+    }"
+
+# Run the test command
+CMD ["powershell", "-Command", "$userNodePath = \"$env:LOCALAPPDATA\\nodejs\"; $userNpmPath = \"$env:LOCALAPPDATA\\npm\"; $env:PATH = \"$userNodePath;$userNpmPath;$env:PATH\"; & \"$userNodePath\\npm.cmd\" test"]

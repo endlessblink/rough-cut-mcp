@@ -1,0 +1,69 @@
+# Windows container with Volta version manager
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
+
+# Install Volta
+RUN powershell -Command " \
+    $ProgressPreference = 'SilentlyContinue'; \
+    Invoke-WebRequest -Uri 'https://github.com/volta-cli/volta/releases/download/v1.1.1/volta-1.1.1-windows-x86_64.msi' -OutFile 'volta.msi'; \
+    Start-Process msiexec -ArgumentList '/i', 'volta.msi', '/quiet', '/norestart' -NoNewWindow -Wait; \
+    Remove-Item 'volta.msi' -Force"
+
+# Set Volta environment variables
+RUN powershell -Command " \
+    [Environment]::SetEnvironmentVariable('VOLTA_HOME', 'C:\Users\ContainerAdministrator\AppData\Local\Volta', 'User'); \
+    $path = [Environment]::GetEnvironmentVariable('PATH', 'User'); \
+    [Environment]::SetEnvironmentVariable('PATH', \"C:\Users\ContainerAdministrator\AppData\Local\Volta\bin;$path\", 'User')"
+
+# Install Node.js via Volta
+RUN powershell -Command " \
+    $env:VOLTA_HOME = 'C:\Users\ContainerAdministrator\AppData\Local\Volta'; \
+    $env:PATH = \"C:\Users\ContainerAdministrator\AppData\Local\Volta\bin;$env:PATH\"; \
+    volta install node@20.11.0; \
+    volta install npm@10"
+
+# Verify Node.js installation
+RUN powershell -Command " \
+    $env:VOLTA_HOME = 'C:\Users\ContainerAdministrator\AppData\Local\Volta'; \
+    $env:PATH = \"C:\Users\ContainerAdministrator\AppData\Local\Volta\bin;$env:PATH\"; \
+    node --version; npm --version"
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Copy the entire project
+COPY . .
+
+# Build the project
+RUN powershell -Command " \
+    $env:VOLTA_HOME = 'C:\Users\ContainerAdministrator\AppData\Local\Volta'; \
+    $env:PATH = \"C:\Users\ContainerAdministrator\AppData\Local\Volta\bin;$env:PATH\"; \
+    npm ci; npm run build"
+
+# Test npm global installation with Volta
+RUN powershell -Command " \
+    $env:VOLTA_HOME = 'C:\Users\ContainerAdministrator\AppData\Local\Volta'; \
+    $env:PATH = \"C:\Users\ContainerAdministrator\AppData\Local\Volta\bin;$env:PATH\"; \
+    npm pack; \
+    $package = Get-ChildItem -Filter 'rough-cut-mcp-*.tgz' | Select-Object -First 1; \
+    npm install -g $package.FullName"
+
+# Test that the MCP server can be found with Volta paths
+RUN powershell -Command " \
+    $env:VOLTA_HOME = 'C:\Users\ContainerAdministrator\AppData\Local\Volta'; \
+    $env:PATH = \"C:\Users\ContainerAdministrator\AppData\Local\Volta\bin;$env:PATH\"; \
+    $nodePath = where.exe node; \
+    $mcpPath = Join-Path $env:APPDATA 'npm\node_modules\rough-cut-mcp\build\index.js'; \
+    Write-Host 'Node path (Volta):' $nodePath; \
+    Write-Host 'MCP path:' $mcpPath; \
+    if (Test-Path $mcpPath) { \
+        Write-Host 'MCP server successfully installed with Volta'; \
+    } else { \
+        Write-Error 'MCP server not found with Volta setup'; \
+        exit 1; \
+    }"
+
+# Run the test command
+CMD ["powershell", "-Command", "$env:VOLTA_HOME = 'C:\\Users\\ContainerAdministrator\\AppData\\Local\\Volta'; $env:PATH = \"C:\\Users\\ContainerAdministrator\\AppData\\Local\\Volta\\bin;$env:PATH\"; npm test"]

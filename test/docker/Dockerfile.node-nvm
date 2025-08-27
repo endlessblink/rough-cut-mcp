@@ -1,0 +1,74 @@
+# Windows container with NVM for Windows installation
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
+
+# Install NVM for Windows
+RUN powershell -Command " \
+    $ProgressPreference = 'SilentlyContinue'; \
+    New-Item -Path 'C:\nvm' -ItemType Directory -Force; \
+    Invoke-WebRequest -Uri 'https://github.com/coreybutler/nvm-windows/releases/download/1.1.12/nvm-noinstall.zip' -OutFile 'nvm.zip'; \
+    Expand-Archive -Path 'nvm.zip' -DestinationPath 'C:\nvm' -Force; \
+    Remove-Item 'nvm.zip' -Force; \
+    [Environment]::SetEnvironmentVariable('NVM_HOME', 'C:\nvm', 'Machine'); \
+    [Environment]::SetEnvironmentVariable('NVM_SYMLINK', 'C:\Program Files\nodejs', 'Machine'); \
+    $path = [Environment]::GetEnvironmentVariable('PATH', 'Machine'); \
+    [Environment]::SetEnvironmentVariable('PATH', \"$path;C:\nvm;C:\Program Files\nodejs\", 'Machine')"
+
+# Configure NVM settings
+RUN powershell -Command " \
+    Set-Content -Path 'C:\nvm\settings.txt' -Value @' \
+root: C:\nvm \
+path: C:\Program Files\nodejs \
+arch: 64 \
+proxy: none \
+'@"
+
+# Refresh environment and install Node.js via NVM
+RUN powershell -Command " \
+    $env:NVM_HOME = 'C:\nvm'; \
+    $env:NVM_SYMLINK = 'C:\Program Files\nodejs'; \
+    $env:PATH = \"$env:PATH;C:\nvm;C:\Program Files\nodejs\"; \
+    & 'C:\nvm\nvm.exe' install 20.11.0; \
+    & 'C:\nvm\nvm.exe' use 20.11.0"
+
+# Verify Node.js installation
+RUN powershell -Command " \
+    $env:PATH = \"$env:PATH;C:\nvm;C:\Program Files\nodejs\"; \
+    node --version; npm --version"
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Copy the entire project
+COPY . .
+
+# Build the project
+RUN powershell -Command " \
+    $env:PATH = \"$env:PATH;C:\nvm;C:\Program Files\nodejs\"; \
+    npm ci; npm run build"
+
+# Test npm global installation with NVM
+RUN powershell -Command " \
+    $env:PATH = \"$env:PATH;C:\nvm;C:\Program Files\nodejs\"; \
+    npm pack; \
+    $package = Get-ChildItem -Filter 'rough-cut-mcp-*.tgz' | Select-Object -First 1; \
+    npm install -g $package.FullName"
+
+# Test that the MCP server can be found with NVM paths
+RUN powershell -Command " \
+    $env:PATH = \"$env:PATH;C:\nvm;C:\Program Files\nodejs\"; \
+    $nodePath = where.exe node; \
+    $mcpPath = Join-Path $env:APPDATA 'npm\node_modules\rough-cut-mcp\build\index.js'; \
+    Write-Host 'Node path (NVM):' $nodePath; \
+    Write-Host 'MCP path:' $mcpPath; \
+    if (Test-Path $mcpPath) { \
+        Write-Host 'MCP server successfully installed with NVM'; \
+    } else { \
+        Write-Error 'MCP server not found with NVM setup'; \
+        exit 1; \
+    }"
+
+# Run the test command
+CMD ["powershell", "-Command", "$env:PATH = \"$env:PATH;C:\\nvm;C:\\Program Files\\nodejs\"; npm test"]

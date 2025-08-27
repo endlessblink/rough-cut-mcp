@@ -85,16 +85,20 @@ export class ToolRegistry {
     if (metadata.category === ToolCategory.DISCOVERY) {
       this.state.activeTools.add(tool.name);
       this.alwaysActiveTools.add(tool.name);
+      this.logger.info('Discovery tool registered and activated', { name: tool.name });
     }
     // Otherwise, only activate if it should be loaded by default
     else if (metadata.loadByDefault) {
       this.state.activeTools.add(tool.name);
+      this.logger.info('Tool activated by default', { name: tool.name, category: metadata.category });
     }
 
     this.logger.debug('Tool registered', { 
       name: tool.name, 
       category: metadata.category,
-      active: this.state.activeTools.has(tool.name)
+      active: this.state.activeTools.has(tool.name),
+      isDiscovery: metadata.category === ToolCategory.DISCOVERY,
+      loadByDefault: metadata.loadByDefault
     });
   }
 

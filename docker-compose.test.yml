@@ -1,0 +1,131 @@
+version: '3.8'
+
+services:
+  test-node-standard:
+    build:
+      context: .
+      dockerfile: test/docker/Dockerfile.node-standard
+    container_name: roughcut-mcp-windows-standard-nodejs
+    isolation: process
+    networks:
+      - test-network
+    environment:
+      - TEST_SCENARIO=standard
+      - NODE_ENV=test
+      - DEBUG_MCP_INSTALL=true
+    volumes:
+      - test-results:/app/test-results
+    
+  test-node-nvm:
+    build:
+      context: .
+      dockerfile: test/docker/Dockerfile.node-nvm
+    container_name: roughcut-mcp-windows-nvm-nodejs
+    isolation: process
+    networks:
+      - test-network
+    environment:
+      - TEST_SCENARIO=nvm
+      - NODE_ENV=test
+      - DEBUG_MCP_INSTALL=true
+    volumes:
+      - test-results:/app/test-results
+    
+  test-node-volta:
+    build:
+      context: .
+      dockerfile: test/docker/Dockerfile.node-volta
+    container_name: roughcut-mcp-windows-volta-nodejs
+    isolation: process
+    networks:
+      - test-network
+    environment:
+      - TEST_SCENARIO=volta
+      - NODE_ENV=test
+      - DEBUG_MCP_INSTALL=true
+    volumes:
+      - test-results:/app/test-results
+    
+  test-node-chocolatey:
+    build:
+      context: .
+      dockerfile: test/docker/Dockerfile.node-chocolatey
+    container_name: roughcut-mcp-windows-chocolatey-nodejs
+    isolation: process
+    networks:
+      - test-network
+    environment:
+      - TEST_SCENARIO=chocolatey
+      - NODE_ENV=test
+      - DEBUG_MCP_INSTALL=true
+    volumes:
+      - test-results:/app/test-results
+    
+  test-node-scoop:
+    build:
+      context: .
+      dockerfile: test/docker/Dockerfile.node-scoop
+    container_name: roughcut-mcp-windows-scoop-nodejs
+    isolation: process
+    networks:
+      - test-network
+    environment:
+      - TEST_SCENARIO=scoop
+      - NODE_ENV=test
+      - DEBUG_MCP_INSTALL=true
+    volumes:
+      - test-results:/app/test-results
+    
+  test-node-user:
+    build:
+      context: .
+      dockerfile: test/docker/Dockerfile.node-user
+    container_name: roughcut-mcp-windows-userspace-nodejs
+    isolation: process
+    networks:
+      - test-network
+    environment:
+      - TEST_SCENARIO=user-space
+      - NODE_ENV=test
+      - DEBUG_MCP_INSTALL=true
+    volumes:
+      - test-results:/app/test-results
+
+  # Test result collector service
+  test-collector:
+    image: mcr.microsoft.com/windows/servercore:ltsc2022
+    container_name: roughcut-mcp-test-results-collector
+    isolation: process
+    networks:
+      - test-network
+    volumes:
+      - test-results:/results
+      - .:/source
+    command: |
+      powershell -Command "
+      Write-Host 'Collecting test results...';
+      Start-Sleep 10;
+      if (Test-Path '/results') {
+        Get-ChildItem -Path '/results' -Recurse | ForEach-Object {
+          Write-Host 'Found result file';
+          Get-Content $_.FullName | Write-Host;
+        };
+      } else {
+        Write-Host 'No test results directory found';
+      };
+      Write-Host 'Test collection complete';"
+    depends_on:
+      - test-node-standard
+      - test-node-nvm
+      - test-node-volta
+      - test-node-chocolatey
+      - test-node-scoop
+      - test-node-user
+
+networks:
+  test-network:
+    driver: bridge
+
+volumes:
+  test-results:
+    driver: local

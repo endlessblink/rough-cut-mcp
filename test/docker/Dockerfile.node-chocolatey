@@ -1,0 +1,56 @@
+# Windows container with Chocolatey Node.js installation
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
+
+# Install Chocolatey
+RUN powershell -Command " \
+    Set-ExecutionPolicy Bypass -Scope Process -Force; \
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; \
+    iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))"
+
+# Install Node.js via Chocolatey
+RUN powershell -Command " \
+    choco install nodejs -y --version=20.11.0; \
+    refreshenv"
+
+# Verify Node.js installation
+RUN powershell -Command " \
+    $env:PATH = \"C:\ProgramData\chocolatey\bin;C:\Program Files\nodejs;$env:PATH\"; \
+    node --version; npm --version"
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Copy the entire project
+COPY . .
+
+# Build the project
+RUN powershell -Command " \
+    $env:PATH = \"C:\ProgramData\chocolatey\bin;C:\Program Files\nodejs;$env:PATH\"; \
+    npm ci; npm run build"
+
+# Test npm global installation with Chocolatey
+RUN powershell -Command " \
+    $env:PATH = \"C:\ProgramData\chocolatey\bin;C:\Program Files\nodejs;$env:PATH\"; \
+    npm pack; \
+    $package = Get-ChildItem -Filter 'rough-cut-mcp-*.tgz' | Select-Object -First 1; \
+    npm install -g $package.FullName"
+
+# Test that the MCP server can be found with Chocolatey paths
+RUN powershell -Command " \
+    $env:PATH = \"C:\ProgramData\chocolatey\bin;C:\Program Files\nodejs;$env:PATH\"; \
+    $nodePath = where.exe node; \
+    $mcpPath = Join-Path $env:APPDATA 'npm\node_modules\rough-cut-mcp\build\index.js'; \
+    Write-Host 'Node path (Chocolatey):' $nodePath; \
+    Write-Host 'MCP path:' $mcpPath; \
+    if (Test-Path $mcpPath) { \
+        Write-Host 'MCP server successfully installed with Chocolatey'; \
+    } else { \
+        Write-Error 'MCP server not found with Chocolatey setup'; \
+        exit 1; \
+    }"
+
+# Run the test command
+CMD ["powershell", "-Command", "$env:PATH = \"C:\\ProgramData\\chocolatey\\bin;C:\\Program Files\\nodejs;$env:PATH\"; npm test"]

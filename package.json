@@ -20,7 +20,25 @@
     "test-studio": "echo 'Studio tests removed'",
     "test-layered": "node test-layered-tools.js",
     "test-routing": "node test-tool-routing-fix.js",
-    "prepublishOnly": "npm run build && npm test",
+    "test:integration": "npm run test:node-detection && npm run test:installation && npm run test:mcp-protocol",
+    "test:node-detection": "node test/integration/node-detection.test.js",
+    "test:installation": "node test/integration/installation.test.js", 
+    "test:mcp-protocol": "node test/integration/mcp-protocol.test.js",
+    "test:verdaccio": "node test/verdaccio-test.js",
+    "test:docker": "docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit",
+    "test:docker-standard": "docker-compose -f docker-compose.test.yml up test-node-standard --build",
+    "test:docker-nvm": "docker-compose -f docker-compose.test.yml up test-node-nvm --build",
+    "test:docker-volta": "docker-compose -f docker-compose.test.yml up test-node-volta --build",
+    "test:vm": "vagrant up && vagrant ssh test-runner -c 'cd /vagrant && npm test'",
+    "test:vm-windows10": "vagrant up win10-standard",
+    "test:vm-windows11": "vagrant up win11-nvm",
+    "test:emergency": "docker-compose -f test-environments/windows-standard.yml up --build",
+    "test:emergency-node": "docker-compose -f test-environments/node-detection-failure.yml up --build",
+    "validate:pre-publish": "node scripts/pre-publish-validate.js",
+    "validate:full": "npm run validate:pre-publish && npm run test:integration && npm run test:verdaccio",
+    "diagnose": "powershell -ExecutionPolicy Bypass -File test-environments/diagnose-environment.ps1",
+    "diagnose:save": "powershell -ExecutionPolicy Bypass -File test-environments/diagnose-environment.ps1 -SaveToFile",
+    "prepublishOnly": "npm run validate:pre-publish",
     "postinstall": "node scripts/postinstall.js",
     "prepare": "npm run build"
   },
@@ -103,7 +121,8 @@
     "c8": "^10.1.3",
     "nyc": "^17.1.0",
     "prettier": "^3.6.2",
-    "typescript": "^5.3.0"
+    "typescript": "^5.3.0",
+    "verdaccio": "^5.31.1"
   },
   "engines": {
     "node": ">=18.0.0"

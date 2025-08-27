@@ -11,7 +11,7 @@ import * as fs from 'fs-extra';
 
 export function registerCreationTools(server: MCPServer): void {
   const animationGenerator = new AnimationGeneratorService();
-  const logger = server.logger.child({ service: 'creation-tools' });
+  const logger = (server as any).baseLogger.service('creation-tools');
 
   /**
    * 1. Create Video - All video types in one tool

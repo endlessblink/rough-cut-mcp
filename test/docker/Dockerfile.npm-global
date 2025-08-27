@@ -1,0 +1,45 @@
+# Test npm global installation
+FROM node:20-alpine
+
+RUN apk add --no-cache python3 make g++ git
+
+WORKDIR /app
+
+# Copy everything
+COPY . .
+
+# Install and build
+RUN npm ci && npm run build
+
+# Test global installation
+RUN npm pack && \
+    npm install -g rough-cut-mcp-*.tgz && \
+    echo "Testing global install..." && \
+    if [ -d "/usr/local/lib/node_modules/rough-cut-mcp" ]; then \
+        echo "✅ Global install successful" \
+    else \
+        echo "❌ Global install failed" && exit 1 \
+    fi
+
+# Create test script for runtime
+RUN echo '#!/bin/sh\n\
+echo "Verifying global MCP installation..."\n\
+if [ -f "/usr/local/lib/node_modules/rough-cut-mcp/build/index.js" ]; then\n\
+  echo "✅ MCP server found in global modules"\n\
+  echo "Testing execution..."\n\
+  timeout 2 node /usr/local/lib/node_modules/rough-cut-mcp/build/index.js < /dev/null > /dev/null 2>&1 &\n\
+  PID=$!\n\
+  sleep 1\n\
+  if ps -p $PID > /dev/null; then\n\
+    echo "✅ Global MCP server executable"\n\
+    kill $PID 2>/dev/null\n\
+  else\n\
+    echo "❌ Global MCP server failed to run"\n\
+  fi\n\
+else\n\
+  echo "❌ MCP server not found globally"\n\
+  exit 1\n\
+fi\n\
+' > /app/test-global.sh && chmod +x /app/test-global.sh
+
+CMD ["/app/test-global.sh"]

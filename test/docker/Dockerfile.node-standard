@@ -1,0 +1,46 @@
+# Windows container with standard Node.js installation
+FROM mcr.microsoft.com/windows/servercore:ltsc2022
+
+# Install Node.js via official installer
+RUN powershell -Command " \
+    $ProgressPreference = 'SilentlyContinue'; \
+    Invoke-WebRequest -Uri 'https://nodejs.org/dist/v20.11.0/node-v20.11.0-x64.msi' -OutFile 'node.msi'; \
+    Start-Process msiexec -ArgumentList '/i', 'node.msi', '/quiet', '/norestart' -NoNewWindow -Wait; \
+    Remove-Item 'node.msi' -Force"
+
+# Verify Node.js installation
+RUN powershell -Command "node --version; npm --version"
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Copy the entire project
+COPY . .
+
+# Build the project
+RUN npm ci && npm run build
+
+# Test npm global installation
+RUN npm pack
+RUN powershell -Command " \
+    $package = Get-ChildItem -Filter 'rough-cut-mcp-*.tgz' | Select-Object -First 1; \
+    npm install -g $package.FullName"
+
+# Test that the MCP server can be found and executed
+RUN powershell -Command " \
+    $nodePath = where.exe node; \
+    $mcpPath = Join-Path $env:APPDATA 'npm\node_modules\rough-cut-mcp\build\index.js'; \
+    Write-Host 'Node path:' $nodePath; \
+    Write-Host 'MCP path:' $mcpPath; \
+    if (Test-Path $mcpPath) { \
+        Write-Host 'MCP server successfully installed'; \
+    } else { \
+        Write-Error 'MCP server not found'; \
+        exit 1; \
+    }"
+
+# Run the test command
+CMD ["powershell", "-Command", "npm test"]

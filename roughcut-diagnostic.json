@@ -1,0 +1,59 @@
+﻿{
+    "basicInfo":  {
+
+                  },
+    "nodeJs":  {
+                   "path":  [
+                                "C:\\pinokio\\bin\\miniconda\\node.exe",
+                                "C:\\Program Files\\nodejs\\node.exe"
+                            ],
+                   "installMethod":  "standard-installer",
+                   "version":  "v22.13.0",
+                   "exists":  [
+                                  true,
+                                  true
+                              ]
+               },
+    "roughcut":  {
+                     "packageExists":  false,
+                     "packagePath":  "\\rough-cut-mcp",
+                     "buildPath":  "\\rough-cut-mcp\\build\\index.js",
+                     "buildExists":  false
+                 },
+    "permissions":  {
+
+                    },
+    "timestamp":  "2025-08-26 19:08:22",
+    "system":  {
+
+               },
+    "claude":  {
+
+               },
+    "npm":  {
+
+            },
+    "paths":  {
+                  "pathLength":  1666,
+                  "environmentVariables":  {
+                                               "NPM_CONFIG_PREFIX":  "C:\\pinokio\\bin\\miniconda",
+                                               "npm_execpath":  "C:\\pinokio\\bin\\miniconda\\node_modules\\npm\\bin\\npm-cli.js",
+                                               "npm_node_execpath":  "C:\\pinokio\\bin\\miniconda\\node.exe",
+                                               "NODE_PATH":  null
+                                           },
+                  "nodeRelatedPaths":  [
+                                           "D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\my-builds\\Video + Motion\\RoughCut\\node_modules\\.bin",
+                                           "D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\my-builds\\Video + Motion\\node_modules\\.bin",
+                                           "D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\my-builds\\node_modules\\.bin",
+                                           "D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\node_modules\\.bin",
+                                           "D:\\MY PROJECTS\\AI\\LLM\\node_modules\\.bin",
+                                           "D:\\MY PROJECTS\\AI\\node_modules\\.bin",
+                                           "D:\\MY PROJECTS\\node_modules\\.bin",
+                                           "D:\\node_modules\\.bin",
+                                           "C:\\pinokio\\bin\\miniconda\\node_modules\\npm\\node_modules\\@npmcli\\run-script\\lib\\node-gyp-bin",
+                                           "C:\\Program Files\\nodejs\\",
+                                           "C:\\Users\\endle\\AppData\\Roaming\\npm"
+                                       ],
+                  "pathEntries":  40
+              }
+}

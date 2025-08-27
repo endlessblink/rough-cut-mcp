@@ -6,7 +6,7 @@ import { ToolCategory } from '../types/tool-categories.js';
 import * as path from 'path';
 import * as fs from 'fs-extra';
 export function registerAssetTools(server) {
-    const logger = server.logger.child({ service: 'asset-tools' });
+    const logger = server.baseLogger.service('asset-tools');
     /**
      * 1. Manage Assets - List, organize, delete
      */

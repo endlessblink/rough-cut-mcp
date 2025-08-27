@@ -9,7 +9,7 @@ import * as path from 'path';
 import * as fs from 'fs-extra';
 
 export function registerAssetTools(server: MCPServer): void {
-  const logger = server.logger.child({ service: 'asset-tools' });
+  const logger = (server as any).baseLogger.service('asset-tools');
 
   /**
    * 1. Manage Assets - List, organize, delete

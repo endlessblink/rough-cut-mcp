@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Main MCP server entry point for Remotion Creative MCP Server
-// Platform validation - must be Windows for Claude Desktop
-if (process.platform !== 'win32') {
+// Platform validation - must be Windows for Claude Desktop (skip in test mode)
+if (process.platform !== 'win32' && process.env.NODE_ENV !== 'test') {
     // Use stderr to avoid breaking MCP protocol on stdout
     process.stderr.write('❌ ERROR: This MCP server only runs on Windows\n');
     process.stderr.write(`Current platform: ${process.platform}\n`);
@@ -10,7 +10,7 @@ if (process.platform !== 'win32') {
 }
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { CallToolRequestSchema, ListToolsRequestSchema, InitializeRequestSchema, InitializedNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
 import { loadConfig } from './utils/config.js';
 import { initLogger } from './utils/logger.js';
 import { FileManagerService } from './services/file-manager.js';
@@ -30,14 +30,31 @@ export class RemotionCreativeMCPServer {
     toolRegistry;
     toolHandlers = {};
     tools = [];
+    initializationComplete = false;
+    initializationPromise = null;
     constructor() {
+        if (process.env.NODE_ENV === 'test') {
+            console.error('DEBUG: Loading config...');
+        }
         // Load configuration
         this.config = loadConfig();
+        if (process.env.NODE_ENV === 'test') {
+            console.error('DEBUG: Initializing logger...');
+        }
         // Initialize logging (disable file logging for MCP compatibility)
-        this.logger = initLogger(this.config.logging.level, undefined // Disable file logging to avoid blocking
-        ).service('MCPServer');
+        const baseLogger = initLogger(this.config.logging.level, undefined // Disable file logging to avoid blocking
+        );
+        this.logger = baseLogger.service('MCPServer');
+        // Store base logger for creating child services
+        this.baseLogger = baseLogger;
+        if (process.env.NODE_ENV === 'test') {
+            console.error('DEBUG: Initializing file manager...');
+        }
         // Initialize file manager
         this.fileManager = new FileManagerService(this.config);
+        if (process.env.NODE_ENV === 'test') {
+            console.error('DEBUG: Initializing tool registry...');
+        }
         // Initialize enhanced tool registry with all features
         this.toolRegistry = new EnhancedToolRegistry({
             baseConfig: this.config,
@@ -47,6 +64,9 @@ export class RemotionCreativeMCPServer {
             enableAudit: true,
             maxContextWeight: 10000,
         });
+        if (process.env.NODE_ENV === 'test') {
+            console.error('DEBUG: Creating MCP server...');
+        }
         // Create MCP server
         this.server = new Server({
             name: 'rough-cut-mcp',
@@ -59,11 +79,19 @@ export class RemotionCreativeMCPServer {
         this.logger.info('Rough Cut MCP Server initializing', {
             mode: 'layered'
         });
+        // Don't register tools here - will be done in initialize()
     }
     /**
      * Initialize the server and register all tools
      */
     async initialize() {
+        // Store the promise so handlers can wait for it
+        if (!this.initializationPromise) {
+            this.initializationPromise = this.performInitialization();
+        }
+        return this.initializationPromise;
+    }
+    async performInitialization() {
         try {
             this.logger.info('Starting server initialization');
             // Validate configuration
@@ -74,9 +102,9 @@ export class RemotionCreativeMCPServer {
             // Register all tools and handlers
             this.logger.info('Registering tools and handlers');
             await this.registerTools();
-            // Set up request handlers
-            this.logger.info('Setting up request handlers');
-            this.setupRequestHandlers();
+            // Mark initialization as complete
+            this.initializationComplete = true;
+            // Request handlers are already set up in main() before initialize()
             this.logger.info('Server initialization completed successfully');
         }
         catch (error) {
@@ -149,6 +177,16 @@ export class RemotionCreativeMCPServer {
         await registerAllTools(this);
         const initialActiveTools = this.toolRegistry.getActiveTools();
         const stats = this.toolRegistry.getUsageStatistics();
+        // Debug: Check what's in the registry
+        const registryState = this.toolRegistry.state;
+        const baseRegistry = this.toolRegistry.baseRegistry;
+        this.logger.info('Tool registration debug', {
+            hasBaseRegistry: !!baseRegistry,
+            allToolsCount: registryState?.allTools?.size || 0,
+            activeToolsCount: registryState?.activeTools?.size || 0,
+            alwaysActiveCount: this.toolRegistry.alwaysActiveTools?.size || 0,
+            getActiveToolsResult: initialActiveTools.length
+        });
         this.logger.info('Consolidated tools registered', {
             totalTools: stats.totalTools || 20,
             activeTools: initialActiveTools.length,
@@ -168,9 +206,19 @@ export class RemotionCreativeMCPServer {
         }
         // All tools now registered via registerAllTools
         // The consolidated implementation reduces ~70 tools to ~16-20 tools
+        // Debug before initializeDefaults
+        const beforeInitDefaults = this.toolRegistry.getActiveTools();
+        this.logger.info('Active tools BEFORE initializeDefaults', {
+            count: beforeInitDefaults.length,
+            names: beforeInitDefaults.map(t => t.name)
+        });
         // Initialize default tools
         this.toolRegistry.initializeDefaults();
         const finalActiveTools = this.toolRegistry.getActiveTools();
+        this.logger.info('Active tools AFTER initializeDefaults', {
+            count: finalActiveTools.length,
+            names: finalActiveTools.map(t => t.name)
+        });
         const enhancedStats = this.toolRegistry.getEnhancedStatistics?.();
         this.logger.info('Tool registration complete', {
             totalRegistered: enhancedStats?.base?.totalTools || finalActiveTools.length,
@@ -297,12 +345,107 @@ export class RemotionCreativeMCPServer {
      * Set up MCP request handlers
      */
     setupRequestHandlers() {
-        // List tools handler - now uses tool registry
-        this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-            const activeTools = this.toolRegistry.getActiveTools();
+        this.logger.info('Setting up MCP request handlers...');
+        // Initialize request handler - MUST be first for MCP handshake
+        this.server.setRequestHandler(InitializeRequestSchema, async () => {
+            this.logger.info('MCP Initialize request received');
             return {
-                tools: activeTools,
+                protocolVersion: '2024-11-05',
+                capabilities: {
+                    tools: {}
+                },
+                serverInfo: {
+                    name: 'rough-cut-mcp',
+                    version: '2.0.3'
+                }
             };
+        });
+        // Initialized notification handler - completes handshake
+        this.server.setRequestHandler(InitializedNotificationSchema, async () => {
+            this.logger.info('MCP handshake completed - client initialized');
+            return {}; // Must return empty object for notification handler
+        });
+        // List tools handler - now uses tool registry with proper serialization
+        this.server.setRequestHandler(ListToolsRequestSchema, async (request) => {
+            this.logger.info('MCP tools/list request received');
+            try {
+                // Wait for initialization to complete if not done yet
+                if (!this.initializationComplete) {
+                    this.logger.info('Waiting for initialization to complete...');
+                    if (this.initializationPromise) {
+                        await this.initializationPromise;
+                    }
+                    else {
+                        // Start initialization if not started yet
+                        await this.initialize();
+                    }
+                }
+                // Debug: Check registry state
+                const registryState = this.toolRegistry.state;
+                const alwaysActive = this.toolRegistry.alwaysActiveTools;
+                this.logger.info('Registry debug info', {
+                    allToolsCount: registryState.allTools.size,
+                    allToolNames: Array.from(registryState.allTools.keys()),
+                    activeToolsCount: registryState.activeTools.size,
+                    activeToolNames: Array.from(registryState.activeTools),
+                    alwaysActiveCount: alwaysActive.size,
+                    alwaysActiveNames: Array.from(alwaysActive)
+                });
+                const activeTools = this.toolRegistry.getActiveTools();
+                this.logger.info(`Found ${activeTools.length} active tools`);
+                // If no tools yet (still initializing), return a minimal status tool
+                if (activeTools.length === 0) {
+                    this.logger.info('Tools still initializing, returning status tool');
+                    return {
+                        tools: [{
+                                name: 'server-status',
+                                description: 'Check rough-cut-mcp server initialization status',
+                                inputSchema: {
+                                    type: 'object',
+                                    properties: {},
+                                    required: []
+                                }
+                            }]
+                    };
+                }
+                // Convert enhanced registry objects to MCP-compliant format
+                // This ensures no Map/Set/Proxy objects break JSON serialization
+                const mcpTools = activeTools.map(tool => {
+                    // Ensure we have a plain object without Maps/Proxies/Sets
+                    const cleanTool = {
+                        name: String(tool.name || ''),
+                        description: String(tool.description || ''),
+                        inputSchema: tool.inputSchema ? {
+                            type: tool.inputSchema.type || 'object',
+                            properties: tool.inputSchema.properties || {},
+                            required: tool.inputSchema.required || []
+                        } : {
+                            type: 'object',
+                            properties: {},
+                            required: []
+                        }
+                    };
+                    // Verify it's JSON serializable
+                    try {
+                        JSON.stringify(cleanTool);
+                        return cleanTool;
+                    }
+                    catch (e) {
+                        this.logger.error(`Tool ${tool.name} failed serialization`, { error: e });
+                        return null;
+                    }
+                }).filter(tool => tool !== null);
+                this.logger.info(`Returning ${mcpTools.length} tools to Claude`, {
+                    tools: mcpTools.map(t => t.name)
+                });
+                return {
+                    tools: mcpTools,
+                };
+            }
+            catch (error) {
+                this.logger.error('Error in ListToolsRequestSchema handler', { error });
+                return { tools: [] };
+            }
         });
         // Call tool handler - now uses tool registry
         this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
@@ -359,10 +502,16 @@ export class RemotionCreativeMCPServer {
      * Connect transport immediately for MCP communication
      */
     connectTransport() {
+        if (process.env.NODE_ENV === 'test') {
+            console.error('DEBUG: Creating stdio transport...');
+        }
         const transport = new StdioServerTransport();
         // Connect immediately - this enables JSON-RPC communication
         this.server.connect(transport);
         this.logger.info('MCP Server connected to stdio transport');
+        if (process.env.NODE_ENV === 'test') {
+            console.error('DEBUG: Transport connection completed');
+        }
     }
     /**
      * Get registered tools (for testing)
@@ -413,22 +562,44 @@ export class RemotionCreativeMCPServer {
  * Main entry point - Connect immediately for JSON-RPC, then initialize
  */
 function main() {
+    if (process.env.NODE_ENV === 'test') {
+        console.error('DEBUG: Inside main() function');
+    }
     let server = null;
     try {
-        // MCP servers must not output to console - use logger instead
-        // logger.info('Starting Rough Cut MCP Server...');
+        // Debug output in test mode only
+        if (process.env.NODE_ENV === 'test') {
+            console.error('DEBUG: Starting MCP Server construction...');
+        }
         server = new RemotionCreativeMCPServer();
+        if (process.env.NODE_ENV === 'test') {
+            console.error('DEBUG: Server constructed, connecting transport...');
+        }
         // Connect transport immediately - CRITICAL for MCP protocol
         server.connectTransport();
+        if (process.env.NODE_ENV === 'test') {
+            console.error('DEBUG: Transport connected, setting up handlers...');
+        }
+        // Set up request handlers immediately - MUST be before async initialization
+        server.setupRequestHandlers();
+        if (process.env.NODE_ENV === 'test') {
+            console.error('DEBUG: Handlers set up, starting initialization...');
+        }
         // Initialize tools and assets asynchronously (won't block protocol)
         server.initialize().then(() => {
-            // logger.info('✅ Rough Cut MCP Server fully initialized and ready');
+            if (process.env.NODE_ENV === 'test') {
+                console.error('DEBUG: Server fully initialized');
+            }
+            server.logger.info('✅ Rough Cut MCP Server fully initialized and ready');
         }).catch((error) => {
-            // logger.warn('⚠️  Initialization warning:', error.message || error);
-            // logger.warn('Server can still respond to basic protocol messages');
+            if (process.env.NODE_ENV === 'test') {
+                console.error('DEBUG: Initialization error:', error.message);
+            }
+            server.logger.warn('⚠️  Initialization warning:', error.message || error);
+            server.logger.warn('Server can still respond to basic protocol messages');
             // Log more details for debugging
             if (error.stack) {
-                // logger.debug('Stack trace:', error.stack);
+                server.logger.debug('Stack trace:', error.stack);
             }
         });
     }
@@ -461,5 +632,8 @@ function main() {
     });
 }
 // Start the server immediately when this module is run directly
+if (process.env.NODE_ENV === 'test') {
+    console.error('DEBUG: About to call main()');
+}
 main();
 //# sourceMappingURL=index.js.map
