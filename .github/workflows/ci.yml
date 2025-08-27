@@ -26,6 +26,14 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           
+      - name: Debug environment
+        run: |
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          echo "Working directory: $(pwd)"
+          echo "Package.json exists: $(test -f package.json && echo 'yes' || echo 'no')"
+          echo "Package-lock.json exists: $(test -f package-lock.json && echo 'yes' || echo 'no')"
+          
       - name: Install dependencies
         run: npm ci --include=dev
         env:
@@ -50,6 +58,16 @@ jobs:
           GITHUB_ACTIONS: true
           CI: true
           NODE_ENV: test
+          
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}-node${{ matrix.node-version }}
+          path: |
+            *.log
+            test-results/
+            npm-debug.log*
 
   # Simplified Windows environment testing - focus on standard setup
   test-windows-simplified:
@@ -77,6 +95,14 @@ jobs:
           Write-Host "Platform: $env:OS"
         shell: powershell
 
+      - name: Debug environment
+        run: |
+          echo "Node version: $(node --version)"
+          echo "NPM version: $(npm --version)"
+          echo "Working directory: $(pwd)"
+          echo "Package.json exists: $(test -f package.json && echo 'yes' || echo 'no')"
+          echo "Package-lock.json exists: $(test -f package-lock.json && echo 'yes' || echo 'no')"
+          
       - name: Install dependencies
         run: npm ci --include=dev
         env:
@@ -106,9 +132,10 @@ jobs:
 
       - name: Upload artifacts on failure
         if: failure()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: test-logs-windows-${{ matrix.node-version }}
+          name: test-logs-windows-${{ matrix.os }}-node${{ matrix.node-version }}
           path: |
             *.log
             build/
+            test-results/
