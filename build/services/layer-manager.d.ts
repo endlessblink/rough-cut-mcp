@@ -4,7 +4,7 @@
  * Manages tool layers with exclusivity policies, dependencies,
  * and context weight tracking for optimal LLM performance.
  */
-import { ToolLayer, LayerActivationRequest, LayerActivationResult, LayerManagerConfig, LayerActivationHistory, LayerStatistics, ContextPressure, LayerRecommendation } from '../types/layer-types.js';
+import { ToolLayer, LayerActivationRequest, LayerActivationResult, LayerManagerConfig, LayerActivationHistory, ContextPressure, LayerRecommendation } from '../types/layer-types.js';
 import { EventEmitter } from 'events';
 /**
  * Layer Manager for sophisticated tool layer orchestration
@@ -43,7 +43,7 @@ export declare class LayerManager extends EventEmitter {
     /**
      * Get layer statistics
      */
-    getStatistics(): Map<string, LayerStatistics>;
+    getStatistics(): any;
     /**
      * Get activation history
      */

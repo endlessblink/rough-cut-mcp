@@ -4,6 +4,7 @@
  */
 import { ToolCategory } from '../types/tool-categories.js';
 import { RemotionService } from '../services/remotion.js';
+import { StudioRegistry } from '../services/studio-registry.js';
 // import { ProjectManagerService } from '../services/project-manager.js';
 import * as path from 'path';
 import fs from 'fs-extra';
@@ -12,6 +13,7 @@ import { promisify } from 'util';
 const execAsync = promisify(exec);
 export function registerCoreTools(server) {
     const remotionService = new RemotionService(server.config);
+    const studioRegistry = new StudioRegistry(server.config);
     // const projectManager = new ProjectManagerService(server.config);
     const logger = server.baseLogger.service('core-tools');
     /**
@@ -368,23 +370,25 @@ export const VideoComposition: React.FC = () => {
             switch (args.action) {
                 case 'start': {
                     let projectPath = server.config.assetsDir;
+                    let projectName = 'default';
                     if (args.project) {
+                        projectName = args.project;
                         projectPath = path.join(server.config.assetsDir, 'projects', args.project);
                         if (!await fs.pathExists(projectPath)) {
                             throw new Error(`Project "${args.project}" not found`);
                         }
                     }
-                    // Studio launch would go here
-                    const result = { url: `http://localhost:${args.port || 3000}`, port: args.port || 3000, pid: process.pid };
+                    // Launch studio using the registry
+                    const instance = await studioRegistry.launchStudio(projectPath, projectName, args.port);
                     return {
                         content: [{
                                 type: 'text',
-                                text: `✅ Studio started\nURL: ${result.url}\nPort: ${result.port}\nPID: ${result.pid}`
+                                text: `✅ Studio started\nURL: ${instance.url}\nPort: ${instance.port}\nPID: ${instance.pid}\nProject: ${instance.projectName}`
                             }]
                     };
                 }
                 case 'stop': {
-                    const instances = []; // Studio status would go here
+                    const instances = studioRegistry.getInstances();
                     if (instances.length === 0) {
                         return {
                             content: [{
@@ -394,37 +398,37 @@ export const VideoComposition: React.FC = () => {
                         };
                     }
                     const targetPort = args.port || instances[0].port;
-                    // await remotionService.stopStudio(targetPort); // Would stop studio here
+                    const success = await studioRegistry.stopStudio(targetPort);
                     return {
                         content: [{
                                 type: 'text',
-                                text: `✅ Stopped studio on port ${targetPort}`
+                                text: success
+                                    ? `✅ Stopped studio on port ${targetPort}`
+                                    : `⚠️ Failed to stop studio on port ${targetPort} (may have already stopped)`
                             }]
                     };
                 }
                 case 'restart': {
-                    const instances = []; // Studio status would go here
+                    const instances = studioRegistry.getInstances();
                     if (instances.length === 0) {
                         throw new Error('No studio instances to restart');
                     }
                     const targetPort = args.port || instances[0].port;
-                    const instance = instances.find(i => i.port === targetPort);
-                    if (!instance) {
+                    const existingInstance = instances.find(i => i.port === targetPort);
+                    if (!existingInstance) {
                         throw new Error(`No studio on port ${targetPort}`);
                     }
-                    // await remotionService.stopStudio(targetPort); // Would stop studio here
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    const result = { url: `http://localhost:${targetPort}`, port: targetPort, pid: process.pid };
+                    const newInstance = await studioRegistry.restartStudio(targetPort);
                     return {
                         content: [{
                                 type: 'text',
-                                text: `✅ Restarted studio\nURL: ${result.url}\nPort: ${result.port}`
+                                text: `✅ Restarted studio\nURL: ${newInstance.url}\nPort: ${newInstance.port}\nPID: ${newInstance.pid}\nProject: ${newInstance.projectName}`
                             }]
                     };
                 }
                 case 'status': {
-                    const instances = []; // Studio status would go here
-                    if (instances.length === 0) {
+                    const status = studioRegistry.getStatus();
+                    if (status.totalInstances === 0) {
                         return {
                             content: [{
                                     type: 'text',
@@ -432,16 +436,16 @@ export const VideoComposition: React.FC = () => {
                                 }]
                         };
                     }
-                    const status = instances.map((inst, i) => `${i + 1}. Port ${inst.port} - PID ${inst.pid}\n   Project: ${inst.projectPath}\n   URL: http://localhost:${inst.port}`).join('\n\n');
+                    const instanceList = status.instances.map((inst, i) => `${i + 1}. Port ${inst.port} - PID ${inst.pid}\n   Project: ${inst.projectName || path.basename(inst.projectPath)}\n   Status: ${inst.status}\n   URL: ${inst.url}\n   Running for: ${Math.round((Date.now() - inst.startTime) / 60000)} minutes`).join('\n\n');
                     return {
                         content: [{
                                 type: 'text',
-                                text: `✅ Studio Status (${instances.length} running):\n\n${status}`
+                                text: `✅ Studio Status (${status.runningInstances} running, ${status.totalInstances} total):\n\n${instanceList}`
                             }]
                     };
                 }
                 case 'list': {
-                    const instances = []; // Studio status would go here
+                    const instances = studioRegistry.getInstances();
                     if (instances.length === 0) {
                         return {
                             content: [{
@@ -450,7 +454,7 @@ export const VideoComposition: React.FC = () => {
                                 }]
                         };
                     }
-                    const list = instances.map(inst => `Port ${inst.port} (PID: ${inst.pid})`).join(', ');
+                    const list = instances.map(inst => `Port ${inst.port} (PID: ${inst.pid}, ${inst.projectName || 'default'})`).join(', ');
                     return {
                         content: [{
                                 type: 'text',

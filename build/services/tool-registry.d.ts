@@ -103,6 +103,18 @@ export declare class ToolRegistry {
      */
     getMode(): string;
     /**
+     * Get total tools count (public access to protected state)
+     */
+    getTotalToolsCount(): number;
+    /**
+     * Get tools by category (public access to protected state)
+     */
+    getToolsByCategory(category: string): ExtendedTool[];
+    /**
+     * Get tool by name (public access to protected state)
+     */
+    getToolByName(name: string): ExtendedTool | undefined;
+    /**
      * Activate a sub-category of tools
      */
     activateSubCategory(category: string, subCategory: string, exclusive?: boolean): {

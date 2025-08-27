@@ -162,15 +162,24 @@ export class ToolRegistry {
                 }
             }
             // Activate requested categories
+            const skippedTools = [];
             if (request.categories) {
                 for (const category of request.categories) {
                     const tools = this.state.toolsByCategory.get(category) || [];
+                    if (tools.length === 0) {
+                        this.logger.warn(`No tools found for category: ${category}`);
+                        continue;
+                    }
                     for (const tool of tools) {
                         if (!this.state.activeTools.has(tool.name)) {
                             // Check API key requirements
                             if (tool.metadata.requiresApiKey) {
                                 const hasApiKey = this.checkApiKey(tool.metadata.requiresApiKey);
                                 if (!hasApiKey) {
+                                    skippedTools.push({
+                                        name: tool.name,
+                                        reason: `Missing API key: ${tool.metadata.requiresApiKey}`
+                                    });
                                     this.logger.warn('Skipping tool due to missing API key', {
                                         tool: tool.name,
                                         requiredKey: tool.metadata.requiresApiKey,
@@ -207,8 +216,17 @@ export class ToolRegistry {
                     }
                 }
             }
-            const message = `Activated ${activated.length} tools, deactivated ${deactivated.length} tools`;
-            this.logger.info(message, { activated, deactivated });
+            let message = `Activated ${activated.length} tool${activated.length === 1 ? '' : 's'}`;
+            if (deactivated.length > 0) {
+                message += `, deactivated ${deactivated.length} tool${deactivated.length === 1 ? '' : 's'}`;
+            }
+            if (activated.length > 0) {
+                message += `: ${activated.join(', ')}`;
+            }
+            if (skippedTools.length > 0) {
+                message += `. Skipped ${skippedTools.length} tool${skippedTools.length === 1 ? '' : 's'} (${skippedTools.map(t => `${t.name}: ${t.reason}`).join('; ')})`;
+            }
+            this.logger.info(message, { activated, deactivated, skippedTools });
             return {
                 success: true,
                 activated,
@@ -455,6 +473,24 @@ export class ToolRegistry {
         return 'layered';
     }
     /**
+     * Get total tools count (public access to protected state)
+     */
+    getTotalToolsCount() {
+        return this.state.allTools.size;
+    }
+    /**
+     * Get tools by category (public access to protected state)
+     */
+    getToolsByCategory(category) {
+        return this.state.toolsByCategory.get(category) || [];
+    }
+    /**
+     * Get tool by name (public access to protected state)
+     */
+    getToolByName(name) {
+        return this.state.allTools.get(name);
+    }
+    /**
      * Activate a sub-category of tools
      */
     activateSubCategory(category, subCategory, exclusive = false) {
@@ -474,19 +510,35 @@ export class ToolRegistry {
         const categoryPath = `${category}/${subCategory}`;
         this.activeSubCategories.add(categoryPath);
         // Find and activate tools in this sub-category
+        const toolsFound = [];
         for (const [toolName, tool] of this.state.allTools) {
             const metadata = tool.metadata;
             if (metadata.category === category && metadata.subCategory === subCategory) {
+                toolsFound.push(toolName);
                 if (!this.state.activeTools.has(toolName)) {
                     this.state.activeTools.add(toolName);
                     activated.push(toolName);
                 }
             }
         }
-        const message = `Activated ${activated.length} tools in ${categoryPath}, deactivated ${deactivated.length} tools`;
-        this.logger.info(message, { activated, deactivated });
+        // Create detailed message
+        let message;
+        if (toolsFound.length === 0) {
+            message = `No tools found for ${categoryPath}. Available categories: ${Array.from(new Set(Array.from(this.state.allTools.values())
+                .map(t => `${t.metadata.category}/${t.metadata.subCategory}`))).join(', ')}`;
+        }
+        else if (activated.length === 0) {
+            message = `All ${toolsFound.length} tools in ${categoryPath} were already active: ${toolsFound.join(', ')}`;
+        }
+        else {
+            message = `Activated ${activated.length} tool${activated.length === 1 ? '' : 's'} in ${categoryPath}: ${activated.join(', ')}`;
+            if (deactivated.length > 0) {
+                message += `. Deactivated ${deactivated.length} tool${deactivated.length === 1 ? '' : 's'}.`;
+            }
+        }
+        this.logger.info(message, { activated, deactivated, toolsFound });
         return {
-            success: true,
+            success: toolsFound.length > 0,
             activated,
             deactivated,
             message

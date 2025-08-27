@@ -1,0 +1,555 @@
+{
+  "sessionId": "session-1756305075338-ao97tyggu",
+  "entries": [
+    {
+      "id": "evt-1756305075338-iv916an2b",
+      "timestamp": "2025-08-27T14:31:15.338Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "session_started",
+      "severity": "info",
+      "entity": "system",
+      "action": "Session started",
+      "triggeredBy": "system",
+      "context": {
+        "sessionId": "session-1756305075338-ao97tyggu",
+        "timestamp": "2025-08-27T14:31:15.338Z"
+      }
+    },
+    {
+      "id": "evt-1756305075346-sp00d7xs4",
+      "timestamp": "2025-08-27T14:31:15.346Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "discover",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "discovery",
+        "priority": 0
+      }
+    },
+    {
+      "id": "evt-1756305075346-6uo4uzrq9",
+      "timestamp": "2025-08-27T14:31:15.346Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "activate",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "discovery",
+        "priority": 0
+      }
+    },
+    {
+      "id": "evt-1756305075346-aaqzvl85d",
+      "timestamp": "2025-08-27T14:31:15.346Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "search",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "discovery",
+        "priority": 0
+      }
+    },
+    {
+      "id": "evt-1756305075347-sab88eihd",
+      "timestamp": "2025-08-27T14:31:15.347Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "project",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "core-operations",
+        "priority": 1
+      }
+    },
+    {
+      "id": "evt-1756305075347-nk6r1tqpo",
+      "timestamp": "2025-08-27T14:31:15.347Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "studio",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "core-operations",
+        "priority": 2
+      }
+    },
+    {
+      "id": "evt-1756305075347-gfttb93tm",
+      "timestamp": "2025-08-27T14:31:15.347Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "composition",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "video-creation",
+        "priority": 3
+      }
+    },
+    {
+      "id": "evt-1756305075347-1e8fzzzzf",
+      "timestamp": "2025-08-27T14:31:15.347Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "dependencies",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "maintenance",
+        "priority": 4
+      }
+    },
+    {
+      "id": "evt-1756305075347-5jbf7uy7u",
+      "timestamp": "2025-08-27T14:31:15.347Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "create-video",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "video-creation",
+        "priority": 1
+      }
+    },
+    {
+      "id": "evt-1756305075347-8k24b9e8v",
+      "timestamp": "2025-08-27T14:31:15.347Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "generate-assets",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "asset-generation",
+        "priority": 2
+      }
+    },
+    {
+      "id": "evt-1756305075347-kovhwtf49",
+      "timestamp": "2025-08-27T14:31:15.347Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "analyze-video",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "video-creation",
+        "priority": 3
+      }
+    },
+    {
+      "id": "evt-1756305075347-es4e68lgc",
+      "timestamp": "2025-08-27T14:31:15.347Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "render",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "video-creation",
+        "priority": 4
+      }
+    },
+    {
+      "id": "evt-1756305075348-6o1l1ndr0",
+      "timestamp": "2025-08-27T14:31:15.348Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "assets",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "maintenance",
+        "priority": 5
+      }
+    },
+    {
+      "id": "evt-1756305075348-s1sfjeqyz",
+      "timestamp": "2025-08-27T14:31:15.348Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "cache",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "maintenance",
+        "priority": 6
+      }
+    },
+    {
+      "id": "evt-1756305075348-fj2xxi69k",
+      "timestamp": "2025-08-27T14:31:15.348Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "voices",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "voice-generation",
+        "priority": 7
+      }
+    },
+    {
+      "id": "evt-1756305075348-fk044mgfp",
+      "timestamp": "2025-08-27T14:31:15.348Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "image-models",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "image-generation",
+        "priority": 8
+      }
+    },
+    {
+      "id": "evt-1756305075348-v13cuxd3r",
+      "timestamp": "2025-08-27T14:31:15.348Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "sounds",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "sound-effects",
+        "priority": 9
+      }
+    },
+    {
+      "id": "evt-1756305114947-iwwljfj79",
+      "timestamp": "2025-08-27T14:31:54.947Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "tool_activated",
+      "severity": "info",
+      "entity": "composition",
+      "action": "Tool 'composition' activated",
+      "triggeredBy": "user",
+      "context": {
+        "dependencies": [],
+        "contextWeight": 1390
+      }
+    },
+    {
+      "id": "evt-1756305114947-8r5kckatj",
+      "timestamp": "2025-08-27T14:31:54.947Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "tool_activated",
+      "severity": "info",
+      "entity": "create-video",
+      "action": "Tool 'create-video' activated",
+      "triggeredBy": "user",
+      "context": {
+        "dependencies": [],
+        "contextWeight": 1390
+      }
+    },
+    {
+      "id": "evt-1756305114947-14ofsrn31",
+      "timestamp": "2025-08-27T14:31:54.947Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "tool_activated",
+      "severity": "info",
+      "entity": "analyze-video",
+      "action": "Tool 'analyze-video' activated",
+      "triggeredBy": "user",
+      "context": {
+        "dependencies": [],
+        "contextWeight": 1390
+      }
+    },
+    {
+      "id": "evt-1756305114947-ydsw2zxrs",
+      "timestamp": "2025-08-27T14:31:54.947Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "tool_activated",
+      "severity": "info",
+      "entity": "render",
+      "action": "Tool 'render' activated",
+      "triggeredBy": "user",
+      "context": {
+        "dependencies": [],
+        "contextWeight": 1390
+      }
+    },
+    {
+      "id": "evt-1756305123659-h8bbmwbvf",
+      "timestamp": "2025-08-27T14:32:03.659Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "tool_activated",
+      "severity": "info",
+      "entity": "generate-assets",
+      "action": "Tool 'generate-assets' activated",
+      "triggeredBy": "user",
+      "context": {
+        "dependencies": [],
+        "contextWeight": 1390
+      }
+    },
+    {
+      "id": "evt-1756305127468-etg5jd2u7",
+      "timestamp": "2025-08-27T14:32:07.468Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "tool_activated",
+      "severity": "info",
+      "entity": "dependencies",
+      "action": "Tool 'dependencies' activated",
+      "triggeredBy": "user",
+      "context": {
+        "dependencies": [],
+        "contextWeight": 1390
+      }
+    },
+    {
+      "id": "evt-1756305127468-3lbgfpcxs",
+      "timestamp": "2025-08-27T14:32:07.468Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "tool_activated",
+      "severity": "info",
+      "entity": "assets",
+      "action": "Tool 'assets' activated",
+      "triggeredBy": "user",
+      "context": {
+        "dependencies": [],
+        "contextWeight": 1390
+      }
+    },
+    {
+      "id": "evt-1756305127468-h1alh6vrd",
+      "timestamp": "2025-08-27T14:32:07.468Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "tool_activated",
+      "severity": "info",
+      "entity": "cache",
+      "action": "Tool 'cache' activated",
+      "triggeredBy": "user",
+      "context": {
+        "dependencies": [],
+        "contextWeight": 1390
+      }
+    },
+    {
+      "id": "evt-1756305133688-vytrwe28y",
+      "timestamp": "2025-08-27T14:32:13.688Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "tool_activated",
+      "severity": "info",
+      "entity": "voices",
+      "action": "Tool 'voices' activated",
+      "triggeredBy": "user",
+      "context": {
+        "dependencies": [],
+        "contextWeight": 1390
+      }
+    },
+    {
+      "id": "evt-1756305133688-kubfrsc3h",
+      "timestamp": "2025-08-27T14:32:13.688Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "tool_activated",
+      "severity": "info",
+      "entity": "sounds",
+      "action": "Tool 'sounds' activated",
+      "triggeredBy": "user",
+      "context": {
+        "dependencies": [],
+        "contextWeight": 1390
+      }
+    },
+    {
+      "id": "evt-1756305133688-sx9ezjtu1",
+      "timestamp": "2025-08-27T14:32:13.688Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "tool_activated",
+      "severity": "info",
+      "entity": "image-models",
+      "action": "Tool 'image-models' activated",
+      "triggeredBy": "user",
+      "context": {
+        "dependencies": [],
+        "contextWeight": 1390
+      }
+    },
+    {
+      "id": "evt-1756317531560-194g7zv6v",
+      "timestamp": "2025-08-27T17:58:51.561Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "tool_activated",
+      "severity": "info",
+      "entity": "composition",
+      "action": "Tool 'composition' activated",
+      "triggeredBy": "user",
+      "context": {
+        "dependencies": [],
+        "contextWeight": 1390
+      }
+    },
+    {
+      "id": "evt-1756317531561-5jq0x0y85",
+      "timestamp": "2025-08-27T17:58:51.561Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "tool_activated",
+      "severity": "info",
+      "entity": "create-video",
+      "action": "Tool 'create-video' activated",
+      "triggeredBy": "user",
+      "context": {
+        "dependencies": [],
+        "contextWeight": 1390
+      }
+    },
+    {
+      "id": "evt-1756317531561-xplli4n0n",
+      "timestamp": "2025-08-27T17:58:51.561Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "tool_activated",
+      "severity": "info",
+      "entity": "analyze-video",
+      "action": "Tool 'analyze-video' activated",
+      "triggeredBy": "user",
+      "context": {
+        "dependencies": [],
+        "contextWeight": 1390
+      }
+    },
+    {
+      "id": "evt-1756317531561-dpq7ff8za",
+      "timestamp": "2025-08-27T17:58:51.561Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "tool_activated",
+      "severity": "info",
+      "entity": "render",
+      "action": "Tool 'render' activated",
+      "triggeredBy": "user",
+      "context": {
+        "dependencies": [],
+        "contextWeight": 1390
+      }
+    },
+    {
+      "id": "evt-1756317549222-epfn9ppa0",
+      "timestamp": "2025-08-27T17:59:09.222Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "tool_activated",
+      "severity": "info",
+      "entity": "project",
+      "action": "Tool 'project' activated",
+      "triggeredBy": "user",
+      "context": {
+        "dependencies": [],
+        "contextWeight": 1390
+      }
+    },
+    {
+      "id": "evt-1756317549222-f86e5z26x",
+      "timestamp": "2025-08-27T17:59:09.222Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "tool_activated",
+      "severity": "info",
+      "entity": "studio",
+      "action": "Tool 'studio' activated",
+      "triggeredBy": "user",
+      "context": {
+        "dependencies": [],
+        "contextWeight": 1390
+      }
+    },
+    {
+      "id": "evt-1756317588329-ir9l5nw4t",
+      "timestamp": "2025-08-27T17:59:48.329Z",
+      "sessionId": "session-1756305075338-ao97tyggu",
+      "type": "tool_activated",
+      "severity": "info",
+      "entity": "generate-assets",
+      "action": "Tool 'generate-assets' activated",
+      "triggeredBy": "user",
+      "context": {
+        "dependencies": [],
+        "contextWeight": 1390
+      }
+    }
+  ],
+  "statistics": {
+    "totalEvents": 35,
+    "eventsByType": {},
+    "eventsBySeverity": {},
+    "topEntities": [
+      {
+        "entity": "composition",
+        "count": 3
+      },
+      {
+        "entity": "create-video",
+        "count": 3
+      },
+      {
+        "entity": "generate-assets",
+        "count": 3
+      },
+      {
+        "entity": "analyze-video",
+        "count": 3
+      },
+      {
+        "entity": "render",
+        "count": 3
+      },
+      {
+        "entity": "project",
+        "count": 2
+      },
+      {
+        "entity": "studio",
+        "count": 2
+      },
+      {
+        "entity": "dependencies",
+        "count": 2
+      },
+      {
+        "entity": "assets",
+        "count": 2
+      },
+      {
+        "entity": "cache",
+        "count": 2
+      }
+    ],
+    "errorRate": 0,
+    "averageDuration": 0,
+    "peakPeriods": [
+      {
+        "hour": 17,
+        "count": 28
+      },
+      {
+        "hour": 20,
+        "count": 7
+      }
+    ]
+  },
+  "patterns": []
+}

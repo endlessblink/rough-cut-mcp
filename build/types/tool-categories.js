@@ -133,7 +133,9 @@ export const DEFAULT_TOOL_CONFIGURATION = {
     maxInitialTools: 10,
     /** Categories to load by default */
     defaultCategories: [
-        ToolCategory.DISCOVERY, // Only discovery tools by default
+        ToolCategory.DISCOVERY, // Discovery tools for navigation (3 tools)
+        ToolCategory.CORE_OPERATIONS, // Essential project and studio tools (2 tools) 
+        ToolCategory.VIDEO_CREATION, // Video creation and composition tools (4 tools)
     ],
     /** Default sub-categories to load */
     defaultSubCategories: [], // No sub-categories load by default
