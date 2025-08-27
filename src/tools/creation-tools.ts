@@ -7,7 +7,7 @@ import { MCPServer } from '../index.js';
 import { ToolCategory } from '../types/tool-categories.js';
 import { AnimationGeneratorService } from '../services/animation-generator.js';
 import * as path from 'path';
-import * as fs from 'fs-extra';
+import fs from 'fs-extra';
 
 export function registerCreationTools(server: MCPServer): void {
   const animationGenerator = new AnimationGeneratorService();

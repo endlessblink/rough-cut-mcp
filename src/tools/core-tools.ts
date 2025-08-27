@@ -8,7 +8,7 @@ import { ToolCategory } from '../types/tool-categories.js';
 import { RemotionService } from '../services/remotion.js';
 // import { ProjectManagerService } from '../services/project-manager.js';
 import * as path from 'path';
-import * as fs from 'fs-extra';
+import fs from 'fs-extra';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 

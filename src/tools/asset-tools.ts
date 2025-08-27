@@ -6,7 +6,7 @@
 import { MCPServer } from '../index.js';
 import { ToolCategory } from '../types/tool-categories.js';
 import * as path from 'path';
-import * as fs from 'fs-extra';
+import fs from 'fs-extra';
 
 export function registerAssetTools(server: MCPServer): void {
   const logger = (server as any).baseLogger.service('asset-tools');

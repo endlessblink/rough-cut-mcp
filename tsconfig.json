@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "ESNext",
-    "moduleResolution": "Node",
+    "moduleResolution": "NodeNext",
     "outDir": "./build",
     "rootDir": "./src",
     "strict": true,
@@ -14,7 +14,8 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "lib": ["ES2022"]
+    "lib": ["ES2022"],
+    "allowImportingTsExtensions": false
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "build", "assets"]
