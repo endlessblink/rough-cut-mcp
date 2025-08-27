@@ -134,48 +134,66 @@ export const RemotionRoot: React.FC = () => {
           }
 
           case 'list': {
-            const projectsDir = path.join(server.config.assetsDir, 'projects');
-            await fs.ensureDir(projectsDir);
-            
-            const projects = await fs.readdir(projectsDir);
-            const validProjects = [];
-            
-            for (const project of projects) {
-              const projectPath = path.join(projectsDir, project);
-              const stat = await fs.stat(projectPath);
+            try {
+              const projectsDir = path.join(server.config.assetsDir, 'projects');
               
-              if (stat.isDirectory()) {
-                const hasPackageJson = await fs.pathExists(path.join(projectPath, 'package.json'));
-                const hasComposition = await fs.pathExists(path.join(projectPath, 'src', 'VideoComposition.tsx'));
-                
-                validProjects.push({
-                  name: project,
-                  path: projectPath,
-                  valid: hasPackageJson && hasComposition,
-                  status: hasPackageJson && hasComposition ? '✅ Ready' : '⚠️ Incomplete'
-                });
+              // Ensure the directory exists first
+              await fs.ensureDir(projectsDir);
+              
+              // Read directory contents
+              const projects = await fs.readdir(projectsDir);
+              const validProjects = [];
+              
+              for (const project of projects) {
+                try {
+                  const projectPath = path.join(projectsDir, project);
+                  const stat = await fs.stat(projectPath);
+                  
+                  if (stat.isDirectory()) {
+                    const hasPackageJson = await fs.pathExists(path.join(projectPath, 'package.json'));
+                    const hasComposition = await fs.pathExists(path.join(projectPath, 'src', 'VideoComposition.tsx'));
+                    
+                    validProjects.push({
+                      name: project,
+                      path: projectPath,
+                      valid: hasPackageJson && hasComposition,
+                      status: hasPackageJson && hasComposition ? '✅ Ready' : '⚠️ Incomplete'
+                    });
+                  }
+                } catch (itemError) {
+                  logger.warn(`Failed to check project: ${project}`, { error: itemError });
+                  // Continue checking other projects
+                }
               }
-            }
             
-            if (validProjects.length === 0) {
+              if (validProjects.length === 0) {
+                return {
+                  content: [{
+                    type: 'text',
+                    text: 'No projects found. Create one with action:"create"'
+                  }]
+                };
+              }
+              
+              const list = validProjects.map((p, i) => 
+                `${i + 1}. **${p.name}** ${p.status}`
+              ).join('\n');
+              
               return {
                 content: [{
                   type: 'text',
-                  text: 'No projects found. Create one with action:"create"'
+                  text: `📁 Projects (${validProjects.length}):\n\n${list}`
+                }]
+              };
+            } catch (error) {
+              logger.error('Failed to list projects', { error });
+              return {
+                content: [{
+                  type: 'text',
+                  text: `❌ Failed to list projects: ${error instanceof Error ? error.message : String(error)}\n\nTry creating a new project with action:"create"`
                 }]
               };
             }
-            
-            const list = validProjects.map((p, i) => 
-              `${i + 1}. **${p.name}** ${p.status}`
-            ).join('\n');
-            
-            return {
-              content: [{
-                type: 'text',
-                text: `📁 Projects (${validProjects.length}):\n\n${list}`
-              }]
-            };
           }
 
           case 'info': {

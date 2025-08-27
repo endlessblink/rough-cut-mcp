@@ -4,7 +4,7 @@
  */
 import { ToolCategory } from '../types/tool-categories.js';
 import * as path from 'path';
-import * as fs from 'fs-extra';
+import fs from 'fs-extra';
 export function registerAssetTools(server) {
     const logger = server.baseLogger.service('asset-tools');
     /**

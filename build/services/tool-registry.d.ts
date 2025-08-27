@@ -73,17 +73,7 @@ export declare class ToolRegistry {
     /**
      * Get usage statistics
      */
-    getUsageStatistics(): {
-        mostUsed: Array<{
-            name: string;
-            count: number;
-        }>;
-        recentlyActivated: Array<{
-            name: string;
-            timestamp: Date;
-        }>;
-        categoryUsage: Record<string, number>;
-    };
+    getUsageStatistics(): any;
     /**
      * Track tool usage for smart defaults
      */

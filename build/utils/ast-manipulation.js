@@ -1,9 +1,12 @@
 // AST manipulation utilities for editing video elements
 import { parse } from '@babel/parser';
-import traverse from '@babel/traverse';
-import generate from '@babel/generator';
+import _traverse from '@babel/traverse';
+import _generate from '@babel/generator';
 import * as t from '@babel/types';
 import { getLogger } from './logger.js';
+// Handle default exports properly
+const traverse = _traverse.default || _traverse;
+const generate = _generate.default || _generate;
 const logger = getLogger().service('ASTManipulation');
 /**
  * Parse TypeScript/JSX code into an AST

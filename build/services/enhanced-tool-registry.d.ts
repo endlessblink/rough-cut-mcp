@@ -68,6 +68,11 @@ export declare class EnhancedToolRegistry extends ToolRegistry {
      */
     getToolHandler(toolName: string): Function | undefined;
     /**
+     * Safe getter with explicit type assertion after check
+     * Override parent's safe getter to ensure proper handler retrieval
+     */
+    getToolHandlerSafe(toolName: string): Function | undefined;
+    /**
      * Handle layer change events
      */
     private handleLayerChange;

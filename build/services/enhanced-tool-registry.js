@@ -268,6 +268,13 @@ export class EnhancedToolRegistry extends ToolRegistry {
         return handler;
     }
     /**
+     * Safe getter with explicit type assertion after check
+     * Override parent's safe getter to ensure proper handler retrieval
+     */
+    getToolHandlerSafe(toolName) {
+        return super.getToolHandlerSafe(toolName);
+    }
+    /**
      * Handle layer change events
      */
     handleLayerChange(event) {

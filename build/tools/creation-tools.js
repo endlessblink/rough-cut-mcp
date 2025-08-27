@@ -5,7 +5,7 @@
 import { ToolCategory } from '../types/tool-categories.js';
 import { AnimationGeneratorService } from '../services/animation-generator.js';
 import * as path from 'path';
-import * as fs from 'fs-extra';
+import fs from 'fs-extra';
 export function registerCreationTools(server) {
     const animationGenerator = new AnimationGeneratorService();
     const logger = server.baseLogger.service('creation-tools');

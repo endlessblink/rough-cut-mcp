@@ -2,7 +2,7 @@
  * Project Metadata Manager for persistent project configuration
  * Stores project-specific settings like port assignments
  */
-import * as fs from 'fs-extra';
+import fs from 'fs-extra';
 import * as path from 'path';
 import { getLogger } from '../utils/logger.js';
 export class ProjectMetadataManager {

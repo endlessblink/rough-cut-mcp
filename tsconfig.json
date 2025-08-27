@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
+    "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": "./build",
     "rootDir": "./src",
@@ -18,5 +18,5 @@
     "allowImportingTsExtensions": false
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "build", "assets"]
+  "exclude": ["node_modules", "build", "assets", "src/tools/archived/**/*"]
 }

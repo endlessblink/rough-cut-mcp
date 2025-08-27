@@ -398,11 +398,7 @@ export class ToolRegistry {
   /**
    * Get usage statistics
    */
-  getUsageStatistics(): {
-    mostUsed: Array<{ name: string; count: number }>;
-    recentlyActivated: Array<{ name: string; timestamp: Date }>;
-    categoryUsage: Record<string, number>;
-  } {
+  getUsageStatistics(): any {
     // Most used tools
     const mostUsed = Array.from(this.state.usageStats.entries())
       .map(([name, count]) => ({ name, count }))
@@ -417,6 +413,8 @@ export class ToolRegistry {
 
     // Category usage
     const categoryUsage: Record<string, number> = {};
+    const categoriesLoaded = new Set<string>();
+    
     for (const [toolName, count] of this.state.usageStats) {
       const tool = this.state.allTools.get(toolName);
       if (tool) {
@@ -424,11 +422,34 @@ export class ToolRegistry {
         categoryUsage[category] = (categoryUsage[category] || 0) + count;
       }
     }
+    
+    // Track loaded categories
+    for (const toolName of this.state.activeTools) {
+      const tool = this.state.allTools.get(toolName);
+      if (tool) {
+        categoriesLoaded.add(tool.metadata.category);
+      }
+    }
+
+    // Calculate total active weight
+    let totalActiveWeight = 0;
+    for (const toolName of this.state.activeTools) {
+      const tool = this.state.allTools.get(toolName);
+      if (tool) {
+        totalActiveWeight += tool.metadata.estimatedTokens || 100;
+      }
+    }
 
     return {
+      // Legacy format
       mostUsed,
       recentlyActivated,
       categoryUsage,
+      // Expected format for enhanced registry
+      totalTools: this.state.allTools.size,
+      activeTools: this.state.activeTools.size,
+      categoriesLoaded: categoriesLoaded.size,
+      totalActiveWeight,
     };
   }
 

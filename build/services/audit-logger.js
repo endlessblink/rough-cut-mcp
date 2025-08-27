@@ -5,7 +5,7 @@
  * activation patterns for debugging and optimization.
  */
 import { getLogger } from '../utils/logger.js';
-import * as fs from 'fs-extra';
+import fs from 'fs-extra';
 import * as path from 'path';
 import { EventEmitter } from 'events';
 /**

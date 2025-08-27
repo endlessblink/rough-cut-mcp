@@ -6,7 +6,7 @@
  */
 import { ToolCategory, TOOL_CATEGORIES, DEFAULT_TOOL_CONFIGURATION, } from '../types/tool-categories.js';
 import { getLogger } from '../utils/logger.js';
-import * as fs from 'fs-extra';
+import fs from 'fs-extra';
 import * as path from 'path';
 /**
  * Tool Registry for managing and organizing MCP tools
@@ -326,6 +326,7 @@ export class ToolRegistry {
             .slice(0, 10);
         // Category usage
         const categoryUsage = {};
+        const categoriesLoaded = new Set();
         for (const [toolName, count] of this.state.usageStats) {
             const tool = this.state.allTools.get(toolName);
             if (tool) {
@@ -333,10 +334,31 @@ export class ToolRegistry {
                 categoryUsage[category] = (categoryUsage[category] || 0) + count;
             }
         }
+        // Track loaded categories
+        for (const toolName of this.state.activeTools) {
+            const tool = this.state.allTools.get(toolName);
+            if (tool) {
+                categoriesLoaded.add(tool.metadata.category);
+            }
+        }
+        // Calculate total active weight
+        let totalActiveWeight = 0;
+        for (const toolName of this.state.activeTools) {
+            const tool = this.state.allTools.get(toolName);
+            if (tool) {
+                totalActiveWeight += tool.metadata.estimatedTokens || 100;
+            }
+        }
         return {
+            // Legacy format
             mostUsed,
             recentlyActivated,
             categoryUsage,
+            // Expected format for enhanced registry
+            totalTools: this.state.allTools.size,
+            activeTools: this.state.activeTools.size,
+            categoriesLoaded: categoriesLoaded.size,
+            totalActiveWeight,
         };
     }
     /**
