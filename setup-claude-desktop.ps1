@@ -4,6 +4,56 @@ Write-Host " Rough Cut MCP - Claude Desktop Setup" -ForegroundColor Cyan
 Write-Host "=====================================" -ForegroundColor Cyan
 Write-Host ""
 
+# Get the directory where this script is located
+$scriptDir = Split-Path -Parent -Path $MyInvocation.MyCommand.Definition
+$projectRoot = $scriptDir
+
+# Verify we're in the correct directory
+if (-not (Test-Path (Join-Path $projectRoot "package.json"))) {
+    Write-Host "Error: package.json not found in $projectRoot" -ForegroundColor Red
+    Write-Host "Please run this script from the Rough Cut MCP project directory." -ForegroundColor Yellow
+    exit 1
+}
+
+# Build paths relative to project root
+$buildIndexPath = Join-Path $projectRoot "build\index.js"
+$assetsPath = Join-Path $projectRoot "assets"
+
+# Check if build exists
+if (-not (Test-Path $buildIndexPath)) {
+    Write-Host "Warning: Build not found at $buildIndexPath" -ForegroundColor Yellow
+    Write-Host "Please run 'npm run build' first in Windows PowerShell." -ForegroundColor Yellow
+    Write-Host "Continue anyway? (y/n): " -ForegroundColor Yellow -NoNewline
+    $response = Read-Host
+    if ($response -ne 'y') {
+        exit 1
+    }
+}
+
+# Find Node.js installation
+$nodePaths = @(
+    "C:\Program Files\nodejs\node.exe",
+    "C:\Program Files (x86)\nodejs\node.exe",
+    (Get-Command node -ErrorAction SilentlyContinue).Path
+)
+
+$nodeCommand = $null
+foreach ($path in $nodePaths) {
+    if ($path -and (Test-Path $path)) {
+        $nodeCommand = $path
+        break
+    }
+}
+
+if (-not $nodeCommand) {
+    Write-Host "Error: Node.js not found!" -ForegroundColor Red
+    Write-Host "Please ensure Node.js is installed and available in PATH." -ForegroundColor Yellow
+    exit 1
+}
+
+Write-Host "Found Node.js at: $nodeCommand" -ForegroundColor Green
+Write-Host "Project root: $projectRoot" -ForegroundColor Green
+
 # Find Claude Desktop config file
 $configPath = "$env:APPDATA\Claude\claude_desktop_config.json"
 Write-Host "Looking for Claude Desktop config at: $configPath" -ForegroundColor Yellow
@@ -33,13 +83,11 @@ if (Test-Path $configPath) {
     }
     
     $roughCutConfig = @{
-        command = "C:\Program Files\nodejs\node.exe"
-        args = @(
-            "D:\MY PROJECTS\AI\LLM\AI Code Gen\my-builds\Video + Motion\RoughCut\build\index.js"
-        )
+        command = $nodeCommand
+        args = @($buildIndexPath)
         env = @{
             NODE_ENV = "production"
-            REMOTION_ASSETS_DIR = "D:\MY PROJECTS\AI\LLM\AI Code Gen\my-builds\Video + Motion\RoughCut\assets"
+            REMOTION_ASSETS_DIR = $assetsPath
             MCP_LEGACY_MODE = "false"
         }
     }
@@ -74,13 +122,11 @@ else {
     $newConfig = @{
         mcpServers = @{
             'rough-cut-mcp' = @{
-                command = "C:\Program Files\nodejs\node.exe"
-                args = @(
-                    "D:\MY PROJECTS\AI\LLM\AI Code Gen\my-builds\Video + Motion\RoughCut\build\index.js"
-                )
+                command = $nodeCommand
+                args = @($buildIndexPath)
                 env = @{
                     NODE_ENV = "production"
-                    REMOTION_ASSETS_DIR = "D:\MY PROJECTS\AI\LLM\AI Code Gen\my-builds\Video + Motion\RoughCut\assets"
+                    REMOTION_ASSETS_DIR = $assetsPath
                     MCP_LEGACY_MODE = "false"
                 }
             }
@@ -102,6 +148,11 @@ Write-Host "Tools now available (9 total):" -ForegroundColor Yellow
 Write-Host "  Discovery: discover, activate, search" -ForegroundColor White
 Write-Host "  Core: project, studio" -ForegroundColor White
 Write-Host "  Video: create-video, composition, analyze-video, render" -ForegroundColor White
+Write-Host ""
+Write-Host "Configured paths:" -ForegroundColor Yellow
+Write-Host "  Node.js: $nodeCommand" -ForegroundColor White
+Write-Host "  Build: $buildIndexPath" -ForegroundColor White
+Write-Host "  Assets: $assetsPath" -ForegroundColor White
 Write-Host ""
 Write-Host "Press any key to exit..."
 $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
