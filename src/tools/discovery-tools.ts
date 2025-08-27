@@ -25,8 +25,8 @@ export function registerDiscoveryTools(server: MCPServer): void {
         properties: {
           type: {
             type: 'string',
-            enum: ['all', 'categories', 'active', 'stats', 'recommendations'],
-            description: 'What to discover',
+            enum: ['all', 'categories', 'active', 'stats', 'recommendations', 'tree'],
+            description: 'What to discover - use "tree" to see complete navigable hierarchy',
             default: 'all'
           },
           context: {
@@ -148,6 +148,99 @@ ${subCategoryList ? 'Sub-categories:\n' + subCategoryList : ''}`;
             };
           }
 
+          case 'tree': {
+            // Build complete hierarchical tree structure for AI navigation
+            const allToolsCount = server.toolRegistry.getTotalToolsCount();
+            const activeToolsCount = server.toolRegistry.getActiveTools().length;
+            
+            // Build category tree with detailed navigation info
+            const categories = Object.entries(TOOL_CATEGORIES).map(([categoryId, categoryInfo]) => {
+              const categoryKey = categoryId.replace('_', '-').toLowerCase();
+              const subCats = (TOOL_SUBCATEGORIES as any)[categoryKey] || {};
+              const toolsInCategory = server.toolRegistry.getToolsByCategory(categoryId);
+              const isActive = server.toolRegistry.getActiveTools().some((tool: any) => 
+                tool.metadata.category === categoryId && tool.metadata.category !== ToolCategory.DISCOVERY
+              );
+              
+              // Build subcategory structure
+              const subCategories = Object.entries(subCats).map(([subId, tools]) => ({
+                id: subId,
+                name: subId.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                tools: tools as string[],
+                toolCount: (tools as string[]).length,
+                activationPath: `${categoryKey}/${subId}`
+              }));
+              
+              return {
+                id: categoryKey,
+                name: categoryInfo.name,
+                description: categoryInfo.description,
+                status: categoryId === ToolCategory.DISCOVERY ? 'exposed' : (isActive ? 'exposed' : 'available'),
+                toolCount: toolsInCategory.length,
+                subCategories,
+                estimatedTokens: categoryInfo.estimatedTokens || 500,
+                requiredApiKeys: categoryInfo.requiredApiKeys || [],
+                canActivate: categoryId !== ToolCategory.DISCOVERY,
+                activationHint: isActive ? 'Already active' : `Use activate({ categories: ['${categoryKey}'] }) to expose tools`
+              };
+            });
+            
+            // Create tree structure response
+            const treeStructure = {
+              totalTools: allToolsCount,
+              exposedTools: activeToolsCount,
+              categories,
+              navigationHints: [
+                "🔍 Use activate({ categories: ['category-name'] }) to expose category tools",
+                "🎯 Use activate({ subCategories: ['category/subcategory'] }) for specific tool groups", 
+                "🔍 Use search({ query: 'keyword' }) to find specific functionality",
+                "📊 Use discover({ type: 'active' }) to see currently exposed tools"
+              ],
+              performance: {
+                exposureRate: Math.round((activeToolsCount / allToolsCount) * 100),
+                contextOptimization: `${Math.round((1 - activeToolsCount / allToolsCount) * 100)}% context saved`
+              }
+            };
+            
+            // Format tree display
+            let treeDisplay = `🌳 Complete Tool Tree (${allToolsCount} tools total, ${activeToolsCount} exposed)\n\n`;
+            
+            categories.forEach(cat => {
+              const statusIcon = cat.status === 'exposed' ? '✅' : (cat.requiredApiKeys.length > 0 ? '🔑' : '📁');
+              const apiKeyInfo = cat.requiredApiKeys.length > 0 ? ` (requires: ${cat.requiredApiKeys.join(', ')})` : '';
+              
+              treeDisplay += `${statusIcon} **${cat.name}** (${cat.toolCount} tools)${apiKeyInfo}\n`;
+              treeDisplay += `   ${cat.description}\n`;
+              if (cat.canActivate) {
+                treeDisplay += `   💡 ${cat.activationHint}\n`;
+              }
+              
+              // Show subcategories
+              cat.subCategories.forEach(subCat => {
+                treeDisplay += `   ├── 📝 ${subCat.name} (${subCat.toolCount} tools)\n`;
+                treeDisplay += `   │   └── Tools: ${subCat.tools.join(', ')}\n`;
+              });
+              
+              treeDisplay += '\n';
+            });
+            
+            treeDisplay += '\n🧭 **Navigation Guide:**\n';
+            treeStructure.navigationHints.forEach(hint => {
+              treeDisplay += `   ${hint}\n`;
+            });
+            
+            treeDisplay += `\n📈 **Performance:** ${treeStructure.performance.exposureRate}% tools exposed, ${treeStructure.performance.contextOptimization} overhead saved`;
+            
+            return {
+              content: [{
+                type: 'text',
+                text: treeDisplay
+              }],
+              // Include structured data for potential programmatic use
+              metadata: { treeStructure }
+            };
+          }
+
           default:
             throw new Error(`Unknown discovery type: ${type}`);
         }
@@ -256,20 +349,52 @@ ${subCategoryList ? 'Sub-categories:\n' + subCategoryList : ''}`;
         
         if (result.success) {
           output = '✅ Activation successful:\n';
+          
           if (result.activated.length > 0) {
-            output += `Activated: ${result.activated.join(', ')}\n`;
+            output += `\n🔧 **Newly Available Tools** (${result.activated.length}):\n`;
+            
+            // Get detailed tool information
+            result.activated.forEach((toolName: string) => {
+              const tool = server.toolRegistry.getToolByName(toolName);
+              if (tool) {
+                output += `  • **${toolName}** - ${tool.description || 'No description available'}\n`;
+              } else {
+                output += `  • **${toolName}**\n`;
+              }
+            });
+            
+            output += `\n💡 **Next Steps:**\n`;
+            output += `  • These tools are now available in your MCP interface\n`;
+            output += `  • You can call them directly: ${result.activated.slice(0, 3).join(', ')}${result.activated.length > 3 ? '...' : ''}\n`;
+            output += `  • Use discover({ type: 'active' }) to see all active tools\n`;
           }
+          
           if (result.deactivated?.length > 0) {
-            output += `Deactivated: ${result.deactivated.join(', ')}\n`;
+            output += `\n🔄 Deactivated: ${result.deactivated.join(', ')}\n`;
           }
           if (result.dependencies?.length > 0) {
-            output += `Dependencies loaded: ${result.dependencies.join(', ')}\n`;
+            output += `\n📦 Dependencies loaded: ${result.dependencies.join(', ')}\n`;
           }
           if (result.contextWeight) {
-            output += `Context weight: ${result.contextWeight}`;
+            output += `\n📊 Context weight: ${result.contextWeight}`;
           }
+          
+          // Add performance metrics
+          const activeToolsCount = server.toolRegistry.getActiveTools().length;
+          const totalToolsCount = server.toolRegistry.getTotalToolsCount();
+          const exposureRate = Math.round((activeToolsCount / totalToolsCount) * 100);
+          
+          output += `\n\n📈 **Performance:** ${activeToolsCount}/${totalToolsCount} tools exposed (${exposureRate}%), `;
+          output += `${Math.round((1 - activeToolsCount / totalToolsCount) * 100)}% overhead saved`;
+          
         } else {
-          output = `❌ Activation failed: ${result.message}`;
+          output = `❌ Activation failed: ${result.message}\n\n`;
+          
+          // Add helpful suggestions on failure
+          output += `💡 **Suggestions:**\n`;
+          output += `  • Use discover({ type: 'tree' }) to see available categories\n`;
+          output += `  • Check category names: ${Object.keys(TOOL_CATEGORIES).map(k => k.toLowerCase().replace('_', '-')).join(', ')}\n`;
+          output += `  • Use search({ query: 'keyword' }) to find specific tools\n`;
         }
 
         return {
@@ -355,18 +480,80 @@ ${subCategoryList ? 'Sub-categories:\n' + subCategoryList : ''}`;
           server.toolRegistry.getActiveTools().map((t: any) => t.name)
         );
 
-        const toolList = results.map((tool: any) => {
-          const active = activeTools.has(tool.name);
-          const status = active ? '✅' : '⏸️';
-          return `${status} **${tool.name}** (${tool.metadata.category})
-   ${tool.description}
-   Tags: ${tool.metadata.tags.join(', ')}`;
-        }).join('\n\n');
+        // Group results by activation status
+        const activeResults = results.filter((tool: any) => activeTools.has(tool.name));
+        const inactiveResults = results.filter((tool: any) => !activeTools.has(tool.name));
+        
+        let output = `🔍 Found ${results.length} tools matching "${args.query}":\n\n`;
+        
+        // Show active tools first
+        if (activeResults.length > 0) {
+          output += `✅ **Ready to Use** (${activeResults.length} tools):\n`;
+          activeResults.forEach((tool: any) => {
+            output += `  • **${tool.name}** - ${tool.description}\n`;
+            output += `    Category: ${tool.metadata.category} | Tags: ${tool.metadata.tags.join(', ')}\n`;
+          });
+          output += '\n';
+        }
+        
+        // Show inactive tools with activation hints  
+        if (inactiveResults.length > 0) {
+          output += `⏸️ **Available (Not Yet Active)** (${inactiveResults.length} tools):\n`;
+          
+          // Group inactive tools by category for better activation suggestions
+          const toolsByCategory = new Map<string, any[]>();
+          inactiveResults.forEach((tool: any) => {
+            const categoryKey = tool.metadata.category.toLowerCase().replace('_', '-');
+            if (!toolsByCategory.has(categoryKey)) {
+              toolsByCategory.set(categoryKey, []);
+            }
+            toolsByCategory.get(categoryKey)!.push(tool);
+          });
+          
+          toolsByCategory.forEach((tools, categoryKey) => {
+            output += `\n  📁 **${categoryKey}** category:\n`;
+            tools.forEach((tool: any) => {
+              output += `    • **${tool.name}** - ${tool.description}\n`;
+              output += `      Tags: ${tool.metadata.tags.join(', ')}\n`;
+            });
+            output += `    💡 Activate with: activate({ categories: ['${categoryKey}'] })\n`;
+          });
+          
+          output += '\n🎯 **Quick Activation:**\n';
+          if (toolsByCategory.size === 1) {
+            const [categoryKey] = toolsByCategory.keys();
+            output += `  • All results are in '${categoryKey}' - use: activate({ categories: ['${categoryKey}'] })\n`;
+          } else {
+            const categoryList = Array.from(toolsByCategory.keys());
+            output += `  • Multiple categories found: ${categoryList.join(', ')}\n`;
+            output += `  • Activate specific category: activate({ categories: ['category-name'] })\n`;
+            output += `  • Or activate all: activate({ categories: ${JSON.stringify(categoryList)} })\n`;
+          }
+        }
+        
+        // Add contextual recommendations based on query
+        const queryLower = args.query.toLowerCase();
+        const suggestions = [];
+        
+        if (queryLower.includes('video') || queryLower.includes('create') || queryLower.includes('animation')) {
+          suggestions.push("For video creation: activate({ categories: ['video-creation'] })");
+        }
+        if (queryLower.includes('voice') || queryLower.includes('audio') || queryLower.includes('speech')) {
+          suggestions.push("For voice tools: activate({ categories: ['voice-generation'] }) (requires ElevenLabs API)");
+        }
+        if (queryLower.includes('project') || queryLower.includes('manage') || queryLower.includes('studio')) {
+          suggestions.push("For project tools: activate({ categories: ['core-operations'] })");
+        }
+        
+        if (suggestions.length > 0) {
+          output += `\n💡 **Based on your search:**\n`;
+          suggestions.forEach(suggestion => output += `  • ${suggestion}\n`);
+        }
 
         return {
           content: [{
             type: 'text',
-            text: `🔍 Found ${results.length} tool(s):\n\n${toolList}`
+            text: output
           }]
         };
       } catch (error) {

@@ -315,8 +315,42 @@ export class LayerManager extends EventEmitter {
   /**
    * Get layer statistics
    */
-  getStatistics(): Map<string, LayerStatistics> {
-    return new Map(this.layerStats);
+  getStatistics(): any {
+    // Ensure all active layers have statistics
+    for (const layerId of this.activeLayers) {
+      if (!this.layerStats.has(layerId)) {
+        const layer = this.layers.get(layerId);
+        if (layer) {
+          this.layerStats.set(layerId, {
+            layerId: layer.id,
+            activationCount: 1,
+            totalActiveTime: 0,
+            averageActiveDuration: 0,
+            lastActivated: new Date(),
+            topTools: [],
+          });
+        }
+      }
+    }
+
+    // Convert Map to a more usable format
+    const stats: Record<string, LayerStatistics> = {};
+    for (const [id, stat] of this.layerStats) {
+      stats[id] = stat;
+    }
+
+    return {
+      activeLayers: this.activeLayers.size,
+      totalLayers: this.layers.size,
+      currentContextWeight: this.currentContextWeight,
+      maxContextWeight: this.config.maxContextWeight,
+      contextUsage: `${Math.round((this.currentContextWeight / this.config.maxContextWeight) * 100)}%`,
+      layerStatistics: stats,
+      activeLayerNames: Array.from(this.activeLayers),
+      totalActivations: Array.from(this.layerStats.values()).reduce(
+        (sum, stat) => sum + stat.activationCount, 0
+      ),
+    };
   }
 
   /**
