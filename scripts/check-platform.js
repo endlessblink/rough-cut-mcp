@@ -4,14 +4,18 @@
 import fs from 'fs';
 import os from 'os';
 
-// Multiple detection methods for WSL2 reliability
-const isWSL = process.platform === 'linux' && (
-  fs.existsSync('/mnt/c') || 
-  os.release().toLowerCase().includes('microsoft') ||
-  process.env.WSL_DISTRO_NAME
-);
+// Multiple detection methods for WSL2 reliability - but allow CI environments
+const isActualWSL2 = process.platform === 'linux' && 
+  !process.env.GITHUB_ACTIONS && 
+  !process.env.CI &&
+  (
+    fs.existsSync('/mnt/c') || 
+    os.release().toLowerCase().includes('microsoft') ||
+    process.env.WSL_DISTRO_NAME
+  );
 
-if (isWSL && process.env.NODE_ENV !== 'test') {
+// Only block actual WSL2, not CI/GitHub Actions environments
+if (isActualWSL2 && process.env.NODE_ENV !== 'test') {
   console.error('❌ ERROR: Building from WSL2 detected!');
   console.error('');
   console.error('This MCP server must be built on Windows for Claude Desktop integration.');
@@ -24,8 +28,10 @@ if (isWSL && process.env.NODE_ENV !== 'test') {
   console.error('');
   console.error('Note: You can still edit files in WSL2/VS Code, but building must happen on Windows.');
   process.exit(1);
-} else if (isWSL && process.env.NODE_ENV === 'test') {
+} else if (isActualWSL2 && process.env.NODE_ENV === 'test') {
   console.log('🧪 TEST MODE: WSL2 build allowed for debugging');
+} else if (process.env.GITHUB_ACTIONS || process.env.CI) {
+  console.log('🤖 CI Environment detected: Platform checks relaxed for automated testing');
 }
 
 // Platform-specific guidance

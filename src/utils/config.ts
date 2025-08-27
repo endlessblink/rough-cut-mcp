@@ -2,14 +2,10 @@
 import { config } from 'dotenv';
 import { z } from 'zod';
 import { MCPConfig } from '../types/index.js';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { paths } from '../config/paths.js';
 
 // Load environment variables
 config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Zod schema for configuration validation
 const ConfigSchema = z.object({
@@ -42,18 +38,8 @@ const ConfigSchema = z.object({
  * Load and validate configuration from environment variables
  */
 export function loadConfig(): MCPConfig {
-  // Resolve assets directory - Windows paths only
-  let assetsDir = process.env.REMOTION_ASSETS_DIR;
-  
-  if (!assetsDir) {
-    // Fallback: resolve relative to the build directory (where index.js is located)
-    // For Windows: Need to go up from build/ to project root, then to assets/
-    const projectRoot = path.resolve(__dirname, '../../');
-    assetsDir = path.join(projectRoot, 'assets');
-    // logger.info(`REMOTION_ASSETS_DIR not set, using fallback: ${assetsDir}`);
-  } else {
-    // logger.info(`REMOTION_ASSETS_DIR set to: ${assetsDir}`);
-  }
+  // Use centralized path management
+  const assetsDir = process.env.REMOTION_ASSETS_DIR || paths.getWindowsPath('assets');
 
   const rawConfig = {
     assetsDir: assetsDir,
@@ -132,12 +118,9 @@ export function validateApiKeys(config: MCPConfig, requiredServices: string[]): 
  * Get absolute path for assets directory
  */
 export function getAssetPath(config: MCPConfig, subpath: string = ''): string {
-  // Use the configured assets directory, which should always be an absolute Windows path
-  const basePath = path.isAbsolute(config.assetsDir) 
-    ? config.assetsDir 
-    : path.resolve(config.assetsDir); // Avoid process.cwd() to prevent WSL paths
-  
-  return subpath ? path.join(basePath, subpath) : basePath;
+  // Always use centralized path management for consistency
+  const basePath = config.assetsDir || paths.assetsDir;
+  return subpath ? paths.getWindowsPath(`assets/${subpath}`) : basePath;
 }
 
 /**
