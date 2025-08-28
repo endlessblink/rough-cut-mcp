@@ -578,15 +578,15 @@ function main() {
         if (process.env.NODE_ENV === 'test') {
             console.error('DEBUG: Server constructed, connecting transport...');
         }
-        // Connect transport immediately - CRITICAL for MCP protocol
-        server.connectTransport();
-        if (process.env.NODE_ENV === 'test') {
-            console.error('DEBUG: Transport connected, setting up handlers...');
-        }
-        // Set up request handlers immediately - MUST be before async initialization
+        // Set up request handlers FIRST - MUST be before connecting transport
         server.setupRequestHandlers();
         if (process.env.NODE_ENV === 'test') {
-            console.error('DEBUG: Handlers set up, starting initialization...');
+            console.error('DEBUG: Handlers set up, connecting transport...');
+        }
+        // Connect transport AFTER handlers are ready - CRITICAL for MCP protocol
+        server.connectTransport();
+        if (process.env.NODE_ENV === 'test') {
+            console.error('DEBUG: Transport connected, starting initialization...');
         }
         // Initialize tools and assets asynchronously (won't block protocol)
         server.initialize().then(() => {

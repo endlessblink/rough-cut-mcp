@@ -6,8 +6,8 @@ import * as t from '@babel/types';
 import { getLogger } from './logger.js';
 
 // Handle default exports properly
-const traverse = _traverse.default || _traverse;
-const generate = _generate.default || _generate;
+const traverse = (_traverse as any).default || _traverse;
+const generate = (_generate as any).default || _generate;
 
 const logger = getLogger().service('ASTManipulation');
 
@@ -106,7 +106,7 @@ export function findJSXElements(
   const elements: t.JSXElement[] = [];
 
   traverse(ast, {
-    JSXElement(path) {
+    JSXElement(path: any) {
       const element = path.node;
       const openingElement = element.openingElement;
       
@@ -120,7 +120,7 @@ export function findJSXElements(
 
       // Check for className
       if (criteria.className) {
-        const classNameAttr = openingElement.attributes.find(attr => 
+        const classNameAttr = openingElement.attributes.find((attr: any) => 
           t.isJSXAttribute(attr) && 
           t.isJSXIdentifier(attr.name) && 
           attr.name.name === 'className'
@@ -136,7 +136,7 @@ export function findJSXElements(
 
       // Check for id
       if (criteria.id) {
-        const idAttr = openingElement.attributes.find(attr => 
+        const idAttr = openingElement.attributes.find((attr: any) => 
           t.isJSXAttribute(attr) && 
           t.isJSXIdentifier(attr.name) && 
           attr.name.name === 'id'
@@ -152,7 +152,7 @@ export function findJSXElements(
 
       // Check text content
       if (criteria.textContent) {
-        const hasText = element.children.some(child => 
+        const hasText = element.children.some((child: any) => 
           t.isJSXText(child) && child.value.includes(criteria.textContent!)
         );
         if (!hasText) return;
@@ -161,7 +161,7 @@ export function findJSXElements(
       // Check for required props
       if (criteria.hasProps) {
         const hasAllProps = criteria.hasProps.every(propName =>
-          openingElement.attributes.some(attr =>
+          openingElement.attributes.some((attr: any) =>
             t.isJSXAttribute(attr) &&
             t.isJSXIdentifier(attr.name) &&
             attr.name.name === propName
@@ -454,7 +454,7 @@ export function addJSXElement(
 
   try {
     traverse(ast, {
-      JSXElement(path) {
+      JSXElement(path: any) {
         const element = path.node;
         const openingElement = element.openingElement;
         
@@ -469,7 +469,7 @@ export function addJSXElement(
         }
 
         if (parentSelector.className && isMatch) {
-          const classNameAttr = openingElement.attributes.find(attr => 
+          const classNameAttr = openingElement.attributes.find((attr: any) => 
             t.isJSXAttribute(attr) && 
             t.isJSXIdentifier(attr.name) && 
             attr.name.name === 'className'
@@ -482,7 +482,7 @@ export function addJSXElement(
         }
 
         if (parentSelector.id && isMatch) {
-          const idAttr = openingElement.attributes.find(attr => 
+          const idAttr = openingElement.attributes.find((attr: any) => 
             t.isJSXAttribute(attr) && 
             t.isJSXIdentifier(attr.name) && 
             attr.name.name === 'id'
@@ -553,7 +553,7 @@ export function removeJSXElement(
 
   try {
     traverse(ast, {
-      JSXElement(path) {
+      JSXElement(path: any) {
         const element = path.node;
         const openingElement = element.openingElement;
         
@@ -568,7 +568,7 @@ export function removeJSXElement(
         }
 
         if (selector.className && isMatch) {
-          const classNameAttr = openingElement.attributes.find(attr => 
+          const classNameAttr = openingElement.attributes.find((attr: any) => 
             t.isJSXAttribute(attr) && 
             t.isJSXIdentifier(attr.name) && 
             attr.name.name === 'className'
@@ -581,7 +581,7 @@ export function removeJSXElement(
         }
 
         if (selector.id && isMatch) {
-          const idAttr = openingElement.attributes.find(attr => 
+          const idAttr = openingElement.attributes.find((attr: any) => 
             t.isJSXAttribute(attr) && 
             t.isJSXIdentifier(attr.name) && 
             attr.name.name === 'id'
@@ -654,7 +654,7 @@ export function replaceJSXElement(
 
   try {
     traverse(ast, {
-      JSXElement(path) {
+      JSXElement(path: any) {
         const element = path.node;
         const openingElement = element.openingElement;
         
@@ -669,7 +669,7 @@ export function replaceJSXElement(
         }
 
         if (selector.className && isMatch) {
-          const classNameAttr = openingElement.attributes.find(attr => 
+          const classNameAttr = openingElement.attributes.find((attr: any) => 
             t.isJSXAttribute(attr) && 
             t.isJSXIdentifier(attr.name) && 
             attr.name.name === 'className'
@@ -682,7 +682,7 @@ export function replaceJSXElement(
         }
 
         if (selector.id && isMatch) {
-          const idAttr = openingElement.attributes.find(attr => 
+          const idAttr = openingElement.attributes.find((attr: any) => 
             t.isJSXAttribute(attr) && 
             t.isJSXIdentifier(attr.name) && 
             attr.name.name === 'id'

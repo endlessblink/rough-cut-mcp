@@ -17,6 +17,7 @@ declare class Logger {
         info: (message: string, data?: any) => void;
         warn: (message: string, data?: any) => void;
         error: (message: string, data?: any) => void;
+        child: () => /*elided*/ any;
     };
     time(label: string): void;
     timeEnd(label: string): void;

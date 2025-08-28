@@ -74,12 +74,14 @@ class Logger {
     }
     // Service-specific logging methods
     service(serviceName) {
-        return {
+        const serviceLogger = {
             debug: (message, data) => this.debug(message, data, serviceName),
             info: (message, data) => this.info(message, data, serviceName),
             warn: (message, data) => this.warn(message, data, serviceName),
             error: (message, data) => this.error(message, data, serviceName),
+            child: () => serviceLogger // Add child method for compatibility
         };
+        return serviceLogger;
     }
     // Performance timing utility
     time(label) {

@@ -125,7 +125,7 @@ function findJSXElements(ast, criteria) {
             }
             // Check for className
             if (criteria.className) {
-                const classNameAttr = openingElement.attributes.find(attr => t.isJSXAttribute(attr) &&
+                const classNameAttr = openingElement.attributes.find((attr) => t.isJSXAttribute(attr) &&
                     t.isJSXIdentifier(attr.name) &&
                     attr.name.name === 'className');
                 if (!classNameAttr)
@@ -139,7 +139,7 @@ function findJSXElements(ast, criteria) {
             }
             // Check for id
             if (criteria.id) {
-                const idAttr = openingElement.attributes.find(attr => t.isJSXAttribute(attr) &&
+                const idAttr = openingElement.attributes.find((attr) => t.isJSXAttribute(attr) &&
                     t.isJSXIdentifier(attr.name) &&
                     attr.name.name === 'id');
                 if (!idAttr)
@@ -153,13 +153,13 @@ function findJSXElements(ast, criteria) {
             }
             // Check text content
             if (criteria.textContent) {
-                const hasText = element.children.some(child => t.isJSXText(child) && child.value.includes(criteria.textContent));
+                const hasText = element.children.some((child) => t.isJSXText(child) && child.value.includes(criteria.textContent));
                 if (!hasText)
                     return;
             }
             // Check for required props
             if (criteria.hasProps) {
-                const hasAllProps = criteria.hasProps.every(propName => openingElement.attributes.some(attr => t.isJSXAttribute(attr) &&
+                const hasAllProps = criteria.hasProps.every(propName => openingElement.attributes.some((attr) => t.isJSXAttribute(attr) &&
                     t.isJSXIdentifier(attr.name) &&
                     attr.name.name === propName));
                 if (!hasAllProps)
@@ -409,7 +409,7 @@ function addJSXElement(ast, parentSelector, newElement, position = 'end') {
                         isMatch = false;
                 }
                 if (parentSelector.className && isMatch) {
-                    const classNameAttr = openingElement.attributes.find(attr => t.isJSXAttribute(attr) &&
+                    const classNameAttr = openingElement.attributes.find((attr) => t.isJSXAttribute(attr) &&
                         t.isJSXIdentifier(attr.name) &&
                         attr.name.name === 'className');
                     const classValue = t.isJSXAttribute(classNameAttr) &&
@@ -420,7 +420,7 @@ function addJSXElement(ast, parentSelector, newElement, position = 'end') {
                         isMatch = false;
                 }
                 if (parentSelector.id && isMatch) {
-                    const idAttr = openingElement.attributes.find(attr => t.isJSXAttribute(attr) &&
+                    const idAttr = openingElement.attributes.find((attr) => t.isJSXAttribute(attr) &&
                         t.isJSXIdentifier(attr.name) &&
                         attr.name.name === 'id');
                     const idValue = t.isJSXAttribute(idAttr) &&
@@ -492,7 +492,7 @@ function removeJSXElement(ast, selector) {
                         isMatch = false;
                 }
                 if (selector.className && isMatch) {
-                    const classNameAttr = openingElement.attributes.find(attr => t.isJSXAttribute(attr) &&
+                    const classNameAttr = openingElement.attributes.find((attr) => t.isJSXAttribute(attr) &&
                         t.isJSXIdentifier(attr.name) &&
                         attr.name.name === 'className');
                     const classValue = t.isJSXAttribute(classNameAttr) &&
@@ -503,7 +503,7 @@ function removeJSXElement(ast, selector) {
                         isMatch = false;
                 }
                 if (selector.id && isMatch) {
-                    const idAttr = openingElement.attributes.find(attr => t.isJSXAttribute(attr) &&
+                    const idAttr = openingElement.attributes.find((attr) => t.isJSXAttribute(attr) &&
                         t.isJSXIdentifier(attr.name) &&
                         attr.name.name === 'id');
                     const idValue = t.isJSXAttribute(idAttr) &&
@@ -576,7 +576,7 @@ function replaceJSXElement(ast, selector, newElement) {
                         isMatch = false;
                 }
                 if (selector.className && isMatch) {
-                    const classNameAttr = openingElement.attributes.find(attr => t.isJSXAttribute(attr) &&
+                    const classNameAttr = openingElement.attributes.find((attr) => t.isJSXAttribute(attr) &&
                         t.isJSXIdentifier(attr.name) &&
                         attr.name.name === 'className');
                     const classValue = t.isJSXAttribute(classNameAttr) &&
@@ -587,7 +587,7 @@ function replaceJSXElement(ast, selector, newElement) {
                         isMatch = false;
                 }
                 if (selector.id && isMatch) {
-                    const idAttr = openingElement.attributes.find(attr => t.isJSXAttribute(attr) &&
+                    const idAttr = openingElement.attributes.find((attr) => t.isJSXAttribute(attr) &&
                         t.isJSXIdentifier(attr.name) &&
                         attr.name.name === 'id');
                     const idValue = t.isJSXAttribute(idAttr) &&
