@@ -1,12 +1,9 @@
 #!/usr/bin/env node
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
-import { join, dirname } from 'path';
-import { homedir, platform } from 'os';
-import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const { existsSync, readFileSync, writeFileSync, mkdirSync } = require('fs');
+const { join, dirname } = require('path');
+const { homedir, platform } = require('os');
+const { execSync } = require('child_process');
 
 // Only run postinstall when installed globally or via npm, not during development
 // Skip in CI environments
@@ -148,7 +145,7 @@ async function collectTelemetry(nodeCommand, buildPath) {
     // Collect anonymous environment data
     const telemetryData = {
       timestamp: new Date().toISOString(),
-      version: require('../package.json').version,
+      version: JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8')).version,
       platform: platform(),
       nodeVersion: process.version,
       npmVersion: process.env.npm_version || 'unknown',
@@ -161,7 +158,7 @@ async function collectTelemetry(nodeCommand, buildPath) {
         hasNpmNodeExecpath: Boolean(process.env.npm_node_execpath),
         hasNpmExecpath: Boolean(process.env.npm_execpath),
         pathMethod: getPathDetectionMethod(),
-        claudeConfigExists: existsSync(dirname(configPath))
+        claudeConfigExists: existsSync(join(homedir(), 'AppData', 'Roaming', 'Claude'))
       }
     };
     
@@ -364,4 +361,6 @@ console.log('\n📖 Full documentation: https://github.com/endlessblink/rough-cu
 console.log('💡 Tip: Set DEBUG_MCP_INSTALL=true to see detailed path detection info\n');
 
 // Optional telemetry collection (opt-in only)
-await collectTelemetry(nodeCommand, buildPath);
+collectTelemetry(nodeCommand, buildPath).catch(() => {
+  // Silent fail - telemetry should never break installation
+});
