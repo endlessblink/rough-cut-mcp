@@ -198,6 +198,24 @@ import {
   useVideoConfig,
 } from 'remotion';
 
+// Helper to ensure interpolation ranges are valid (prevents Remotion errors)
+function validateRange(range) {
+  if (range.length <= 1) return range;
+  const valid = [...range];
+  for (let i = 1; i < valid.length; i++) {
+    if (valid[i] <= valid[i-1]) {
+      valid[i] = valid[i-1] + 1;
+    }
+  }
+  return valid;
+}
+
+// Safe interpolate wrapper
+function safeInterpolate(frame, inputRange, outputRange, options) {
+  const validInput = validateRange(inputRange);
+  return interpolate(frame, validInput, outputRange, options);
+}
+
 export const VideoComposition: React.FC = () => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
@@ -249,7 +267,7 @@ export const VideoComposition: React.FC = () => {
 
   // Character movement across screen
   const totalDistance = ${dimensions.width} - 200;
-  const position = interpolate(
+  const position = safeInterpolate(
     frame,
     [0, durationInFrames],
     [100, totalDistance],
@@ -361,6 +379,24 @@ import {
   useVideoConfig,
 } from 'remotion';
 
+// Helper to ensure interpolation ranges are valid (prevents Remotion errors)
+function validateRange(range) {
+  if (range.length <= 1) return range;
+  const valid = [...range];
+  for (let i = 1; i < valid.length; i++) {
+    if (valid[i] <= valid[i-1]) {
+      valid[i] = valid[i-1] + 1;
+    }
+  }
+  return valid;
+}
+
+// Safe interpolate wrapper
+function safeInterpolate(frame, inputRange, outputRange, options) {
+  const validInput = validateRange(inputRange);
+  return interpolate(frame, validInput, outputRange, options);
+}
+
 export const VideoComposition: React.FC = () => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
@@ -385,7 +421,7 @@ export const VideoComposition: React.FC = () => {
   const y = groundLevel - (bounceHeight * Math.sin(Math.PI * t));
   
   // Horizontal movement
-  const x = interpolate(frame, [0, totalFrames], [100, ${dimensions.width} - 100]);
+  const x = safeInterpolate(frame, [0, totalFrames], [100, ${dimensions.width} - 100], { extrapolateRight: 'clamp' });
   
   // Ball compression effect when hitting ground
   const compressionFactor = Math.abs(Math.sin(Math.PI * t)) < 0.1 ? 0.8 : 1;
@@ -453,6 +489,24 @@ import {
   useVideoConfig,
 } from 'remotion';
 
+// Helper to ensure interpolation ranges are valid (prevents Remotion errors)
+function validateRange(range) {
+  if (range.length <= 1) return range;
+  const valid = [...range];
+  for (let i = 1; i < valid.length; i++) {
+    if (valid[i] <= valid[i-1]) {
+      valid[i] = valid[i-1] + 1;
+    }
+  }
+  return valid;
+}
+
+// Safe interpolate wrapper
+function safeInterpolate(frame, inputRange, outputRange, options) {
+  const validInput = validateRange(inputRange);
+  return interpolate(frame, validInput, outputRange, options);
+}
+
 export const VideoComposition: React.FC = () => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
@@ -467,7 +521,7 @@ export const VideoComposition: React.FC = () => {
   const visibleText = text.substring(0, visibleChars);
   
   // Scale animation
-  const scale = interpolate(
+  const scale = safeInterpolate(
     frame,
     [0, 30, durationInFrames - 30, durationInFrames],
     [0.5, 1, 1, 1.2],
@@ -515,11 +569,29 @@ import {
   useVideoConfig,
 } from 'remotion';
 
+// Helper to ensure interpolation ranges are valid (prevents Remotion errors)
+function validateRange(range) {
+  if (range.length <= 1) return range;
+  const valid = [...range];
+  for (let i = 1; i < valid.length; i++) {
+    if (valid[i] <= valid[i-1]) {
+      valid[i] = valid[i-1] + 1;
+    }
+  }
+  return valid;
+}
+
+// Safe interpolate wrapper
+function safeInterpolate(frame, inputRange, outputRange, options) {
+  const validInput = validateRange(inputRange);
+  return interpolate(frame, validInput, outputRange, options);
+}
+
 export const VideoComposition: React.FC = () => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
 
-  const rotation = interpolate(
+  const rotation = safeInterpolate(
     frame,
     [0, durationInFrames],
     [0, 720], // 2 full rotations
@@ -569,18 +641,36 @@ import {
   useVideoConfig,
 } from 'remotion';
 
+// Helper to ensure interpolation ranges are valid (prevents Remotion errors)
+function validateRange(range) {
+  if (range.length <= 1) return range;
+  const valid = [...range];
+  for (let i = 1; i < valid.length; i++) {
+    if (valid[i] <= valid[i-1]) {
+      valid[i] = valid[i-1] + 1;
+    }
+  }
+  return valid;
+}
+
+// Safe interpolate wrapper
+function safeInterpolate(frame, inputRange, outputRange, options) {
+  const validInput = validateRange(inputRange);
+  return interpolate(frame, validInput, outputRange, options);
+}
+
 export const VideoComposition: React.FC = () => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
 
-  const fadeIn = interpolate(
+  const fadeIn = safeInterpolate(
     frame,
     [0, durationInFrames / 3],
     [0, 1],
     { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
   );
 
-  const fadeOut = interpolate(
+  const fadeOut = safeInterpolate(
     frame,
     [durationInFrames * 2/3, durationInFrames],
     [1, 0],
@@ -627,11 +717,29 @@ import {
   useVideoConfig,
 } from 'remotion';
 
+// Helper to ensure interpolation ranges are valid (prevents Remotion errors)
+function validateRange(range) {
+  if (range.length <= 1) return range;
+  const valid = [...range];
+  for (let i = 1; i < valid.length; i++) {
+    if (valid[i] <= valid[i-1]) {
+      valid[i] = valid[i-1] + 1;
+    }
+  }
+  return valid;
+}
+
+// Safe interpolate wrapper
+function safeInterpolate(frame, inputRange, outputRange, options) {
+  const validInput = validateRange(inputRange);
+  return interpolate(frame, validInput, outputRange, options);
+}
+
 export const VideoComposition: React.FC = () => {
   const frame = useCurrentFrame();
   const { durationInFrames } = useVideoConfig();
 
-  const slideX = interpolate(
+  const slideX = safeInterpolate(
     frame,
     [0, durationInFrames],
     [-${dimensions.width}, ${dimensions.width}],

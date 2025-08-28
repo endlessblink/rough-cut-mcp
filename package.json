@@ -1,6 +1,6 @@
 {
   "name": "rough-cut-mcp",
-  "version": "2.0.8",
+  "version": "2.0.9",
   "description": "A robust cross-platform MCP server for rapid video creation integrating Remotion with AI voice generation, sound effects, and image generation. Primary support for Windows, experimental macOS compatibility.",
   "main": "build/index.js",
   "scripts": {

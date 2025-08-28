@@ -5,6 +5,19 @@ All notable changes to the RoughCut MCP Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.9] - 2025-08-28
+
+### Fixed
+- **CRITICAL**: Prevent "inputRange must be strictly monotonically increasing" Remotion errors
+- All animation generators now use safe interpolation with automatic range validation
+- Video creation tools include interpolation validation helpers in generated code
+
+### Added
+- New interpolation-validator.ts utility for range validation
+- safeInterpolate() wrapper function in all generated animations
+- validateRange() helper to ensure monotonically increasing values
+- Automatic fixing of invalid interpolation ranges (e.g., [60,90,70,90] → [60,90,91,92])
+
 ## [2.0.8] - 2025-08-28
 
 ### Fixed

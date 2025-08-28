@@ -80,11 +80,34 @@ export function registerCreationTools(server: MCPServer): void {
         switch (args.type || 'text') {
           case 'text': {
             composition = `import React from 'react';
-import { Composition, Sequence, AbsoluteFill } from 'remotion';
+import { Composition, Sequence, AbsoluteFill, interpolate, useCurrentFrame } from 'remotion';
+
+// Helper to ensure interpolation ranges are valid (prevents Remotion errors)
+function validateRange(range) {
+  if (range.length <= 1) return range;
+  const valid = [...range];
+  for (let i = 1; i < valid.length; i++) {
+    if (valid[i] <= valid[i-1]) {
+      valid[i] = valid[i-1] + 1;
+    }
+  }
+  return valid;
+}
+
+// Safe interpolate wrapper
+function safeInterpolate(frame, inputRange, outputRange, options) {
+  const validInput = validateRange(inputRange);
+  return interpolate(frame, validInput, outputRange, options);
+}
 
 export const VideoComposition: React.FC = () => {
+  const frame = useCurrentFrame();
+  
+  // Example fade-in using safe interpolation
+  const opacity = safeInterpolate(frame, [0, 30], [0, 1], { extrapolateRight: 'clamp' });
+  
   return (
-    <AbsoluteFill style={{ backgroundColor: '${content.backgroundColor || 'white'}' }}>
+    <AbsoluteFill style={{ backgroundColor: '${content.backgroundColor || 'white'}', opacity }}
       <Sequence from={0} durationInFrames={${duration * fps}}>
         <AbsoluteFill style={{ 
           justifyContent: 'center', 
@@ -132,9 +155,28 @@ export const RemotionRoot: React.FC = () => {
         </Sequence>`).join('');
 
             composition = `import React from 'react';
-import { Composition, Sequence, AbsoluteFill } from 'remotion';
+import { Composition, Sequence, AbsoluteFill, interpolate, useCurrentFrame } from 'remotion';
+
+// Helper to ensure interpolation ranges are valid (prevents Remotion errors)
+function validateRange(range) {
+  if (range.length <= 1) return range;
+  const valid = [...range];
+  for (let i = 1; i < valid.length; i++) {
+    if (valid[i] <= valid[i-1]) {
+      valid[i] = valid[i-1] + 1;
+    }
+  }
+  return valid;
+}
+
+// Safe interpolate wrapper
+function safeInterpolate(frame, inputRange, outputRange, options) {
+  const validInput = validateRange(inputRange);
+  return interpolate(frame, validInput, outputRange, options);
+}
 
 export const VideoComposition: React.FC = () => {
+  const frame = useCurrentFrame();
   return (
     <AbsoluteFill style={{ backgroundColor: '${content.backgroundColor || 'black'}' }}>
       ${imageSequences || '<div>No images provided</div>'}
