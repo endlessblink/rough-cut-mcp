@@ -132,6 +132,13 @@ Write-Host ""
 # Generate timestamp
 $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 
+# Test network URL detection
+Write-Host "Testing network URL detection..." -ForegroundColor Cyan
+if (Test-Path "test-network-urls.js") {
+    node test-network-urls.js
+    Write-Host ""
+}
+
 # Summary
 Write-Host "================================================" -ForegroundColor Green
 Write-Host "    BUILD SUCCESSFUL!" -ForegroundColor Green
@@ -143,6 +150,17 @@ Write-Host "  Node Version: $nodeVersion" -ForegroundColor White
 Write-Host "  NPM Version: $npmVersion" -ForegroundColor White
 Write-Host "  Build Time: $timestamp" -ForegroundColor White
 Write-Host "  Output: .\build\" -ForegroundColor White
+Write-Host ""
+Write-Host "NEW FEATURES ADDED:" -ForegroundColor Green
+Write-Host "  - Network IP detection for remote access" -ForegroundColor Yellow
+Write-Host "  - Multiple URL support (local/network/tunnel)" -ForegroundColor Yellow
+Write-Host "  - Windows firewall configuration help" -ForegroundColor Yellow
+Write-Host "  - Environment variable overrides" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "Remote Access Now Supported:" -ForegroundColor Cyan
+Write-Host "  When launching Remotion Studio, users will see:" -ForegroundColor White
+Write-Host "    Local:   http://localhost:7400" -ForegroundColor White
+Write-Host "    Network: http://192.168.x.x:7400 (for remote PCs)" -ForegroundColor White
 Write-Host ""
 Write-Host "Next Steps:" -ForegroundColor Cyan
 Write-Host "  1. Configure Claude Desktop with this MCP server" -ForegroundColor White

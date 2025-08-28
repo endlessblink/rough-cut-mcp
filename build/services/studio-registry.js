@@ -12,6 +12,7 @@ const fs_extra_1 = __importDefault(require("fs-extra"));
 const path_1 = __importDefault(require("path"));
 const child_process_1 = require("child_process");
 const logger_js_1 = require("../utils/logger.js");
+const network_utils_js_1 = require("../utils/network-utils.js");
 class StudioRegistry {
     instances;
     registryFile;
@@ -151,6 +152,8 @@ class StudioRegistry {
                 detached: process.platform !== 'win32',
                 stdio: 'ignore'
             });
+            // Build network URLs for remote access
+            const networkUrls = (0, network_utils_js_1.buildNetworkUrls)(port);
             // Create instance record
             const instance = {
                 pid: studioProcess.pid || 0,
@@ -159,7 +162,8 @@ class StudioRegistry {
                 projectName: projectName || path_1.default.basename(projectPath),
                 startTime: Date.now(),
                 status: 'starting',
-                url: `http://localhost:${port}`,
+                url: networkUrls.primary,
+                urls: networkUrls,
                 process: studioProcess
             };
             // Store instance
@@ -181,7 +185,12 @@ class StudioRegistry {
             this.logger.info('Studio launched', {
                 port,
                 pid: instance.pid,
-                project: projectName || path_1.default.basename(projectPath)
+                project: projectName || path_1.default.basename(projectPath),
+                urls: {
+                    local: networkUrls.local,
+                    network: networkUrls.network,
+                    primary: networkUrls.primary
+                }
             });
             return instance;
         }
@@ -229,10 +238,16 @@ class StudioRegistry {
         this.cleanupDeadInstances();
         return Array.from(this.instances.values())
             .filter(inst => this.isProcessAlive(inst.pid))
-            .map(inst => ({
-            ...inst,
-            process: undefined // Don't expose the process object
-        }));
+            .map(inst => {
+            // Rebuild network URLs for current network state
+            const urls = (0, network_utils_js_1.buildNetworkUrls)(inst.port);
+            return {
+                ...inst,
+                url: urls.primary,
+                urls,
+                process: undefined // Don't expose the process object
+            };
+        });
     }
     /**
      * Get a specific instance by port
@@ -244,7 +259,17 @@ class StudioRegistry {
             this.saveRegistry();
             return undefined;
         }
-        return instance ? { ...instance, process: undefined } : undefined;
+        if (instance) {
+            // Rebuild network URLs for current network state
+            const urls = (0, network_utils_js_1.buildNetworkUrls)(instance.port);
+            return {
+                ...instance,
+                url: urls.primary,
+                urls,
+                process: undefined
+            };
+        }
+        return undefined;
     }
     /**
      * Restart a studio instance

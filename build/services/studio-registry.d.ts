@@ -4,6 +4,7 @@
  */
 import { ChildProcess } from 'child_process';
 import { MCPConfig } from '../types/index.js';
+import { NetworkUrls } from '../utils/network-utils.js';
 export interface StudioInstance {
     pid: number;
     port: number;
@@ -12,6 +13,7 @@ export interface StudioInstance {
     startTime: number;
     status: 'starting' | 'running' | 'stopped' | 'error';
     url: string;
+    urls?: NetworkUrls;
     process?: ChildProcess;
 }
 export declare class StudioRegistry {

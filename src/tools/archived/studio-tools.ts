@@ -8,6 +8,7 @@ import { safeSpawn, isRemotionAvailable, commandExists, getInstallInstructions }
 import path from 'path';
 import fs from 'fs-extra';
 import open from 'open';
+import { buildNetworkUrls, formatStudioUrls } from '../utils/network-utils.js';
 
 let studioProcess: ChildProcess | null = null;
 let studioPort = 7400;
@@ -320,11 +321,14 @@ export function createStudioHandlers(config: MCPConfig): ToolHandlers {
       try {
         // Check if Studio is already running
         if (studioProcess && !studioProcess.killed) {
+          const urls = buildNetworkUrls(studioPort);
           return {
             success: true,
             message: 'Remotion Studio is already running',
-            url: `http://localhost:${studioPort}`,
+            url: urls.primary,
+            urls,
             status: 'already-running',
+            instructions: formatStudioUrls(urls)
           };
         }
 
@@ -458,7 +462,9 @@ export function createStudioHandlers(config: MCPConfig): ToolHandlers {
           }
         }
 
-        const studioUrl = `http://localhost:${port}`;
+        // Build network URLs for remote access
+        const networkUrls = buildNetworkUrls(port);
+        const studioUrl = networkUrls.primary;
 
         // Open browser if requested (with Windows-native support)
         if (args.openBrowser) {
@@ -516,11 +522,13 @@ export function createStudioHandlers(config: MCPConfig): ToolHandlers {
           success: true,
           message: 'Remotion Studio launched successfully',
           url: studioUrl,
+          urls: networkUrls,
           port,
           pid: spawnResult.pid,
           status: 'running',
           instructions: [
-            `Studio is running at ${studioUrl}`,
+            ...formatStudioUrls(networkUrls, true),
+            '',
             'Use stop-remotion-studio to stop it',
             'Videos will be editable in the Studio interface',
           ],
@@ -609,7 +617,8 @@ export function createStudioHandlers(config: MCPConfig): ToolHandlers {
         await fs.copy(args.videoPath, targetPath);
 
         // Open Studio in browser with the video
-        const studioUrl = `http://localhost:${studioPort}`;
+        const urls = buildNetworkUrls(studioPort);
+        const studioUrl = urls.primary;
         await open(studioUrl);
 
         return {
@@ -617,6 +626,7 @@ export function createStudioHandlers(config: MCPConfig): ToolHandlers {
           message: 'Video opened in Remotion Studio',
           videoPath: targetPath,
           studioUrl,
+          urls,
           instructions: [
             `Video copied to: ${targetPath}`,
             'You can now edit it in Remotion Studio',
@@ -948,7 +958,9 @@ export function createStudioHandlers(config: MCPConfig): ToolHandlers {
           }
         }
 
-        const studioUrl = `http://localhost:${port}`;
+        // Build network URLs for remote access
+        const networkUrls = buildNetworkUrls(port);
+        const studioUrl = networkUrls.primary;
 
         // Open browser if requested
         if (args.openBrowser) {

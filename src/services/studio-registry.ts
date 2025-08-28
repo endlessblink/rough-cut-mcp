@@ -8,6 +8,7 @@ import path from 'path';
 import { spawn, ChildProcess } from 'child_process';
 import { getLogger } from '../utils/logger.js';
 import { MCPConfig } from '../types/index.js';
+import { buildNetworkUrls, formatStudioUrls, NetworkUrls } from '../utils/network-utils.js';
 
 export interface StudioInstance {
   pid: number;
@@ -17,6 +18,7 @@ export interface StudioInstance {
   startTime: number;
   status: 'starting' | 'running' | 'stopped' | 'error';
   url: string;
+  urls?: NetworkUrls;
   process?: ChildProcess;
 }
 
@@ -176,6 +178,9 @@ export class StudioRegistry {
         stdio: 'ignore'
       });
 
+      // Build network URLs for remote access
+      const networkUrls = buildNetworkUrls(port);
+      
       // Create instance record
       const instance: StudioInstance = {
         pid: studioProcess.pid || 0,
@@ -184,7 +189,8 @@ export class StudioRegistry {
         projectName: projectName || path.basename(projectPath),
         startTime: Date.now(),
         status: 'starting',
-        url: `http://localhost:${port}`,
+        url: networkUrls.primary,
+        urls: networkUrls,
         process: studioProcess
       };
 
@@ -209,7 +215,12 @@ export class StudioRegistry {
       this.logger.info('Studio launched', {
         port,
         pid: instance.pid,
-        project: projectName || path.basename(projectPath)
+        project: projectName || path.basename(projectPath),
+        urls: {
+          local: networkUrls.local,
+          network: networkUrls.network,
+          primary: networkUrls.primary
+        }
       });
 
       return instance;
@@ -266,10 +277,16 @@ export class StudioRegistry {
     
     return Array.from(this.instances.values())
       .filter(inst => this.isProcessAlive(inst.pid))
-      .map(inst => ({
-        ...inst,
-        process: undefined // Don't expose the process object
-      }));
+      .map(inst => {
+        // Rebuild network URLs for current network state
+        const urls = buildNetworkUrls(inst.port);
+        return {
+          ...inst,
+          url: urls.primary,
+          urls,
+          process: undefined // Don't expose the process object
+        };
+      });
   }
 
   /**
@@ -284,7 +301,17 @@ export class StudioRegistry {
       return undefined;
     }
     
-    return instance ? { ...instance, process: undefined } : undefined;
+    if (instance) {
+      // Rebuild network URLs for current network state
+      const urls = buildNetworkUrls(instance.port);
+      return { 
+        ...instance, 
+        url: urls.primary,
+        urls,
+        process: undefined 
+      };
+    }
+    return undefined;
   }
 
   /**
