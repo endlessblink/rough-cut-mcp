@@ -406,7 +406,7 @@ export class RemotionCreativeMCPServer {
     this.server.setRequestHandler(InitializeRequestSchema, async () => {
       this.logger.info('MCP Initialize request received');
       return {
-        protocolVersion: '2024-11-05',
+        protocolVersion: '2025-06-18',
         capabilities: {
           tools: {}
         },
@@ -515,7 +515,12 @@ export class RemotionCreativeMCPServer {
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
       
-      this.logger.info(`Tool called: ${name}`, { args: Object.keys(args || {}) });
+      this.logger.info(`🔧 Tool call received: ${name}`, { 
+        args: Object.keys(args || {}),
+        fullArgs: args,
+        protocol: '2025-06-18',
+        timestamp: new Date().toISOString()
+      });
 
       try {
         // Get handler from registry using safe method
@@ -537,35 +542,31 @@ export class RemotionCreativeMCPServer {
 
         const result = await handler(args || {});
         
-        this.logger.info(`Tool completed: ${name}`);
+        this.logger.info(`✅ Tool completed: ${name}`, { 
+          resultType: typeof result,
+          hasContent: !!result?.content 
+        });
         
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(result, null, 2),
-            },
-          ],
-        };
+        // Return result directly - our tools already return proper MCP format
+        // No double wrapping needed for 2025-06-18 protocol
+        return result;
 
       } catch (error) {
-        this.logger.error(`Tool failed: ${name}`, { 
+        this.logger.error(`❌ Tool failed: ${name}`, { 
           error: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined
+          stack: error instanceof Error ? error.stack : undefined,
+          args: args
         });
 
+        // Return error in proper MCP 2025-06-18 format
         return {
           content: [
             {
               type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-                tool: name,
-              }, null, 2),
-            },
+              text: `❌ Error in ${name}: ${error instanceof Error ? error.message : String(error)}`
+            }
           ],
-          isError: true,
+          isError: true
         };
       }
     });

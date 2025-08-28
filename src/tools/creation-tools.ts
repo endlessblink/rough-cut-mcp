@@ -238,7 +238,35 @@ export const RemotionRoot: React.FC = () => {
         await fs.writeFile(path.join(projectPath, 'src', 'VideoComposition.tsx'), safeComposition);
         
         // Get safe dependencies with proper versions to prevent conflicts
-        const safeDeps = await generateSafeDependencies();
+        let safeDeps;
+        try {
+          safeDeps = await generateSafeDependencies();
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          logger.warn('Failed to detect dynamic versions, using fallback', { error: errorMessage });
+          // Fallback to hardcoded safe versions
+          safeDeps = {
+            dependencies: {
+              '@remotion/cli': '4.0.340',
+              '@remotion/bundler': '4.0.340',
+              'react': '^18.0.0',
+              'react-dom': '^18.0.0',
+              'remotion': '4.0.340'
+            },
+            overrides: {
+              '@remotion/bundler': '4.0.340',
+              '@remotion/cli': '4.0.340',
+              '@remotion/renderer': '4.0.340',
+              'remotion': '4.0.340'
+            },
+            resolutions: {
+              '@remotion/bundler': '4.0.340',
+              '@remotion/cli': '4.0.340',
+              '@remotion/renderer': '4.0.340',
+              'remotion': '4.0.340'
+            }
+          };
+        }
         
         // Create proper Root.tsx that registers the composition
         const rootContent = `import React from 'react';
