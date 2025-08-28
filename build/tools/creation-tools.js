@@ -45,6 +45,9 @@ const tool_categories_js_1 = require("../types/tool-categories.js");
 const animation_generator_js_1 = require("../services/animation-generator.js");
 const path = __importStar(require("path"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
+const child_process_1 = require("child_process");
+const util_1 = require("util");
+const execAsync = (0, util_1.promisify)(child_process_1.exec);
 function registerCreationTools(server) {
     const animationGenerator = new animation_generator_js_1.AnimationGeneratorService();
     const logger = server.baseLogger.service('creation-tools');
@@ -204,7 +207,27 @@ export const RemotionRoot: React.FC = () => {
             }
             // Write files
             await fs_extra_1.default.writeFile(path.join(projectPath, 'src', 'VideoComposition.tsx'), composition);
-            await fs_extra_1.default.writeFile(path.join(projectPath, 'src', 'Root.tsx'), composition);
+            // Create proper Root.tsx that registers the composition
+            const rootContent = `import React from 'react';
+import { Composition } from 'remotion';
+import { VideoComposition } from './VideoComposition';
+
+export const Root: React.FC = () => {
+  return (
+    <>
+      <Composition
+        id="VideoComposition"
+        component={VideoComposition}
+        durationInFrames={${duration * fps}}
+        fps={${fps}}
+        width={${width}}
+        height={${height}}
+      />
+    </>
+  );
+};
+`;
+            await fs_extra_1.default.writeFile(path.join(projectPath, 'src', 'Root.tsx'), rootContent);
             // Create package.json
             const packageJson = {
                 name: args.projectName,
@@ -223,6 +246,74 @@ export const RemotionRoot: React.FC = () => {
                 }
             };
             await fs_extra_1.default.writeJson(path.join(projectPath, 'package.json'), packageJson, { spaces: 2 });
+            // Create src/index.ts entry point for Remotion Studio
+            const indexContent = `import { registerRoot } from "remotion";
+import { Root } from "./Root";
+
+registerRoot(Root);
+`;
+            await fs_extra_1.default.writeFile(path.join(projectPath, 'src', 'index.ts'), indexContent, 'utf-8');
+            logger.info('Created src/index.ts entry point', { projectName: args.projectName });
+            // Create remotion.config.ts (CRITICAL for Remotion to work)
+            const remotionConfigContent = `import { Config } from '@remotion/cli/config';
+
+Config.setVideoImageFormat('jpeg');
+Config.setOverwriteOutput(true);
+`;
+            await fs_extra_1.default.writeFile(path.join(projectPath, 'remotion.config.ts'), remotionConfigContent, 'utf-8');
+            logger.info('Created remotion.config.ts', { projectName: args.projectName });
+            // Create tsconfig.json (CRITICAL for TypeScript compilation)
+            const tsconfigContent = {
+                compilerOptions: {
+                    target: "es2017",
+                    lib: ["dom", "dom.iterable", "es6"],
+                    allowJs: true,
+                    skipLibCheck: true,
+                    esModuleInterop: true,
+                    allowSyntheticDefaultImports: true,
+                    strict: true,
+                    forceConsistentCasingInFileNames: true,
+                    moduleResolution: "node",
+                    resolveJsonModule: true,
+                    isolatedModules: true,
+                    noEmit: true,
+                    jsx: "react-jsx"
+                },
+                include: ["src"]
+            };
+            await fs_extra_1.default.writeJson(path.join(projectPath, 'tsconfig.json'), tsconfigContent, { spaces: 2 });
+            logger.info('Created tsconfig.json', { projectName: args.projectName });
+            // Install dependencies
+            logger.info('Installing dependencies for new project', { projectName: args.projectName });
+            let dependenciesInstalled = false;
+            let installErrorMessage = '';
+            try {
+                // Use platform-specific npm command
+                const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+                const { stdout, stderr } = await execAsync(`${npmCmd} install`, {
+                    cwd: projectPath,
+                    timeout: 120000, // 2 minute timeout
+                    env: { ...process.env, NODE_ENV: 'production' }
+                });
+                // Verify installation succeeded by checking node_modules
+                const nodeModulesExists = await fs_extra_1.default.pathExists(path.join(projectPath, 'node_modules'));
+                if (nodeModulesExists) {
+                    logger.info('Dependencies installed successfully', { projectName: args.projectName });
+                    dependenciesInstalled = true;
+                }
+                else {
+                    throw new Error('node_modules directory not created after npm install');
+                }
+            }
+            catch (installError) {
+                installErrorMessage = installError.message || 'Unknown error';
+                logger.error('Failed to auto-install dependencies', {
+                    error: installErrorMessage,
+                    stderr: installError.stderr,
+                    projectPath
+                });
+                // Continue but report the error to user
+            }
             return {
                 content: [{
                         type: 'text',
@@ -232,6 +323,17 @@ Type: ${args.type || 'text'}
 Duration: ${duration}s
 Resolution: ${width}x${height}
 FPS: ${fps}
+
+Files created:
+✅ package.json
+✅ tsconfig.json
+✅ remotion.config.ts
+✅ src/index.ts
+✅ src/Root.tsx
+✅ src/VideoComposition.tsx
+
+Dependencies: ${dependenciesInstalled ? '✅ Installed successfully' : `❌ Installation failed`}
+${!dependenciesInstalled ? `Error: ${installErrorMessage}\nManual fix: cd "${projectPath}" && npm install` : ''}
 
 Use "studio" tool with action:"start" and project:"${args.projectName}" to preview.`
                     }]
