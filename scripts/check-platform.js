@@ -1,8 +1,8 @@
 // Platform check script - prevents WSL2 builds and provides platform guidance
 // Optimized for Windows, experimental macOS support
 
-import fs from 'fs';
-import os from 'os';
+const fs = require('fs');
+const os = require('os');
 
 // Multiple detection methods for WSL2 reliability - but allow CI environments
 const isActualWSL2 = process.platform === 'linux' && 
