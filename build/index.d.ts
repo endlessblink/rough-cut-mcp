@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import { EnhancedToolRegistry } from './services/enhanced-tool-registry.js';
 /**
  * Main server class for Remotion Creative MCP Server

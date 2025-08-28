@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 // Main MCP server entry point for Remotion Creative MCP Server
 
 // Platform validation - must be Windows for Claude Desktop (skip in test mode)

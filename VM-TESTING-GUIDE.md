@@ -19,8 +19,8 @@ This guide helps you test the Rough Cut MCP package in a clean Windows virtual m
 
 ### Software Needed
 1. **Virtualization Platform** (choose one):
-   - [VMware Workstation](https://www.vmware.com/products/workstation-pro.html) (Recommended)
-   - [VirtualBox](https://www.virtualbox.org/) (Free)
+   - [VirtualBox](https://www.virtualbox.org/) (Free - Recommended for most users)
+   - [VMware Workstation](https://www.vmware.com/products/workstation-pro.html) (Commercial - Good if you already have it)
    - [Hyper-V](https://docs.microsoft.com/en-us/virtualization/hyper-v-on-windows/) (Windows Pro+)
 
 2. **Windows ISO** (choose one):
@@ -32,17 +32,7 @@ This guide helps you test the Rough Cut MCP package in a clean Windows virtual m
 
 ### 1. Create Virtual Machine
 
-#### VMware Workstation Settings:
-```
-Name: Windows-RoughCut-Test
-OS: Windows 10/11 x64
-RAM: 4GB (minimum) / 8GB (recommended)
-Disk: 60GB (dynamic allocation)
-CPU: 2-4 cores
-Network: NAT (default)
-```
-
-#### VirtualBox Settings:
+#### VirtualBox Settings (Recommended):
 ```
 Name: Windows-RoughCut-Test
 Type: Microsoft Windows
@@ -52,6 +42,18 @@ Disk: 60GB VDI (dynamically allocated)
 CPU: 2-4 cores
 Network: NAT
 ```
+
+#### VMware Workstation Settings (Alternative):
+```
+Name: Windows-RoughCut-Test
+OS: Windows 10/11 x64
+RAM: 4GB (minimum) / 8GB (recommended)
+Disk: 60GB (dynamic allocation)
+CPU: 2-4 cores
+Network: NAT (default)
+```
+
+> **💡 Note**: Both VirtualBox and VMware work equally well for testing MCP packages. VirtualBox is recommended because it's free and has all the features needed for this testing scenario.
 
 ### 2. Install Windows
 
