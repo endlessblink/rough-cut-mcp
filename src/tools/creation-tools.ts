@@ -6,6 +6,8 @@
 import { MCPServer } from '../index.js';
 import { ToolCategory } from '../types/tool-categories.js';
 import { AnimationGeneratorService } from '../services/animation-generator.js';
+import { processVideoCode } from '../utils/interpolation-validator.js';
+import { generateSafeDependencies } from '../utils/version-detector.js';
 import * as path from 'path';
 import fs from 'fs-extra';
 import { exec } from 'child_process';
@@ -16,6 +18,10 @@ const execAsync = promisify(exec);
 export function registerCreationTools(server: MCPServer): void {
   const animationGenerator = new AnimationGeneratorService();
   const logger = (server as any).baseLogger.service('creation-tools');
+
+  // Register composition tools first
+  const { registerCompositionTools } = require('./composition-editor.js');
+  registerCompositionTools(server);
 
   /**
    * 1. Create Video - All video types in one tool
@@ -225,8 +231,14 @@ export const RemotionRoot: React.FC = () => {
             throw new Error(`Unknown video type: ${args.type}`);
         }
 
+        // Process composition code to fix any interpolation issues
+        const safeComposition = processVideoCode(composition);
+        
         // Write files
-        await fs.writeFile(path.join(projectPath, 'src', 'VideoComposition.tsx'), composition);
+        await fs.writeFile(path.join(projectPath, 'src', 'VideoComposition.tsx'), safeComposition);
+        
+        // Get safe dependencies with proper versions to prevent conflicts
+        const safeDeps = await generateSafeDependencies();
         
         // Create proper Root.tsx that registers the composition
         const rootContent = `import React from 'react';
@@ -250,7 +262,7 @@ export const Root: React.FC = () => {
 `;
         await fs.writeFile(path.join(projectPath, 'src', 'Root.tsx'), rootContent);
         
-        // Create package.json
+        // Create package.json with dynamic version detection
         const packageJson = {
           name: args.projectName,
           version: '1.0.0',
@@ -260,15 +272,18 @@ export const Root: React.FC = () => {
             build: 'remotion render',
             upgrade: 'remotion upgrade'
           },
-          dependencies: {
-            '@remotion/cli': '^4.0.0',
-            'react': '^18.0.0',
-            'react-dom': '^18.0.0',
-            'remotion': '^4.0.0'
-          }
+          ...safeDeps  // Use dynamically detected safe dependencies
         };
         
         await fs.writeJson(path.join(projectPath, 'package.json'), packageJson, { spaces: 2 });
+
+        // Create .npmrc to force local resolution and prevent parent conflicts
+        const npmrcContent = `prefer-offline=true
+prefer-local=true
+legacy-peer-deps=true
+`;
+        await fs.writeFile(path.join(projectPath, '.npmrc'), npmrcContent, 'utf-8');
+        logger.info('Created .npmrc for local resolution priority', { projectName: args.projectName });
 
         // Create src/index.ts entry point for Remotion Studio
         const indexContent = `import { registerRoot } from "remotion";

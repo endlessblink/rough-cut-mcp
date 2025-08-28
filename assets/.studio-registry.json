@@ -1,4 +1,41 @@
 {
-  "lastUpdated": "2025-08-28T15:23:53.552Z",
-  "instances": []
+  "lastUpdated": "2025-08-28T18:23:51.521Z",
+  "instances": [
+    {
+      "pid": 21916,
+      "port": 3000,
+      "projectPath": "D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\my-builds\\Video + Motion\\RoughCut\\assets\\projects\\test-complete-structure",
+      "projectName": "test-complete-structure",
+      "startTime": 1756403024528,
+      "status": "running",
+      "url": "http://localhost:3000"
+    },
+    {
+      "pid": 51632,
+      "port": 3012,
+      "projectPath": "D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\my-builds\\Video + Motion\\RoughCut\\assets\\projects\\endlessblink-matrix",
+      "projectName": "endlessblink-matrix",
+      "startTime": 1756405308454,
+      "status": "running",
+      "url": "http://localhost:3012"
+    },
+    {
+      "pid": 52200,
+      "port": 3015,
+      "projectPath": "D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\my-builds\\Video + Motion\\RoughCut\\assets\\projects\\endlessblink-matrix",
+      "projectName": "endlessblink-matrix",
+      "startTime": 1756405329375,
+      "status": "running",
+      "url": "http://localhost:3015"
+    },
+    {
+      "pid": 33368,
+      "port": 3020,
+      "projectPath": "D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\my-builds\\Video + Motion\\RoughCut\\assets\\projects\\white-screen-test",
+      "projectName": "white-screen-test",
+      "startTime": 1756405424675,
+      "status": "running",
+      "url": "http://localhost:3020"
+    }
+  ]
 }

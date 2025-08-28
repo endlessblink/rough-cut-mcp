@@ -1,15 +1,24 @@
 /**
- * Interpolation Validator for Remotion
- * Prevents "inputRange must be strictly monotonically increasing" errors
- * by ensuring all interpolation ranges are valid
+ * Interpolation Range Validator - Prevents Remotion crashes
+ * Ensures all interpolation ranges are strictly monotonically increasing
  */
+export interface ValidationResult {
+    valid: boolean;
+    original: number[];
+    corrected: number[];
+    changes: boolean;
+}
 /**
- * Validates and fixes interpolation ranges to be strictly monotonically increasing
- * Prevents Remotion errors from invalid ranges like [60, 90, 70, 90]
- * @param range Array of frame numbers
- * @returns Fixed array where each value is greater than the previous
+ * Validates and corrects interpolation ranges to be monotonically increasing
+ * @param range - Array of numbers that should be monotonically increasing
+ * @returns ValidationResult with corrected range
  */
-export declare function validateInterpolationRange(range: number[]): number[];
+export declare function validateInterpolationRange(range: number[]): ValidationResult;
+/**
+ * Legacy function for backward compatibility
+ * @deprecated Use validateInterpolationRange instead
+ */
+export declare function validateInterpolationRangeLegacy(range: number[]): number[];
 /**
  * Validates parallel arrays (input and output ranges) ensuring they have same length
  */
@@ -31,9 +40,35 @@ export declare function generateSafeInterpolate(variable: string, inputRange: nu
  */
 export declare const VALIDATION_HELPER_CODE = "\n// Helper to ensure interpolation ranges are valid (prevents Remotion errors)\nfunction validateRange(range) {\n  if (range.length <= 1) return range;\n  const valid = [...range];\n  for (let i = 1; i < valid.length; i++) {\n    if (valid[i] <= valid[i-1]) {\n      valid[i] = valid[i-1] + 1;\n    }\n  }\n  return valid;\n}\n\n// Safe interpolate wrapper\nfunction safeInterpolate(frame, inputRange, outputRange, options) {\n  const validInput = validateRange(inputRange);\n  return interpolate(frame, validInput, outputRange, options);\n}\n";
 /**
+ * Processes React component code to fix all interpolation ranges
+ * @param code - React component code string
+ * @returns Processed code with validated interpolation ranges
+ */
+export declare function processVideoCode(code: string): string;
+/**
  * Checks if a range is valid (strictly monotonically increasing)
  */
 export declare function isValidRange(range: number[]): boolean;
+/**
+ * Safe interpolate wrapper function code for injection into components
+ */
+export declare const SAFE_INTERPOLATE_HELPER = "\n// Helper to ensure interpolation ranges are valid (prevents Remotion errors)\nfunction validateRange(range) {\n  if (range.length <= 1) return range;\n  const valid = [...range];\n  for (let i = 1; i < valid.length; i++) {\n    if (valid[i] <= valid[i-1]) {\n      valid[i] = valid[i-1] + 1;\n    }\n  }\n  return valid;\n}\n\n// Safe interpolate wrapper\nfunction safeInterpolate(frame, inputRange, outputRange, options) {\n  const validInput = validateRange(inputRange);\n  return interpolate(frame, validInput, outputRange, options);\n}\n";
+/**
+ * Test cases for interpolation validation
+ */
+export declare const TEST_CASES: {
+    input: number[];
+    expected: number[];
+    description: string;
+}[];
+/**
+ * Run all test cases
+ */
+export declare function runValidationTests(): {
+    passed: number;
+    failed: number;
+    results: any[];
+};
 /**
  * Common interpolation patterns with validation
  */

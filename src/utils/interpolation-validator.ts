@@ -1,28 +1,78 @@
 /**
- * Interpolation Validator for Remotion
- * Prevents "inputRange must be strictly monotonically increasing" errors
- * by ensuring all interpolation ranges are valid
+ * Interpolation Range Validator - Prevents Remotion crashes
+ * Ensures all interpolation ranges are strictly monotonically increasing
  */
 
+export interface ValidationResult {
+  valid: boolean;
+  original: number[];
+  corrected: number[];
+  changes: boolean;
+}
+
 /**
- * Validates and fixes interpolation ranges to be strictly monotonically increasing
- * Prevents Remotion errors from invalid ranges like [60, 90, 70, 90]
- * @param range Array of frame numbers
- * @returns Fixed array where each value is greater than the previous
+ * Validates and corrects interpolation ranges to be monotonically increasing
+ * @param range - Array of numbers that should be monotonically increasing
+ * @returns ValidationResult with corrected range
  */
-export function validateInterpolationRange(range: number[]): number[] {
-  if (range.length <= 1) return range;
+export function validateInterpolationRange(range: number[]): ValidationResult {
+  if (range.length <= 1) {
+    return {
+      valid: true,
+      original: [...range],
+      corrected: [...range],
+      changes: false
+    };
+  }
+
+  const original = [...range];
+  const corrected = [...range];
+  let changes = false;
+
+  // Sort first to get a reasonable starting point
+  const sorted = [...range].sort((a, b) => a - b);
   
-  const validRange = [...range]; // Create copy to avoid mutation
-  
-  for (let i = 1; i < validRange.length; i++) {
-    if (validRange[i] <= validRange[i-1]) {
-      // Fix by making each value at least 1 frame higher than previous
-      validRange[i] = validRange[i-1] + 1;
+  // If completely out of order, use sorted version as base
+  if (!isMonotonicallyIncreasing(range)) {
+    corrected.splice(0, corrected.length, ...sorted);
+    changes = true;
+  }
+
+  // Ensure strict monotonic increasing (no duplicates)
+  for (let i = 1; i < corrected.length; i++) {
+    if (corrected[i] <= corrected[i - 1]) {
+      corrected[i] = corrected[i - 1] + 1;
+      changes = true;
     }
   }
-  
-  return validRange;
+
+  return {
+    valid: !changes,
+    original,
+    corrected,
+    changes
+  };
+}
+
+/**
+ * Checks if array is monotonically increasing
+ */
+function isMonotonicallyIncreasing(arr: number[]): boolean {
+  for (let i = 1; i < arr.length; i++) {
+    if (arr[i] <= arr[i - 1]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Legacy function for backward compatibility
+ * @deprecated Use validateInterpolationRange instead
+ */
+export function validateInterpolationRangeLegacy(range: number[]): number[] {
+  const result = validateInterpolationRange(range);
+  return result.corrected;
 }
 
 /**
@@ -32,14 +82,15 @@ export function validateRangePair(
   inputRange: number[], 
   outputRange: number[]
 ): { input: number[], output: number[] } {
-  const validInput = validateInterpolationRange(inputRange);
+  const validInputResult = validateInterpolationRange(inputRange);
+  const validInput = validInputResult.corrected;
   
   // Ensure output range has same length as input
-  if (outputRange.length !== inputRange.length) {
-    console.warn(`Output range length (${outputRange.length}) doesn't match input range length (${inputRange.length})`);
+  if (outputRange.length !== validInput.length) {
+    console.warn(`Output range length (${outputRange.length}) doesn't match input range length (${validInput.length})`);
     // Truncate or extend output range to match
-    const validOutput = outputRange.slice(0, inputRange.length);
-    while (validOutput.length < inputRange.length) {
+    const validOutput = outputRange.slice(0, validInput.length);
+    while (validOutput.length < validInput.length) {
       validOutput.push(validOutput[validOutput.length - 1] || 0);
     }
     return { input: validInput, output: validOutput };
@@ -99,6 +150,55 @@ function safeInterpolate(frame, inputRange, outputRange, options) {
 `;
 
 /**
+ * Processes React component code to fix all interpolation ranges
+ * @param code - React component code string
+ * @returns Processed code with validated interpolation ranges
+ */
+export function processVideoCode(code: string): string {
+  // Regex to find all interpolate() calls
+  const interpolateRegex = /interpolate\s*\(\s*([^,]+),\s*\[([^\]]+)\],\s*\[([^\]]+)\]([^)]*)\)/g;
+  
+  let hasChanges = false;
+  const changes: string[] = [];
+  
+  const processedCode = code.replace(interpolateRegex, (match, frame, inputStr, outputStr, options) => {
+    try {
+      // Parse the input range
+      const inputRange = inputStr.split(',').map((s: string) => parseFloat(s.trim())).filter((n: number) => !isNaN(n));
+      const outputRange = outputStr.split(',').map((s: string) => parseFloat(s.trim()));
+      
+      if (inputRange.length === 0) {
+        return match; // Keep original if parsing fails
+      }
+
+      // Validate and fix the range
+      const validation = validateInterpolationRange(inputRange);
+      
+      if (validation.changes) {
+        hasChanges = true;
+        changes.push(`[${validation.original.join(', ')}] → [${validation.corrected.join(', ')}]`);
+        
+        // Return corrected interpolate call
+        return `interpolate(${frame.trim()}, [${validation.corrected.join(', ')}], [${outputRange.join(', ')}]${options.trim()})`;
+      }
+      
+      return match; // No changes needed
+      
+    } catch (error) {
+      // If parsing fails, return original
+      return match;
+    }
+  });
+  
+  // Log changes if any were made
+  if (hasChanges && typeof console !== 'undefined') {
+    console.log('🔧 Fixed interpolation ranges:', changes.join(', '));
+  }
+  
+  return processedCode;
+}
+
+/**
  * Checks if a range is valid (strictly monotonically increasing)
  */
 export function isValidRange(range: number[]): boolean {
@@ -108,6 +208,84 @@ export function isValidRange(range: number[]): boolean {
     }
   }
   return true;
+}
+
+/**
+ * Safe interpolate wrapper function code for injection into components
+ */
+export const SAFE_INTERPOLATE_HELPER = `
+// Helper to ensure interpolation ranges are valid (prevents Remotion errors)
+function validateRange(range) {
+  if (range.length <= 1) return range;
+  const valid = [...range];
+  for (let i = 1; i < valid.length; i++) {
+    if (valid[i] <= valid[i-1]) {
+      valid[i] = valid[i-1] + 1;
+    }
+  }
+  return valid;
+}
+
+// Safe interpolate wrapper
+function safeInterpolate(frame, inputRange, outputRange, options) {
+  const validInput = validateRange(inputRange);
+  return interpolate(frame, validInput, outputRange, options);
+}
+`;
+
+/**
+ * Test cases for interpolation validation
+ */
+export const TEST_CASES = [
+  // Valid cases (should not change)
+  { input: [0, 30, 60, 90], expected: [0, 30, 60, 90], description: 'Already valid range' },
+  { input: [10, 20, 30], expected: [10, 20, 30], description: 'Simple valid range' },
+  
+  // Invalid cases (should be corrected)
+  { input: [60, 90, 70, 100], expected: [60, 70, 90, 100], description: 'Out of order range' },
+  { input: [10, 5, 15, 20], expected: [5, 10, 15, 20], description: 'Completely scrambled' },
+  { input: [0, 30, 30, 60], expected: [0, 30, 31, 60], description: 'Duplicate values' },
+  { input: [100, 50, 75], expected: [50, 75, 100], description: 'Reverse order' },
+  { input: [0, 0, 0], expected: [0, 1, 2], description: 'All same values' },
+  { input: [5, 3, 8, 3, 10], expected: [3, 4, 5, 8, 10], description: 'Multiple duplicates' },
+  
+  // Edge cases
+  { input: [], expected: [], description: 'Empty array' },
+  { input: [42], expected: [42], description: 'Single value' },
+  { input: [1, 2], expected: [1, 2], description: 'Two values valid' },
+  { input: [2, 1], expected: [1, 2], description: 'Two values invalid' }
+];
+
+/**
+ * Run all test cases
+ */
+export function runValidationTests(): { passed: number; failed: number; results: any[] } {
+  const results: any[] = [];
+  let passed = 0;
+  let failed = 0;
+
+  TEST_CASES.forEach((testCase, index) => {
+    const result = validateInterpolationRange(testCase.input);
+    const success = JSON.stringify(result.corrected) === JSON.stringify(testCase.expected);
+    
+    results.push({
+      index: index + 1,
+      description: testCase.description,
+      input: testCase.input,
+      expected: testCase.expected,
+      actual: result.corrected,
+      success,
+      changes: result.changes
+    });
+    
+    if (success) {
+      passed++;
+    } else {
+      failed++;
+    }
+  });
+
+  return { passed, failed, results };
 }
 
 /**

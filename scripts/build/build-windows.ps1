@@ -1,54 +1,170 @@
-Write-Host "Building Remotion MCP Server for Windows..." -ForegroundColor Cyan
+# Windows Build Script for RoughCut MCP
+# MUST be run in Windows PowerShell or CMD, NOT WSL2!
+
+Write-Host "================================================" -ForegroundColor Cyan
+Write-Host "   ROUGHCUT MCP - WINDOWS BUILD SCRIPT" -ForegroundColor Cyan
+Write-Host "================================================" -ForegroundColor Cyan
+Write-Host ""
+
+# Verify we're running on Windows, not WSL2
+$isWSL = $false
+if (Test-Path "/proc/version") {
+    $procVersion = Get-Content "/proc/version" -ErrorAction SilentlyContinue
+    if ($procVersion -match "Microsoft|WSL") {
+        $isWSL = $true
+    }
+}
+
+if ($isWSL -or $env:WSL_DISTRO_NAME) {
+    Write-Host "CRITICAL ERROR: This script is running in WSL2!" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "WSL paths should NEVER exist in the first place!" -ForegroundColor Red
+    Write-Host "Building in WSL2 creates paths like /mnt/d/... that Windows cannot execute." -ForegroundColor Red
+    Write-Host ""
+    Write-Host "To build correctly:" -ForegroundColor Yellow
+    Write-Host "1. Open Windows PowerShell (not WSL terminal)" -ForegroundColor Yellow
+    Write-Host "2. Navigate to: D:\MY PROJECTS\AI\LLM\AI Code Gen\my-builds\Video + Motion\RoughCut" -ForegroundColor Yellow
+    Write-Host "3. Run: .\build-windows.ps1" -ForegroundColor Yellow
+    exit 1
+}
+
+# Get current directory
+$currentPath = (Get-Location).Path
+Write-Host "Build Environment:" -ForegroundColor Green
+Write-Host "  Platform: Windows Native" -ForegroundColor White
+Write-Host "  Current Directory: $currentPath" -ForegroundColor White
 Write-Host ""
 
 # Check Node.js
+Write-Host "Checking Node.js..." -ForegroundColor Cyan
 $nodeVersion = node --version 2>$null
-if (-not $nodeVersion) {
-    Write-Host "ERROR: Node.js is not installed!" -ForegroundColor Red
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "ERROR: Node.js not found!" -ForegroundColor Red
     Write-Host "Please install Node.js from: https://nodejs.org/" -ForegroundColor Yellow
     exit 1
 }
-Write-Host "Node.js found: $nodeVersion" -ForegroundColor Green
+Write-Host "  Node.js: $nodeVersion" -ForegroundColor Green
 
-# Set location
-$projectPath = "D:\MY PROJECTS\AI\LLM\AI Code Gen\my-builds\Video + Motion\RoughCut"
-Set-Location $projectPath
-
-# Clean build
+$npmVersion = npm --version 2>$null
+Write-Host "  NPM: $npmVersion" -ForegroundColor Green
 Write-Host ""
-Write-Host "Cleaning old build..." -ForegroundColor Yellow
-if (Test-Path ".\build") {
-    Remove-Item -Path ".\build" -Recurse -Force
-    Write-Host "Old build cleaned" -ForegroundColor Green
+
+# Clean previous build
+Write-Host "Cleaning previous build..." -ForegroundColor Cyan
+if (Test-Path "build") {
+    Remove-Item -Path "build" -Recurse -Force
+    Write-Host "  Removed old build directory" -ForegroundColor Yellow
 }
-
-# Build project
 Write-Host ""
-Write-Host "Building TypeScript..." -ForegroundColor Cyan
-npm run build
 
-if ($LASTEXITCODE -eq 0) {
-    Write-Host ""
-    Write-Host "BUILD SUCCESSFUL!" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "New Layered Tool Architecture Features:" -ForegroundColor Cyan
-    Write-Host "- Only 9-10 tools exposed initially (vs 40+ before)" -ForegroundColor Green
-    Write-Host "- Discovery tools always available" -ForegroundColor White
-    Write-Host "- Core operations loaded by default" -ForegroundColor White
-    Write-Host "- Dynamic tool loading on demand" -ForegroundColor White
-    Write-Host "- Better performance and tool selection" -ForegroundColor White
-    Write-Host ""
-    Write-Host "Legacy Mode:" -ForegroundColor Yellow
-    Write-Host "Set environment variable MCP_LEGACY_MODE=true to load all tools at once" -ForegroundColor White
-    Write-Host ""
-    Write-Host "Next Steps:" -ForegroundColor Yellow
-    Write-Host "1. Run: .\update-claude-config.ps1" -ForegroundColor White
-    Write-Host "2. Restart Claude Desktop" -ForegroundColor White
-    Write-Host "3. Test MCP tools in Claude" -ForegroundColor White
+# Install dependencies if needed
+if (-not (Test-Path "node_modules")) {
+    Write-Host "Installing dependencies..." -ForegroundColor Cyan
+    npm install
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "ERROR: Failed to install dependencies!" -ForegroundColor Red
+        exit 1
+    }
+    Write-Host "  Dependencies installed" -ForegroundColor Green
 }
 else {
-    Write-Host ""
-    Write-Host "BUILD FAILED!" -ForegroundColor Red
-    Write-Host "Check the error messages above" -ForegroundColor Yellow
+    Write-Host "Dependencies already installed" -ForegroundColor Green
+}
+Write-Host ""
+
+# Run the build
+Write-Host "Building TypeScript..." -ForegroundColor Cyan
+npm run build
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "ERROR: Build failed!" -ForegroundColor Red
     exit 1
 }
+Write-Host "  Build completed successfully" -ForegroundColor Green
+Write-Host ""
+
+# Verify build output doesn't contain WSL paths
+Write-Host "Validating build output..." -ForegroundColor Cyan
+$buildFile = "build\index.js"
+if (Test-Path $buildFile) {
+    $content = Get-Content $buildFile -Raw
+    if ($content -match "/mnt/[cd]/") {
+        Write-Host "CRITICAL ERROR: WSL paths found in build output!" -ForegroundColor Red
+        Write-Host "The build contains paths like /mnt/d/... which will fail on Windows!" -ForegroundColor Red
+        Write-Host ""
+        Write-Host "This should never happen if you're building on Windows." -ForegroundColor Red
+        Write-Host "Make sure you're not running this from WSL2!" -ForegroundColor Red
+        exit 1
+    }
+    else {
+        Write-Host "  No WSL paths found in build" -ForegroundColor Green
+    }
+    
+    # Check for proper Windows paths
+    if ($content -match '[A-Z]:\\') {
+        Write-Host "  Windows paths detected in build" -ForegroundColor Green
+    }
+}
+else {
+    Write-Host "WARNING: Could not find build output to validate" -ForegroundColor Yellow
+}
+Write-Host ""
+
+# Create assets directory structure if needed
+Write-Host "Ensuring asset directories exist..." -ForegroundColor Cyan
+$assetDirs = @(
+    "assets",
+    "assets\projects",
+    "assets\videos",
+    "assets\cache",
+    "assets\audio",
+    "assets\images"
+)
+
+foreach ($dir in $assetDirs) {
+    if (-not (Test-Path $dir)) {
+        New-Item -ItemType Directory -Path $dir -Force | Out-Null
+        Write-Host "  Created: $dir" -ForegroundColor Yellow
+    }
+}
+Write-Host "  Asset directories ready" -ForegroundColor Green
+Write-Host ""
+
+# Generate timestamp
+$timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+
+# Test network URL detection
+Write-Host "Testing network URL detection..." -ForegroundColor Cyan
+if (Test-Path "test-network-urls.js") {
+    node test-network-urls.js
+    Write-Host ""
+}
+
+# Summary
+Write-Host "================================================" -ForegroundColor Green
+Write-Host "    BUILD SUCCESSFUL!" -ForegroundColor Green
+Write-Host "================================================" -ForegroundColor Green
+Write-Host ""
+Write-Host "Build Summary:" -ForegroundColor White
+Write-Host "  Platform: Windows Native" -ForegroundColor White
+Write-Host "  Node Version: $nodeVersion" -ForegroundColor White
+Write-Host "  NPM Version: $npmVersion" -ForegroundColor White
+Write-Host "  Build Time: $timestamp" -ForegroundColor White
+Write-Host "  Output: .\build\" -ForegroundColor White
+Write-Host ""
+Write-Host "NEW FEATURES ADDED:" -ForegroundColor Green
+Write-Host "  - Network IP detection for remote access" -ForegroundColor Yellow
+Write-Host "  - Multiple URL support (local/network/tunnel)" -ForegroundColor Yellow
+Write-Host "  - Windows firewall configuration help" -ForegroundColor Yellow
+Write-Host "  - Environment variable overrides" -ForegroundColor Yellow
+Write-Host ""
+Write-Host "Remote Access Now Supported:" -ForegroundColor Cyan
+Write-Host "  When launching Remotion Studio, users will see:" -ForegroundColor White
+Write-Host "    Local:   http://localhost:7400" -ForegroundColor White
+Write-Host "    Network: http://192.168.x.x:7400 (for remote PCs)" -ForegroundColor White
+Write-Host ""
+Write-Host "Next Steps:" -ForegroundColor Cyan
+Write-Host "  1. Configure Claude Desktop with this MCP server" -ForegroundColor White
+Write-Host "  2. Set environment variables for API keys (optional)" -ForegroundColor White
+Write-Host "  3. Run tests: .\run-windows-tests.ps1" -ForegroundColor White
+Write-Host ""
+Write-Host "Remember: ALWAYS build on Windows, NEVER in WSL2!" -ForegroundColor Yellow
