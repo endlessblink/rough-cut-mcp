@@ -5,12 +5,9 @@
  * Designed to pass quickly in CI environments with basic checks
  */
 
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+const fs = require('fs');
+const path = require('path');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 const projectRoot = path.join(__dirname, '..');
 
 console.log('🚀 RoughCut MCP CI Test Runner');
