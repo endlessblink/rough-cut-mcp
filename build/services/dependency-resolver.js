@@ -1,19 +1,22 @@
+"use strict";
 /**
  * Dependency Resolver for Tool and Layer Dependencies
  *
  * Handles automatic resolution of tool and layer dependencies,
  * including circular dependency detection and transitive resolution.
  */
-import { getLogger } from '../utils/logger.js';
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.DependencyResolver = void 0;
+const logger_js_1 = require("../utils/logger.js");
 /**
  * Dependency Resolver for managing complex dependency graphs
  */
-export class DependencyResolver {
+class DependencyResolver {
     nodes;
     logger;
     constructor() {
         this.nodes = new Map();
-        this.logger = getLogger().service('DependencyResolver');
+        this.logger = (0, logger_js_1.getLogger)().service('DependencyResolver');
     }
     /**
      * Register a node with its dependencies
@@ -359,4 +362,5 @@ export class DependencyResolver {
         this.logger.info('Dependency graph cleared');
     }
 }
+exports.DependencyResolver = DependencyResolver;
 //# sourceMappingURL=dependency-resolver.js.map

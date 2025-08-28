@@ -1,14 +1,21 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.commandExists = commandExists;
+exports.isRemotionAvailable = isRemotionAvailable;
+exports.safeSpawn = safeSpawn;
+exports.safeNpmInstall = safeNpmInstall;
+exports.getInstallInstructions = getInstallInstructions;
 // Safe process spawning utility for MCP server stability
-import { spawn } from 'child_process';
-import { promisify } from 'util';
-import { exec } from 'child_process';
-import { getLogger } from './logger.js';
-const execAsync = promisify(exec);
-const logger = getLogger().service('SafeSpawn');
+const child_process_1 = require("child_process");
+const util_1 = require("util");
+const child_process_2 = require("child_process");
+const logger_js_1 = require("./logger.js");
+const execAsync = (0, util_1.promisify)(child_process_2.exec);
+const logger = (0, logger_js_1.getLogger)().service('SafeSpawn');
 /**
  * Check if a command exists in the system PATH
  */
-export async function commandExists(command) {
+async function commandExists(command) {
     const isWindows = process.platform === 'win32';
     const checkCommand = isWindows ? 'where' : 'which';
     try {
@@ -22,7 +29,7 @@ export async function commandExists(command) {
 /**
  * Check if Remotion is available via npx
  */
-export async function isRemotionAvailable() {
+async function isRemotionAvailable() {
     try {
         // First check if npx exists
         const hasNpx = await commandExists('npx');
@@ -63,14 +70,14 @@ export async function isRemotionAvailable() {
 /**
  * Safe spawn wrapper that prevents server crashes
  */
-export async function safeSpawn(command, args, options = {}) {
+async function safeSpawn(command, args, options = {}) {
     const { timeout = 30000, ...spawnOptions } = options;
     logger.info('Safe spawning process', { command, args, cwd: spawnOptions.cwd });
     return new Promise((resolve) => {
         let timeoutHandle = null;
         let processExited = false;
         try {
-            const childProcess = spawn(command, args, {
+            const childProcess = (0, child_process_1.spawn)(command, args, {
                 ...spawnOptions,
                 shell: process.platform === 'win32' // Always use shell on Windows
             });
@@ -236,7 +243,7 @@ export async function safeSpawn(command, args, options = {}) {
  * Safely install npm dependencies for a project
  * Windows-optimized npm installation
  */
-export async function safeNpmInstall(projectPath, timeout = 120000) {
+async function safeNpmInstall(projectPath, timeout = 120000) {
     logger.info('Installing npm dependencies', {
         projectPath
     });
@@ -262,7 +269,7 @@ export async function safeNpmInstall(projectPath, timeout = 120000) {
 /**
  * Get installation instructions for missing tools
  */
-export function getInstallInstructions(tool) {
+function getInstallInstructions(tool) {
     switch (tool.toLowerCase()) {
         case 'remotion':
             return [

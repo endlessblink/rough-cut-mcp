@@ -1,4 +1,7 @@
+"use strict";
 // Main MCP server entry point for Remotion Creative MCP Server
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RemotionCreativeMCPServer = void 0;
 // Platform validation - must be Windows for Claude Desktop (skip in test mode)
 if (process.platform !== 'win32' && process.env.NODE_ENV !== 'test') {
     // Use stderr to avoid breaking MCP protocol on stdout
@@ -7,21 +10,21 @@ if (process.platform !== 'win32' && process.env.NODE_ENV !== 'test') {
     process.stderr.write('Claude Desktop is a Windows application and requires Windows execution.\n');
     process.exit(1);
 }
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema, ListToolsRequestSchema, InitializeRequestSchema, InitializedNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
-import { loadConfig } from './utils/config.js';
-import { initLogger } from './utils/logger.js';
-import { FileManagerService } from './services/file-manager.js';
-import { EnhancedToolRegistry } from './services/enhanced-tool-registry.js';
-import { TOOL_SUBCATEGORIES } from './types/tool-categories.js';
+const index_js_1 = require("@modelcontextprotocol/sdk/server/index.js");
+const stdio_js_1 = require("@modelcontextprotocol/sdk/server/stdio.js");
+const types_js_1 = require("@modelcontextprotocol/sdk/types.js");
+const config_js_1 = require("./utils/config.js");
+const logger_js_1 = require("./utils/logger.js");
+const file_manager_js_1 = require("./services/file-manager.js");
+const enhanced_tool_registry_js_1 = require("./services/enhanced-tool-registry.js");
+const tool_categories_js_1 = require("./types/tool-categories.js");
 // Tool imports
 // Import consolidated tools
-import { registerAllTools } from './tools/index.js';
+const index_js_2 = require("./tools/index.js");
 /**
  * Main server class for Remotion Creative MCP Server
  */
-export class RemotionCreativeMCPServer {
+class RemotionCreativeMCPServer {
     server;
     config;
     logger;
@@ -36,12 +39,12 @@ export class RemotionCreativeMCPServer {
             console.error('DEBUG: Loading config...');
         }
         // Load configuration
-        this.config = loadConfig();
+        this.config = (0, config_js_1.loadConfig)();
         if (process.env.NODE_ENV === 'test') {
             console.error('DEBUG: Initializing logger...');
         }
         // Initialize logging (disable file logging for MCP compatibility)
-        const baseLogger = initLogger(this.config.logging.level, undefined // Disable file logging to avoid blocking
+        const baseLogger = (0, logger_js_1.initLogger)(this.config.logging.level, undefined // Disable file logging to avoid blocking
         );
         this.logger = baseLogger.service('MCPServer');
         // Store base logger for creating child services
@@ -50,12 +53,12 @@ export class RemotionCreativeMCPServer {
             console.error('DEBUG: Initializing file manager...');
         }
         // Initialize file manager
-        this.fileManager = new FileManagerService(this.config);
+        this.fileManager = new file_manager_js_1.FileManagerService(this.config);
         if (process.env.NODE_ENV === 'test') {
             console.error('DEBUG: Initializing tool registry...');
         }
         // Initialize enhanced tool registry with all features
-        this.toolRegistry = new EnhancedToolRegistry({
+        this.toolRegistry = new enhanced_tool_registry_js_1.EnhancedToolRegistry({
             baseConfig: this.config,
             enableLayers: true,
             enableDependencies: true,
@@ -67,7 +70,7 @@ export class RemotionCreativeMCPServer {
             console.error('DEBUG: Creating MCP server...');
         }
         // Create MCP server
-        this.server = new Server({
+        this.server = new index_js_1.Server({
             name: 'rough-cut-mcp',
             version: '1.0.0',
         }, {
@@ -160,7 +163,7 @@ export class RemotionCreativeMCPServer {
      * Helper to find sub-category for a tool
      */
     findToolSubCategory(toolName, categoryKey) {
-        const subCategories = TOOL_SUBCATEGORIES[categoryKey] || {};
+        const subCategories = tool_categories_js_1.TOOL_SUBCATEGORIES[categoryKey] || {};
         for (const [subCat, tools] of Object.entries(subCategories)) {
             if (tools.includes(toolName)) {
                 return subCat;
@@ -173,7 +176,7 @@ export class RemotionCreativeMCPServer {
      */
     async registerTools() {
         // Register all consolidated tools
-        await registerAllTools(this);
+        await (0, index_js_2.registerAllTools)(this);
         const initialActiveTools = this.toolRegistry.getActiveTools();
         const stats = this.toolRegistry.getUsageStatistics();
         // Debug: Check what's in the registry
@@ -189,7 +192,7 @@ export class RemotionCreativeMCPServer {
         this.logger.info('Consolidated tools registered', {
             totalTools: stats.totalTools || 20,
             activeTools: initialActiveTools.length,
-            categories: Object.keys(TOOL_SUBCATEGORIES).length
+            categories: Object.keys(tool_categories_js_1.TOOL_SUBCATEGORIES).length
         });
         // All tools are now registered via registerAllTools
         // The enhanced registry handles layered activation automatically
@@ -346,7 +349,7 @@ export class RemotionCreativeMCPServer {
     setupRequestHandlers() {
         this.logger.info('Setting up MCP request handlers...');
         // Initialize request handler - MUST be first for MCP handshake
-        this.server.setRequestHandler(InitializeRequestSchema, async () => {
+        this.server.setRequestHandler(types_js_1.InitializeRequestSchema, async () => {
             this.logger.info('MCP Initialize request received');
             return {
                 protocolVersion: '2024-11-05',
@@ -360,12 +363,12 @@ export class RemotionCreativeMCPServer {
             };
         });
         // Initialized notification handler - completes handshake
-        this.server.setRequestHandler(InitializedNotificationSchema, async () => {
+        this.server.setRequestHandler(types_js_1.InitializedNotificationSchema, async () => {
             this.logger.info('MCP handshake completed - client initialized');
             return {}; // Must return empty object for notification handler
         });
         // List tools handler - now uses tool registry with proper serialization
-        this.server.setRequestHandler(ListToolsRequestSchema, async (request) => {
+        this.server.setRequestHandler(types_js_1.ListToolsRequestSchema, async (request) => {
             this.logger.info('MCP tools/list request received');
             try {
                 // Wait for initialization to complete if not done yet
@@ -447,7 +450,7 @@ export class RemotionCreativeMCPServer {
             }
         });
         // Call tool handler - now uses tool registry
-        this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+        this.server.setRequestHandler(types_js_1.CallToolRequestSchema, async (request) => {
             const { name, arguments: args } = request.params;
             this.logger.info(`Tool called: ${name}`, { args: Object.keys(args || {}) });
             try {
@@ -504,7 +507,7 @@ export class RemotionCreativeMCPServer {
         if (process.env.NODE_ENV === 'test') {
             console.error('DEBUG: Creating stdio transport...');
         }
-        const transport = new StdioServerTransport();
+        const transport = new stdio_js_1.StdioServerTransport();
         // Connect immediately - this enables JSON-RPC communication
         this.server.connect(transport);
         this.logger.info('MCP Server connected to stdio transport');
@@ -557,6 +560,7 @@ export class RemotionCreativeMCPServer {
         }
     }
 }
+exports.RemotionCreativeMCPServer = RemotionCreativeMCPServer;
 /**
  * Main entry point - Connect immediately for JSON-RPC, then initialize
  */

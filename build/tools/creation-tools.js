@@ -1,13 +1,52 @@
+"use strict";
 /**
  * Creation Tools - Video creation and analysis
  * 4 tools replacing 6+ individual tools
  */
-import { ToolCategory } from '../types/tool-categories.js';
-import { AnimationGeneratorService } from '../services/animation-generator.js';
-import * as path from 'path';
-import fs from 'fs-extra';
-export function registerCreationTools(server) {
-    const animationGenerator = new AnimationGeneratorService();
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.registerCreationTools = registerCreationTools;
+const tool_categories_js_1 = require("../types/tool-categories.js");
+const animation_generator_js_1 = require("../services/animation-generator.js");
+const path = __importStar(require("path"));
+const fs_extra_1 = __importDefault(require("fs-extra"));
+function registerCreationTools(server) {
+    const animationGenerator = new animation_generator_js_1.AnimationGeneratorService();
     const logger = server.baseLogger.service('creation-tools');
     /**
      * 1. Create Video - All video types in one tool
@@ -54,9 +93,9 @@ export function registerCreationTools(server) {
         try {
             const projectPath = path.join(server.config.assetsDir, 'projects', args.projectName);
             // Create project directory
-            await fs.ensureDir(projectPath);
-            await fs.ensureDir(path.join(projectPath, 'src'));
-            await fs.ensureDir(path.join(projectPath, 'public'));
+            await fs_extra_1.default.ensureDir(projectPath);
+            await fs_extra_1.default.ensureDir(path.join(projectPath, 'src'));
+            await fs_extra_1.default.ensureDir(path.join(projectPath, 'public'));
             // Generate composition based on type
             let composition = '';
             const { content } = args;
@@ -164,8 +203,8 @@ export const RemotionRoot: React.FC = () => {
                     throw new Error(`Unknown video type: ${args.type}`);
             }
             // Write files
-            await fs.writeFile(path.join(projectPath, 'src', 'VideoComposition.tsx'), composition);
-            await fs.writeFile(path.join(projectPath, 'src', 'Root.tsx'), composition);
+            await fs_extra_1.default.writeFile(path.join(projectPath, 'src', 'VideoComposition.tsx'), composition);
+            await fs_extra_1.default.writeFile(path.join(projectPath, 'src', 'Root.tsx'), composition);
             // Create package.json
             const packageJson = {
                 name: args.projectName,
@@ -183,7 +222,7 @@ export const RemotionRoot: React.FC = () => {
                     'remotion': '^4.0.0'
                 }
             };
-            await fs.writeJson(path.join(projectPath, 'package.json'), packageJson, { spaces: 2 });
+            await fs_extra_1.default.writeJson(path.join(projectPath, 'package.json'), packageJson, { spaces: 2 });
             return {
                 content: [{
                         type: 'text',
@@ -204,7 +243,7 @@ Use "studio" tool with action:"start" and project:"${args.projectName}" to previ
         }
     }, {
         name: 'create-video',
-        category: ToolCategory.VIDEO_CREATION,
+        category: tool_categories_js_1.ToolCategory.VIDEO_CREATION,
         subCategory: 'basic',
         tags: ['create', 'video', 'animation'],
         loadByDefault: false,
@@ -251,7 +290,7 @@ Use "studio" tool with action:"start" and project:"${args.projectName}" to previ
             const assetsDir = args.project
                 ? path.join(server.config.assetsDir, 'projects', args.project, 'public')
                 : path.join(server.config.assetsDir, 'generated');
-            await fs.ensureDir(assetsDir);
+            await fs_extra_1.default.ensureDir(assetsDir);
             switch (args.type) {
                 case 'voice': {
                     if (!server.config.apiKeys.elevenlabs) {
@@ -261,7 +300,7 @@ Use "studio" tool with action:"start" and project:"${args.projectName}" to previ
                     const filename = `voice-${Date.now()}.mp3`;
                     const filepath = path.join(assetsDir, filename);
                     // Placeholder for actual generation
-                    await fs.writeFile(filepath, 'placeholder audio data');
+                    await fs_extra_1.default.writeFile(filepath, 'placeholder audio data');
                     return {
                         content: [{
                                 type: 'text',
@@ -277,7 +316,7 @@ Use "studio" tool with action:"start" and project:"${args.projectName}" to previ
                     const filename = `image-${Date.now()}.png`;
                     const filepath = path.join(assetsDir, filename);
                     // Placeholder for actual generation
-                    await fs.writeFile(filepath, 'placeholder image data');
+                    await fs_extra_1.default.writeFile(filepath, 'placeholder image data');
                     return {
                         content: [{
                                 type: 'text',
@@ -293,7 +332,7 @@ Use "studio" tool with action:"start" and project:"${args.projectName}" to previ
                     const filename = `sound-${Date.now()}.wav`;
                     const filepath = path.join(assetsDir, filename);
                     // Placeholder for actual download
-                    await fs.writeFile(filepath, 'placeholder sound data');
+                    await fs_extra_1.default.writeFile(filepath, 'placeholder sound data');
                     return {
                         content: [{
                                 type: 'text',
@@ -311,7 +350,7 @@ Use "studio" tool with action:"start" and project:"${args.projectName}" to previ
         }
     }, {
         name: 'generate-assets',
-        category: ToolCategory.ASSET_GENERATION,
+        category: tool_categories_js_1.ToolCategory.ASSET_GENERATION,
         subCategory: 'generation',
         tags: ['generate', 'assets', 'voice', 'image', 'sound'],
         loadByDefault: false,
@@ -343,10 +382,10 @@ Use "studio" tool with action:"start" and project:"${args.projectName}" to previ
         try {
             const projectPath = path.join(server.config.assetsDir, 'projects', args.project);
             const compositionPath = path.join(projectPath, 'src', 'VideoComposition.tsx');
-            if (!await fs.pathExists(compositionPath)) {
+            if (!await fs_extra_1.default.pathExists(compositionPath)) {
                 throw new Error(`Project "${args.project}" not found`);
             }
-            const content = await fs.readFile(compositionPath, 'utf-8');
+            const content = await fs_extra_1.default.readFile(compositionPath, 'utf-8');
             // Basic analysis
             const analysis = {
                 structure: {
@@ -358,7 +397,7 @@ Use "studio" tool with action:"start" and project:"${args.projectName}" to previ
                     hasImages: content.includes('Img') || content.includes('img')
                 },
                 performance: {
-                    fileSize: (await fs.stat(compositionPath)).size,
+                    fileSize: (await fs_extra_1.default.stat(compositionPath)).size,
                     estimatedComplexity: content.match(/Sequence/g)?.length || 0
                 }
             };
@@ -388,7 +427,7 @@ Performance:
         }
     }, {
         name: 'analyze-video',
-        category: ToolCategory.VIDEO_CREATION,
+        category: tool_categories_js_1.ToolCategory.VIDEO_CREATION,
         subCategory: 'advanced',
         tags: ['analyze', 'structure', 'performance'],
         loadByDefault: false,
@@ -424,7 +463,7 @@ Performance:
     }, async (args) => {
         try {
             const projectPath = path.join(server.config.assetsDir, 'projects', args.project);
-            if (!await fs.pathExists(projectPath)) {
+            if (!await fs_extra_1.default.pathExists(projectPath)) {
                 throw new Error(`Project "${args.project}" not found`);
             }
             // Render command would go here
@@ -446,7 +485,7 @@ Note: Actual rendering requires Remotion CLI to be implemented.`
         }
     }, {
         name: 'render',
-        category: ToolCategory.VIDEO_CREATION,
+        category: tool_categories_js_1.ToolCategory.VIDEO_CREATION,
         subCategory: 'advanced',
         tags: ['render', 'export', 'output'],
         loadByDefault: false,

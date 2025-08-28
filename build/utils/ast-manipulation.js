@@ -1,17 +1,67 @@
+"use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.parseVideoComposition = parseVideoComposition;
+exports.generateCode = generateCode;
+exports.findJSXElements = findJSXElements;
+exports.updateJSXElementProps = updateJSXElementProps;
+exports.updateJSXTextContent = updateJSXTextContent;
+exports.updateJSXElementStyle = updateJSXElementStyle;
+exports.editVideoElement = editVideoElement;
+exports.addJSXElement = addJSXElement;
+exports.removeJSXElement = removeJSXElement;
+exports.replaceJSXElement = replaceJSXElement;
+exports.createJSXElementFromTemplate = createJSXElementFromTemplate;
+exports.validateModifiedCode = validateModifiedCode;
 // AST manipulation utilities for editing video elements
-import { parse } from '@babel/parser';
-import _traverse from '@babel/traverse';
-import _generate from '@babel/generator';
-import * as t from '@babel/types';
-import { getLogger } from './logger.js';
+const parser_1 = require("@babel/parser");
+const traverse_1 = __importDefault(require("@babel/traverse"));
+const generator_1 = __importDefault(require("@babel/generator"));
+const t = __importStar(require("@babel/types"));
+const logger_js_1 = require("./logger.js");
 // Handle default exports properly
-const traverse = _traverse.default || _traverse;
-const generate = _generate.default || _generate;
-const logger = getLogger().service('ASTManipulation');
+const traverse = traverse_1.default.default || traverse_1.default;
+const generate = generator_1.default.default || generator_1.default;
+const logger = (0, logger_js_1.getLogger)().service('ASTManipulation');
 /**
  * Parse TypeScript/JSX code into an AST
  */
-export function parseVideoComposition(code) {
+function parseVideoComposition(code) {
     try {
         const parserOptions = {
             sourceType: 'module',
@@ -31,7 +81,7 @@ export function parseVideoComposition(code) {
                 'optionalChaining',
             ],
         };
-        const ast = parse(code, parserOptions);
+        const ast = (0, parser_1.parse)(code, parserOptions);
         return {
             success: true,
             ast,
@@ -49,7 +99,7 @@ export function parseVideoComposition(code) {
 /**
  * Generate code from AST
  */
-export function generateCode(ast) {
+function generateCode(ast) {
     const result = generate(ast, {
         retainLines: true,
         compact: false,
@@ -59,7 +109,7 @@ export function generateCode(ast) {
 /**
  * Find JSX elements by various criteria
  */
-export function findJSXElements(ast, criteria) {
+function findJSXElements(ast, criteria) {
     const elements = [];
     traverse(ast, {
         JSXElement(path) {
@@ -123,7 +173,7 @@ export function findJSXElements(ast, criteria) {
 /**
  * Update JSX element properties
  */
-export function updateJSXElementProps(element, propUpdates) {
+function updateJSXElementProps(element, propUpdates) {
     const changes = [];
     const openingElement = element.openingElement;
     for (const [propName, propValue] of Object.entries(propUpdates)) {
@@ -178,7 +228,7 @@ export function updateJSXElementProps(element, propUpdates) {
 /**
  * Update text content of JSX element
  */
-export function updateJSXTextContent(element, newText) {
+function updateJSXTextContent(element, newText) {
     const changes = [];
     // Remove existing text children
     element.children = element.children.filter(child => !t.isJSXText(child));
@@ -192,7 +242,7 @@ export function updateJSXTextContent(element, newText) {
 /**
  * Update style properties of JSX element
  */
-export function updateJSXElementStyle(element, styleUpdates) {
+function updateJSXElementStyle(element, styleUpdates) {
     const changes = [];
     const openingElement = element.openingElement;
     // Find existing style attribute
@@ -243,7 +293,7 @@ export function updateJSXElementStyle(element, styleUpdates) {
 /**
  * Main function to edit video elements
  */
-export function editVideoElement(code, operation) {
+function editVideoElement(code, operation) {
     try {
         const parseResult = parseVideoComposition(code);
         if (!parseResult.success || !parseResult.ast) {
@@ -341,7 +391,7 @@ export function editVideoElement(code, operation) {
 /**
  * Add a new JSX element to the composition
  */
-export function addJSXElement(ast, parentSelector, newElement, position = 'end') {
+function addJSXElement(ast, parentSelector, newElement, position = 'end') {
     const changes = [];
     let elementAdded = false;
     try {
@@ -423,7 +473,7 @@ export function addJSXElement(ast, parentSelector, newElement, position = 'end')
 /**
  * Remove a JSX element from the composition
  */
-export function removeJSXElement(ast, selector) {
+function removeJSXElement(ast, selector) {
     const changes = [];
     let elementRemoved = false;
     let matchCount = 0;
@@ -508,7 +558,7 @@ export function removeJSXElement(ast, selector) {
 /**
  * Replace an entire JSX element with a new one
  */
-export function replaceJSXElement(ast, selector, newElement) {
+function replaceJSXElement(ast, selector, newElement) {
     const changes = [];
     let elementReplaced = false;
     try {
@@ -579,7 +629,7 @@ export function replaceJSXElement(ast, selector, newElement) {
 /**
  * Create a JSX element from a template
  */
-export function createJSXElementFromTemplate(elementType, props, children) {
+function createJSXElementFromTemplate(elementType, props, children) {
     // Create opening element with props
     const attributes = Object.entries(props).map(([key, value]) => {
         let attrValue;
@@ -610,7 +660,7 @@ export function createJSXElementFromTemplate(elementType, props, children) {
 /**
  * Validate that the modified code is syntactically correct
  */
-export function validateModifiedCode(code) {
+function validateModifiedCode(code) {
     try {
         parseVideoComposition(code);
         return { valid: true };

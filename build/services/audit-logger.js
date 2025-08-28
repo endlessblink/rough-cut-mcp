@@ -1,17 +1,56 @@
+"use strict";
 /**
  * Enhanced Audit Logger for Tool/Layer Activation History
  *
  * Provides comprehensive logging and analysis of tool and layer
  * activation patterns for debugging and optimization.
  */
-import { getLogger } from '../utils/logger.js';
-import fs from 'fs-extra';
-import * as path from 'path';
-import { EventEmitter } from 'events';
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AuditLogger = exports.AuditSeverity = exports.AuditEventType = void 0;
+const logger_js_1 = require("../utils/logger.js");
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const path = __importStar(require("path"));
+const events_1 = require("events");
 /**
  * Audit event types
  */
-export var AuditEventType;
+var AuditEventType;
 (function (AuditEventType) {
     AuditEventType["TOOL_ACTIVATED"] = "tool_activated";
     AuditEventType["TOOL_DEACTIVATED"] = "tool_deactivated";
@@ -24,22 +63,22 @@ export var AuditEventType;
     AuditEventType["CONFIGURATION_CHANGED"] = "configuration_changed";
     AuditEventType["SESSION_STARTED"] = "session_started";
     AuditEventType["SESSION_ENDED"] = "session_ended";
-})(AuditEventType || (AuditEventType = {}));
+})(AuditEventType || (exports.AuditEventType = AuditEventType = {}));
 /**
  * Audit event severity levels
  */
-export var AuditSeverity;
+var AuditSeverity;
 (function (AuditSeverity) {
     AuditSeverity["DEBUG"] = "debug";
     AuditSeverity["INFO"] = "info";
     AuditSeverity["WARNING"] = "warning";
     AuditSeverity["ERROR"] = "error";
     AuditSeverity["CRITICAL"] = "critical";
-})(AuditSeverity || (AuditSeverity = {}));
+})(AuditSeverity || (exports.AuditSeverity = AuditSeverity = {}));
 /**
  * Enhanced Audit Logger
  */
-export class AuditLogger extends EventEmitter {
+class AuditLogger extends events_1.EventEmitter {
     entries;
     sessionId;
     logger;
@@ -52,12 +91,12 @@ export class AuditLogger extends EventEmitter {
         this.entries = new Map();
         this.entryIndex = new Map();
         this.sessionId = this.generateSessionId();
-        this.logger = getLogger().service('AuditLogger');
+        this.logger = (0, logger_js_1.getLogger)().service('AuditLogger');
         this.maxEntries = maxEntries;
         this.auditFile = path.join(auditDir, `audit-${this.sessionId}.json`);
         this.persistInterval = null;
         // Ensure audit directory exists
-        fs.ensureDirSync(auditDir);
+        fs_extra_1.default.ensureDirSync(auditDir);
         // Start periodic persistence
         if (persistIntervalMs > 0) {
             this.persistInterval = setInterval(() => {
@@ -430,7 +469,7 @@ export class AuditLogger extends EventEmitter {
     async persist() {
         try {
             const entries = Array.from(this.entries.values());
-            await fs.writeJson(this.auditFile, {
+            await fs_extra_1.default.writeJson(this.auditFile, {
                 sessionId: this.sessionId,
                 entries,
                 statistics: this.getStatistics(),
@@ -450,8 +489,8 @@ export class AuditLogger extends EventEmitter {
      */
     async load(file) {
         try {
-            if (await fs.pathExists(file)) {
-                const data = await fs.readJson(file);
+            if (await fs_extra_1.default.pathExists(file)) {
+                const data = await fs_extra_1.default.readJson(file);
                 this.entries.clear();
                 this.entryIndex.clear();
                 for (const entry of data.entries) {
@@ -507,4 +546,5 @@ export class AuditLogger extends EventEmitter {
         return `evt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     }
 }
+exports.AuditLogger = AuditLogger;
 //# sourceMappingURL=audit-logger.js.map

@@ -1,21 +1,27 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.FreesoundService = void 0;
 // Freesound.org sound effects search and download service
-import axios from 'axios';
-import fs from 'fs-extra';
-import path from 'path';
-import { getAssetPath } from '../utils/config.js';
-import { getLogger } from '../utils/logger.js';
-import { validateTextContent } from '../utils/validation.js';
-export class FreesoundService {
+const axios_1 = __importDefault(require("axios"));
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const path_1 = __importDefault(require("path"));
+const config_js_1 = require("../utils/config.js");
+const logger_js_1 = require("../utils/logger.js");
+const validation_js_1 = require("../utils/validation.js");
+class FreesoundService {
     client;
     config;
-    logger = getLogger().service('Freesound');
+    logger = (0, logger_js_1.getLogger)().service('Freesound');
     baseUrl = 'https://freesound.org/apiv2';
     constructor(config) {
         this.config = config;
         if (!config.apiKeys.freesound) {
             throw new Error('Freesound API key is required');
         }
-        this.client = axios.create({
+        this.client = axios_1.default.create({
             baseURL: this.baseUrl,
             headers: {
                 'Authorization': `Token ${config.apiKeys.freesound}`,
@@ -82,16 +88,16 @@ export class FreesoundService {
         });
         try {
             // Prepare output path
-            const audioDir = outputDir || getAssetPath(this.config, 'audio');
-            await fs.ensureDir(audioDir);
+            const audioDir = outputDir || (0, config_js_1.getAssetPath)(this.config, 'audio');
+            await fs_extra_1.default.ensureDir(audioDir);
             // Sanitize filename
             const sanitizedName = sound.name
                 .replace(/[^\w\s.-]/g, '') // Remove special characters
                 .replace(/\s+/g, '_') // Replace spaces with underscores
                 .substring(0, 100); // Limit length
-            const extension = path.extname(sound.name) || '.mp3';
+            const extension = path_1.default.extname(sound.name) || '.mp3';
             const filename = `${sanitizedName}_${sound.id}${extension}`;
-            const audioPath = path.join(audioDir, filename);
+            const audioPath = path_1.default.join(audioDir, filename);
             // Get download URL (requires OAuth for high-quality downloads)
             // For now, use preview URL which doesn't require OAuth
             const downloadUrl = sound.previews['preview-hq-mp3'] || sound.previews['preview-lq-mp3'];
@@ -99,12 +105,12 @@ export class FreesoundService {
                 throw new Error('No download URL available for this sound');
             }
             // Download the file
-            const response = await axios.get(downloadUrl, {
+            const response = await axios_1.default.get(downloadUrl, {
                 responseType: 'arraybuffer',
                 timeout: 60000, // 1 minute timeout for downloads
             });
             // Save the file
-            await fs.writeFile(audioPath, Buffer.from(response.data));
+            await fs_extra_1.default.writeFile(audioPath, Buffer.from(response.data));
             const result = {
                 audioPath,
                 filename,
@@ -142,7 +148,7 @@ export class FreesoundService {
     async searchAndDownload(request) {
         try {
             // Validate input
-            const textValidation = validateTextContent(request.query, 200);
+            const textValidation = (0, validation_js_1.validateTextContent)(request.query, 200);
             if (!textValidation.isValid) {
                 throw new Error(`Invalid search query: ${textValidation.errors.join(', ')}`);
             }
@@ -281,4 +287,5 @@ export class FreesoundService {
         });
     }
 }
+exports.FreesoundService = FreesoundService;
 //# sourceMappingURL=freesound.js.map

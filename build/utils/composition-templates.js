@@ -1,11 +1,26 @@
+"use strict";
 // Composition template utilities for generating common animation patterns
 // These are helper functions that generate code - NOT hardcoded project references!
-import { getLogger } from './logger.js';
-const logger = getLogger().service('CompositionTemplates');
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.animationTemplates = void 0;
+exports.generateTextElement = generateTextElement;
+exports.generateShapeElement = generateShapeElement;
+exports.generateImageElement = generateImageElement;
+exports.generateMovingElement = generateMovingElement;
+exports.generateParticleSystem = generateParticleSystem;
+exports.generateStaggeredElements = generateStaggeredElements;
+exports.generateTransition = generateTransition;
+exports.getTemplate = getTemplate;
+exports.generateFromTemplate = generateFromTemplate;
+exports.analyzeCompositionStructure = analyzeCompositionStructure;
+exports.transformToSeriesStructure = transformToSeriesStructure;
+exports.generateSeriesComposition = generateSeriesComposition;
+const logger_js_1 = require("./logger.js");
+const logger = (0, logger_js_1.getLogger)().service('CompositionTemplates');
 /**
  * Generate a text element with animation
  */
-export function generateTextElement(params) {
+function generateTextElement(params) {
     const { text, fontSize = 32, color = '#FFFFFF', animation = 'fade', position } = params;
     let animationCode = '';
     if (animation === 'fade') {
@@ -34,7 +49,7 @@ export function generateTextElement(params) {
 /**
  * Generate a shape element (circle, square, etc.)
  */
-export function generateShapeElement(params) {
+function generateShapeElement(params) {
     const { shape, size = { width: 100, height: 100 }, color = '#FF6B6B', animation = 'none' } = params;
     const borderRadius = shape === 'circle' ? '50%' : shape === 'square' ? '0' : '10px';
     let animationCode = '';
@@ -64,7 +79,7 @@ export function generateShapeElement(params) {
 /**
  * Generate an image element with effects
  */
-export function generateImageElement(params) {
+function generateImageElement(params) {
     const { src, width = 'auto', height = 'auto', effect = 'fade' } = params;
     let effectCode = '';
     if (effect === 'fade') {
@@ -91,7 +106,7 @@ export function generateImageElement(params) {
 /**
  * Generate a moving element along a path
  */
-export function generateMovingElement(params) {
+function generateMovingElement(params) {
     const { elementType, path, speed = 1, content = '' } = params;
     let positionCode = '';
     if (path === 'linear') {
@@ -143,7 +158,7 @@ export function generateMovingElement(params) {
 /**
  * Generate particle system background
  */
-export function generateParticleSystem(params) {
+function generateParticleSystem(params) {
     const { count = 20, color = 'rgba(255,255,255,0.5)', size = 4, speed = 0.5 } = params;
     return `
     {Array.from({ length: ${count} }, (_, i) => {
@@ -172,7 +187,7 @@ export function generateParticleSystem(params) {
 /**
  * Generate a sequence of elements with staggered animation
  */
-export function generateStaggeredElements(params) {
+function generateStaggeredElements(params) {
     const { count = 5, elementCode, staggerDelay = 5, arrangement = 'horizontal' } = params;
     let positioningCode = '';
     if (arrangement === 'horizontal') {
@@ -213,7 +228,7 @@ export function generateStaggeredElements(params) {
 /**
  * Generate transition effects between scenes
  */
-export function generateTransition(params) {
+function generateTransition(params) {
     const { type, duration = 30, startFrame = 0 } = params;
     if (type === 'fade') {
         return `
@@ -257,7 +272,7 @@ export function generateTransition(params) {
 /**
  * Collection of ready-to-use animation templates
  */
-export const animationTemplates = [
+exports.animationTemplates = [
     {
         name: 'fadeInText',
         description: 'Text that fades in',
@@ -299,13 +314,13 @@ export const animationTemplates = [
 /**
  * Get a template by name
  */
-export function getTemplate(name) {
-    return animationTemplates.find(t => t.name === name);
+function getTemplate(name) {
+    return exports.animationTemplates.find(t => t.name === name);
 }
 /**
  * Generate code from a template
  */
-export function generateFromTemplate(templateName, params) {
+function generateFromTemplate(templateName, params) {
     const template = getTemplate(templateName);
     if (!template) {
         logger.warn(`Template "${templateName}" not found`);
@@ -322,7 +337,7 @@ export function generateFromTemplate(templateName, params) {
 /**
  * Analyze provided composition code structure
  */
-export function analyzeCompositionStructure(code) {
+function analyzeCompositionStructure(code) {
     logger.debug('Analyzing composition structure');
     const analysis = {
         hasMultipleScenes: false,
@@ -386,7 +401,7 @@ export function analyzeCompositionStructure(code) {
 /**
  * Transform conditional rendering to Series-based structure
  */
-export function transformToSeriesStructure(code, analysis) {
+function transformToSeriesStructure(code, analysis) {
     if (!analysis.needsTransformation) {
         logger.debug('No transformation needed');
         return code;
@@ -495,7 +510,7 @@ function cleanUpFrameOffsets(code) {
 /**
  * Generate a complete Series-based composition template
  */
-export function generateSeriesComposition(params) {
+function generateSeriesComposition(params) {
     const { scenes, fps } = params;
     const sceneComponents = scenes.map(scene => `
 const ${scene.name}: React.FC = () => {

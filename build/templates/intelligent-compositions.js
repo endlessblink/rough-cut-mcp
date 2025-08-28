@@ -1,7 +1,10 @@
-import { combinePrimitives } from './animation-primitives.js';
-import { getLogger } from '../utils/logger.js';
-export class IntelligentCompositionGenerator {
-    logger = getLogger().service('IntelligentComposition');
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.IntelligentCompositionGenerator = void 0;
+const animation_primitives_js_1 = require("./animation-primitives.js");
+const logger_js_1 = require("../utils/logger.js");
+class IntelligentCompositionGenerator {
+    logger = (0, logger_js_1.getLogger)().service('IntelligentComposition');
     templates = [];
     constructor() {
         this.initializeTemplates();
@@ -196,7 +199,7 @@ export class IntelligentCompositionGenerator {
             ? template.customizations(request, animationType)
             : {};
         // Combine primitive code
-        const primitiveCode = combinePrimitives(template.primitives.map(p => ({ name: p.name, params: { ...p.params, ...customizations } })), baseParams);
+        const primitiveCode = (0, animation_primitives_js_1.combinePrimitives)(template.primitives.map(p => ({ name: p.name, params: { ...p.params, ...customizations } })), baseParams);
         // Build final composition
         const finalCode = template.baseTemplate
             .replace('{{PRIMITIVE_CODE}}', primitiveCode)
@@ -546,4 +549,5 @@ export const VideoComposition: React.FC = () => {
 };`;
     }
 }
+exports.IntelligentCompositionGenerator = IntelligentCompositionGenerator;
 //# sourceMappingURL=intelligent-compositions.js.map

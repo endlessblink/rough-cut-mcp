@@ -1,16 +1,55 @@
+"use strict";
 /**
  * Health Monitoring Service for Rough Cut MCP
  * Monitors system health, external services, and provides diagnostics
  */
-import fs from 'fs-extra';
-import * as path from 'path';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import { getLogger } from '../utils/logger.js';
-const execAsync = promisify(exec);
-export class HealthMonitor {
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.HealthMonitor = void 0;
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const path = __importStar(require("path"));
+const child_process_1 = require("child_process");
+const util_1 = require("util");
+const logger_js_1 = require("../utils/logger.js");
+const execAsync = (0, util_1.promisify)(child_process_1.exec);
+class HealthMonitor {
     config;
-    logger = getLogger().service('HealthMonitor');
+    logger = (0, logger_js_1.getLogger)().service('HealthMonitor');
     healthHistory = [];
     maxHistorySize = 100;
     constructor(config) {
@@ -86,11 +125,11 @@ export class HealthMonitor {
             ];
             for (const dir of directories) {
                 try {
-                    await fs.ensureDir(dir);
+                    await fs_extra_1.default.ensureDir(dir);
                     // Test write access
                     const testFile = path.join(dir, '.health-check-test');
-                    await fs.writeFile(testFile, 'test');
-                    await fs.remove(testFile);
+                    await fs_extra_1.default.writeFile(testFile, 'test');
+                    await fs_extra_1.default.remove(testFile);
                 }
                 catch (error) {
                     issues.push({
@@ -104,7 +143,7 @@ export class HealthMonitor {
             }
             // Check disk space
             try {
-                const stats = await fs.stat(this.config.assetsDir);
+                const stats = await fs_extra_1.default.stat(this.config.assetsDir);
                 // This is a simplified check - in production you'd want more detailed disk space checking
                 this.logger.debug('Filesystem check completed');
             }
@@ -414,4 +453,5 @@ export class HealthMonitor {
         };
     }
 }
+exports.HealthMonitor = HealthMonitor;
 //# sourceMappingURL=health-monitor.js.map

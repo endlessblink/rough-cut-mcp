@@ -1,6 +1,14 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.Logger = void 0;
+exports.initLogger = initLogger;
+exports.getLogger = getLogger;
 // Logging utility for the MCP server
-import fs from 'fs-extra';
-import path from 'path';
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const path_1 = __importDefault(require("path"));
 class Logger {
     logLevel;
     logFile;
@@ -9,8 +17,8 @@ class Logger {
         this.logFile = file;
         if (this.logFile) {
             // Ensure log directory exists
-            const logDir = path.dirname(this.logFile);
-            fs.ensureDirSync(logDir);
+            const logDir = path_1.default.dirname(this.logFile);
+            fs_extra_1.default.ensureDirSync(logDir);
         }
     }
     getLevelPriority(level) {
@@ -40,7 +48,7 @@ class Logger {
         // Only write to file to avoid breaking JSON-RPC protocol
         // File output only - no console output for MCP compatibility
         if (this.logFile) {
-            fs.appendFileSync(this.logFile, formattedMessage + '\n');
+            fs_extra_1.default.appendFileSync(this.logFile, formattedMessage + '\n');
         }
         // If no log file configured, silently drop logs to maintain MCP protocol
     }
@@ -92,18 +100,17 @@ class Logger {
         this.error(errorMessage, errorData, service);
     }
 }
+exports.Logger = Logger;
 // Global logger instance
 let globalLogger;
-export function initLogger(level = 'info', file) {
+function initLogger(level = 'info', file) {
     globalLogger = new Logger(level, file);
     return globalLogger;
 }
-export function getLogger() {
+function getLogger() {
     if (!globalLogger) {
         globalLogger = new Logger();
     }
     return globalLogger;
 }
-// Export logger instance for direct use
-export { Logger };
 //# sourceMappingURL=logger.js.map

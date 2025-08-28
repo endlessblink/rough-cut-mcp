@@ -1,21 +1,27 @@
+"use strict";
 /**
  * Studio Registry Service
  * Manages persistent tracking of Remotion Studio instances
  */
-import fs from 'fs-extra';
-import path from 'path';
-import { spawn } from 'child_process';
-import { getLogger } from '../utils/logger.js';
-export class StudioRegistry {
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.StudioRegistry = void 0;
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const path_1 = __importDefault(require("path"));
+const child_process_1 = require("child_process");
+const logger_js_1 = require("../utils/logger.js");
+class StudioRegistry {
     instances;
     registryFile;
-    logger = getLogger().service('StudioRegistry');
+    logger = (0, logger_js_1.getLogger)().service('StudioRegistry');
     config;
     portRange = { min: 3000, max: 3100 };
     constructor(config) {
         this.config = config;
         this.instances = new Map();
-        this.registryFile = path.join(config.assetsDir, '.studio-registry.json');
+        this.registryFile = path_1.default.join(config.assetsDir, '.studio-registry.json');
         // Load existing registry
         this.loadRegistry();
         // Clean up dead instances
@@ -26,8 +32,8 @@ export class StudioRegistry {
      */
     async loadRegistry() {
         try {
-            if (await fs.pathExists(this.registryFile)) {
-                const data = await fs.readJson(this.registryFile);
+            if (await fs_extra_1.default.pathExists(this.registryFile)) {
+                const data = await fs_extra_1.default.readJson(this.registryFile);
                 for (const instance of data.instances || []) {
                     // Check if process is still alive
                     if (this.isProcessAlive(instance.pid)) {
@@ -58,7 +64,7 @@ export class StudioRegistry {
                     url: inst.url
                 }))
             };
-            await fs.writeJson(this.registryFile, data, { spaces: 2 });
+            await fs_extra_1.default.writeJson(this.registryFile, data, { spaces: 2 });
             this.logger.debug('Studio registry saved');
         }
         catch (error) {
@@ -126,12 +132,12 @@ export class StudioRegistry {
     async launchStudio(projectPath, projectName, requestedPort) {
         try {
             // Ensure project path exists
-            if (!await fs.pathExists(projectPath)) {
+            if (!await fs_extra_1.default.pathExists(projectPath)) {
                 throw new Error(`Project path does not exist: ${projectPath}`);
             }
             // Check if package.json exists
-            const packageJsonPath = path.join(projectPath, 'package.json');
-            if (!await fs.pathExists(packageJsonPath)) {
+            const packageJsonPath = path_1.default.join(projectPath, 'package.json');
+            if (!await fs_extra_1.default.pathExists(packageJsonPath)) {
                 throw new Error(`No package.json found in project: ${projectPath}`);
             }
             // Find available port
@@ -139,7 +145,7 @@ export class StudioRegistry {
                 ? requestedPort
                 : await this.findAvailablePort();
             // Launch Remotion Studio
-            const studioProcess = spawn('npx', ['remotion', 'studio', '--port', String(port)], {
+            const studioProcess = (0, child_process_1.spawn)('npx', ['remotion', 'studio', '--port', String(port)], {
                 cwd: projectPath,
                 shell: true,
                 detached: process.platform !== 'win32',
@@ -150,7 +156,7 @@ export class StudioRegistry {
                 pid: studioProcess.pid || 0,
                 port,
                 projectPath,
-                projectName: projectName || path.basename(projectPath),
+                projectName: projectName || path_1.default.basename(projectPath),
                 startTime: Date.now(),
                 status: 'starting',
                 url: `http://localhost:${port}`,
@@ -175,7 +181,7 @@ export class StudioRegistry {
             this.logger.info('Studio launched', {
                 port,
                 pid: instance.pid,
-                project: projectName || path.basename(projectPath)
+                project: projectName || path_1.default.basename(projectPath)
             });
             return instance;
         }
@@ -268,4 +274,5 @@ export class StudioRegistry {
         };
     }
 }
+exports.StudioRegistry = StudioRegistry;
 //# sourceMappingURL=studio-registry.js.map

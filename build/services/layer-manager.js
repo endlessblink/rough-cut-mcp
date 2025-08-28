@@ -1,12 +1,15 @@
+"use strict";
 /**
  * Layer Manager for Advanced Tool Organization
  *
  * Manages tool layers with exclusivity policies, dependencies,
  * and context weight tracking for optimal LLM performance.
  */
-import { LayerExclusivity, LayerState, ContextPressure, } from '../types/layer-types.js';
-import { getLogger } from '../utils/logger.js';
-import { EventEmitter } from 'events';
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.LayerManager = void 0;
+const layer_types_js_1 = require("../types/layer-types.js");
+const logger_js_1 = require("../utils/logger.js");
+const events_1 = require("events");
 /**
  * Default layer manager configuration
  */
@@ -21,7 +24,7 @@ const DEFAULT_CONFIG = {
 /**
  * Layer Manager for sophisticated tool layer orchestration
  */
-export class LayerManager extends EventEmitter {
+class LayerManager extends events_1.EventEmitter {
     layers;
     activeLayers;
     config;
@@ -41,7 +44,7 @@ export class LayerManager extends EventEmitter {
         this.currentContextWeight = 0;
         this.activationQueue = new Set();
         this.deactivationQueue = new Set();
-        this.logger = getLogger().service('LayerManager');
+        this.logger = (0, logger_js_1.getLogger)().service('LayerManager');
         this.logger.info('Layer Manager initialized', this.config);
     }
     /**
@@ -240,12 +243,12 @@ export class LayerManager extends EventEmitter {
     getContextPressure() {
         const ratio = this.currentContextWeight / this.config.maxContextWeight;
         if (ratio < 0.5)
-            return ContextPressure.LOW;
+            return layer_types_js_1.ContextPressure.LOW;
         if (ratio < 0.75)
-            return ContextPressure.MEDIUM;
+            return layer_types_js_1.ContextPressure.MEDIUM;
         if (ratio < 0.9)
-            return ContextPressure.HIGH;
-        return ContextPressure.CRITICAL;
+            return layer_types_js_1.ContextPressure.HIGH;
+        return layer_types_js_1.ContextPressure.CRITICAL;
     }
     /**
      * Get layer statistics
@@ -355,24 +358,24 @@ export class LayerManager extends EventEmitter {
             const layer = this.layers.get(layerId);
             if (!layer)
                 continue;
-            if (layer.exclusivity === LayerExclusivity.EXCLUSIVE) {
+            if (layer.exclusivity === layer_types_js_1.LayerExclusivity.EXCLUSIVE) {
                 // Deactivate all other layers except permanent ones
                 for (const activeId of this.activeLayers) {
                     const activeLayer = this.layers.get(activeId);
                     if (activeLayer &&
-                        activeLayer.exclusivity !== LayerExclusivity.PERMANENT &&
+                        activeLayer.exclusivity !== layer_types_js_1.LayerExclusivity.PERMANENT &&
                         !activatingLayers.includes(activeId)) {
                         toDeactivate.add(activeId);
                     }
                 }
             }
-            else if (layer.exclusivity === LayerExclusivity.SELECTIVE) {
+            else if (layer.exclusivity === layer_types_js_1.LayerExclusivity.SELECTIVE) {
                 // Deactivate incompatible layers
                 for (const activeId of this.activeLayers) {
                     if (!layer.compatibleLayers?.includes(activeId) &&
                         !activatingLayers.includes(activeId)) {
                         const activeLayer = this.layers.get(activeId);
-                        if (activeLayer && activeLayer.exclusivity !== LayerExclusivity.PERMANENT) {
+                        if (activeLayer && activeLayer.exclusivity !== layer_types_js_1.LayerExclusivity.PERMANENT) {
                             toDeactivate.add(activeId);
                         }
                     }
@@ -411,7 +414,7 @@ export class LayerManager extends EventEmitter {
             if (exclude.has(layerId))
                 continue;
             const layer = this.layers.get(layerId);
-            if (!layer || layer.exclusivity === LayerExclusivity.PERMANENT)
+            if (!layer || layer.exclusivity === layer_types_js_1.LayerExclusivity.PERMANENT)
                 continue;
             const stats = this.layerStats.get(layerId);
             const lastUsed = stats?.lastActivated?.getTime() || 0;
@@ -447,14 +450,14 @@ export class LayerManager extends EventEmitter {
             return; // Already active
         }
         // Update state
-        layer.state = LayerState.ACTIVATING;
+        layer.state = layer_types_js_1.LayerState.ACTIVATING;
         this.activationQueue.add(layerId);
         try {
             // Simulate activation (in real implementation, this might involve async resource loading)
             await new Promise(resolve => setTimeout(resolve, 100));
             // Mark as active
             this.activeLayers.add(layerId);
-            layer.state = LayerState.ACTIVE;
+            layer.state = layer_types_js_1.LayerState.ACTIVE;
             result.activatedLayers.push(layerId);
             result.activatedTools.push(...Array.from(layer.tools));
             // Update statistics
@@ -464,7 +467,7 @@ export class LayerManager extends EventEmitter {
             this.logger.info('Layer activated', { layerId, tools: layer.tools.size });
         }
         catch (error) {
-            layer.state = LayerState.ERROR;
+            layer.state = layer_types_js_1.LayerState.ERROR;
             result.errors.push(`Failed to activate layer '${layerId}': ${error}`);
         }
         finally {
@@ -479,19 +482,19 @@ export class LayerManager extends EventEmitter {
         if (!layer || !this.activeLayers.has(layerId)) {
             return; // Not active or doesn't exist
         }
-        if (layer.exclusivity === LayerExclusivity.PERMANENT) {
+        if (layer.exclusivity === layer_types_js_1.LayerExclusivity.PERMANENT) {
             result.warnings.push(`Cannot deactivate permanent layer '${layerId}'`);
             return;
         }
         // Update state
-        layer.state = LayerState.DEACTIVATING;
+        layer.state = layer_types_js_1.LayerState.DEACTIVATING;
         this.deactivationQueue.add(layerId);
         try {
             // Simulate deactivation
             await new Promise(resolve => setTimeout(resolve, 50));
             // Mark as inactive
             this.activeLayers.delete(layerId);
-            layer.state = LayerState.INACTIVE;
+            layer.state = layer_types_js_1.LayerState.INACTIVE;
             result.deactivatedLayers.push(layerId);
             result.deactivatedTools.push(...Array.from(layer.tools));
             this.logger.info('Layer deactivated', { layerId });
@@ -568,4 +571,5 @@ export class LayerManager extends EventEmitter {
         }
     }
 }
+exports.LayerManager = LayerManager;
 //# sourceMappingURL=layer-manager.js.map

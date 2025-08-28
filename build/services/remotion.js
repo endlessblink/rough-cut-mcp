@@ -1,21 +1,27 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RemotionService = void 0;
 // Remotion video rendering orchestration service
-import { bundle } from '@remotion/bundler';
-import { renderMedia, selectComposition } from '@remotion/renderer';
-import fs from 'fs-extra';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import { getAssetPath } from '../utils/config.js';
-import { getLogger } from '../utils/logger.js';
-import { patchRemotionSpawn, getBundlerOptions, normalizePath } from '../utils/platform-fix.js';
-import { validateTextContent, validateDuration } from '../utils/validation.js';
+const bundler_1 = require("@remotion/bundler");
+const renderer_1 = require("@remotion/renderer");
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const path_1 = __importDefault(require("path"));
+const uuid_1 = require("uuid");
+const config_js_1 = require("../utils/config.js");
+const logger_js_1 = require("../utils/logger.js");
+const platform_fix_js_1 = require("../utils/platform-fix.js");
+const validation_js_1 = require("../utils/validation.js");
 // import { setLastCreatedProject } from '../tools/studio-tools.js'; // Removed - tools archived
-export class RemotionService {
+class RemotionService {
     config;
-    logger = getLogger().service('Remotion');
+    logger = (0, logger_js_1.getLogger)().service('Remotion');
     constructor(config) {
         this.config = config;
         // Apply platform-specific spawn fixes
-        patchRemotionSpawn();
+        (0, platform_fix_js_1.patchRemotionSpawn)();
         this.logger.info('Remotion service initialized with platform fixes');
     }
     /**
@@ -34,24 +40,24 @@ export class RemotionService {
         });
         try {
             // Validate inputs
-            const animationValidation = validateTextContent(request.animationDesc, 2000);
+            const animationValidation = (0, validation_js_1.validateTextContent)(request.animationDesc, 2000);
             if (!animationValidation.isValid) {
                 throw new Error(`Invalid animation description: ${animationValidation.errors.join(', ')}`);
             }
-            const durationValidation = validateDuration(request.duration || 30);
+            const durationValidation = (0, validation_js_1.validateDuration)(request.duration || 30);
             if (!durationValidation.isValid) {
                 throw new Error(`Invalid duration: ${durationValidation.error}`);
             }
             // Prepare video output path
-            const videoDir = getAssetPath(this.config, 'videos');
-            await fs.ensureDir(videoDir);
-            const videoFilename = `video_${uuidv4()}.mp4`;
-            const videoPath = path.join(videoDir, videoFilename);
+            const videoDir = (0, config_js_1.getAssetPath)(this.config, 'videos');
+            await fs_extra_1.default.ensureDir(videoDir);
+            const videoFilename = `video_${(0, uuid_1.v4)()}.mp4`;
+            const videoPath = path_1.default.join(videoDir, videoFilename);
             // Create temporary composition file
-            const tempDir = getAssetPath(this.config, 'temp');
-            await fs.ensureDir(tempDir);
-            const compositionDir = path.join(tempDir, `composition_${uuidv4()}`);
-            await fs.ensureDir(compositionDir);
+            const tempDir = (0, config_js_1.getAssetPath)(this.config, 'temp');
+            await fs_extra_1.default.ensureDir(tempDir);
+            const compositionDir = path_1.default.join(tempDir, `composition_${(0, uuid_1.v4)()}`);
+            await fs_extra_1.default.ensureDir(compositionDir);
             // Generate composition code using simple compositions
             const { generateBasicComposition, generateIndexFile, generatePackageJson } = await import('../templates/simple-compositions.js');
             const compositionCode = await generateBasicComposition({
@@ -63,27 +69,27 @@ export class RemotionService {
                 fps: request.fps || 30,
                 dimensions: request.dimensions || { width: 1920, height: 1080 },
             });
-            const compositionFile = path.join(compositionDir, 'Composition.tsx');
-            await fs.writeFile(compositionFile, compositionCode);
+            const compositionFile = path_1.default.join(compositionDir, 'Composition.tsx');
+            await fs_extra_1.default.writeFile(compositionFile, compositionCode);
             // Create package.json for the composition
             const packageJsonContent = generatePackageJson();
-            await fs.writeFile(path.join(compositionDir, 'package.json'), packageJsonContent);
+            await fs_extra_1.default.writeFile(path_1.default.join(compositionDir, 'package.json'), packageJsonContent);
             // Create index file
             const indexCode = generateIndexFile(request.duration || 30, request.fps || 30, request.dimensions || { width: 1920, height: 1080 });
-            await fs.writeFile(path.join(compositionDir, 'Video.tsx'), indexCode);
+            await fs_extra_1.default.writeFile(path_1.default.join(compositionDir, 'Video.tsx'), indexCode);
             // Create root index file
             const rootIndexCode = `import { registerRoot } from 'remotion';
 import { RemotionVideo } from './Video';
 
 registerRoot(RemotionVideo);`;
-            await fs.writeFile(path.join(compositionDir, 'index.ts'), rootIndexCode);
+            await fs_extra_1.default.writeFile(path_1.default.join(compositionDir, 'index.ts'), rootIndexCode);
             // Bundle the composition with platform fixes
             this.logger.debug('Bundling composition with platform fixes');
             let bundleLocation;
             try {
-                const platformOptions = getBundlerOptions();
-                bundleLocation = await bundle({
-                    entryPoint: normalizePath(path.join(compositionDir, 'index.ts')),
+                const platformOptions = (0, platform_fix_js_1.getBundlerOptions)();
+                bundleLocation = await (0, bundler_1.bundle)({
+                    entryPoint: (0, platform_fix_js_1.normalizePath)(path_1.default.join(compositionDir, 'index.ts')),
                     onProgress: (progress) => {
                         this.logger.debug('Bundle progress', { progress: Math.round(progress * 100) + '%' });
                     },
@@ -99,7 +105,7 @@ registerRoot(RemotionVideo);`;
                 throw new Error(`Failed to bundle composition: ${bundleError instanceof Error ? bundleError.message : String(bundleError)}`);
             }
             // Get composition metadata
-            const compositions = await selectComposition({
+            const compositions = await (0, renderer_1.selectComposition)({
                 serveUrl: bundleLocation,
                 id: 'VideoComposition',
                 inputProps: {
@@ -123,7 +129,7 @@ registerRoot(RemotionVideo);`;
                 dimensions
             });
             const renderStart = Date.now();
-            await renderMedia({
+            await (0, renderer_1.renderMedia)({
                 composition: {
                     ...compositions,
                     durationInFrames,
@@ -152,10 +158,10 @@ registerRoot(RemotionVideo);`;
             });
             const renderTime = Date.now() - renderStart;
             // Get file size
-            const stats = await fs.stat(videoPath);
+            const stats = await fs_extra_1.default.stat(videoPath);
             // Cleanup temporary files
             if (this.config.fileManagement.cleanupTempFiles) {
-                await fs.remove(compositionDir);
+                await fs_extra_1.default.remove(compositionDir);
             }
             const result = {
                 videoPath,
@@ -191,22 +197,22 @@ registerRoot(RemotionVideo);`;
      */
     async createTextVideo(text, duration = 10, options) {
         this.logger.info('Creating text-only video', { text: text.substring(0, 50) + '...', duration });
-        const videoDir = getAssetPath(this.config, 'videos');
-        await fs.ensureDir(videoDir);
-        const videoPath = path.join(videoDir, `text_video_${uuidv4()}.mp4`);
+        const videoDir = (0, config_js_1.getAssetPath)(this.config, 'videos');
+        await fs_extra_1.default.ensureDir(videoDir);
+        const videoPath = path_1.default.join(videoDir, `text_video_${(0, uuid_1.v4)()}.mp4`);
         // Create temporary composition for text video
-        const tempDir = getAssetPath(this.config, 'temp');
-        await fs.ensureDir(tempDir);
-        const compositionDir = path.join(tempDir, `text_composition_${uuidv4()}`);
-        await fs.ensureDir(compositionDir);
+        const tempDir = (0, config_js_1.getAssetPath)(this.config, 'temp');
+        await fs_extra_1.default.ensureDir(tempDir);
+        const compositionDir = path_1.default.join(tempDir, `text_composition_${(0, uuid_1.v4)()}`);
+        await fs_extra_1.default.ensureDir(compositionDir);
         try {
             // Generate simple text composition
             const textComposition = this.generateTextComposition(text, duration, options || {});
-            await fs.writeFile(path.join(compositionDir, 'Composition.tsx'), textComposition);
+            await fs_extra_1.default.writeFile(path_1.default.join(compositionDir, 'Composition.tsx'), textComposition);
             // Create package.json
             const { generatePackageJson } = await import('../templates/simple-compositions.js');
             const packageJsonContent = generatePackageJson();
-            await fs.writeFile(path.join(compositionDir, 'package.json'), packageJsonContent);
+            await fs_extra_1.default.writeFile(path_1.default.join(compositionDir, 'package.json'), packageJsonContent);
             // Create Video.tsx
             const fps = 30;
             const durationInFrames = Math.round(duration * fps);
@@ -228,23 +234,23 @@ export const RemotionVideo = () => {
     </>
   );
 };`;
-            await fs.writeFile(path.join(compositionDir, 'Video.tsx'), videoCode);
+            await fs_extra_1.default.writeFile(path_1.default.join(compositionDir, 'Video.tsx'), videoCode);
             // Create root index
             const rootIndexCode = `import { registerRoot } from 'remotion';
 import { RemotionVideo } from './Video';
 
 registerRoot(RemotionVideo);`;
-            await fs.writeFile(path.join(compositionDir, 'index.ts'), rootIndexCode);
+            await fs_extra_1.default.writeFile(path_1.default.join(compositionDir, 'index.ts'), rootIndexCode);
             // Bundle the composition
             this.logger.debug('Bundling text composition');
-            const bundleLocation = await bundle({
-                entryPoint: path.join(compositionDir, 'index.ts'),
+            const bundleLocation = await (0, bundler_1.bundle)({
+                entryPoint: path_1.default.join(compositionDir, 'index.ts'),
                 onProgress: (progress) => {
                     this.logger.debug('Bundle progress', { progress: Math.round(progress * 100) + '%' });
                 },
             });
             // Get composition metadata
-            const compositions = await selectComposition({
+            const compositions = await (0, renderer_1.selectComposition)({
                 serveUrl: bundleLocation,
                 id: 'TextComposition',
                 inputProps: {},
@@ -254,7 +260,7 @@ registerRoot(RemotionVideo);`;
             }
             // Render the video
             this.logger.info('Rendering text video', { durationInFrames, fps });
-            await renderMedia({
+            await (0, renderer_1.renderMedia)({
                 composition: {
                     ...compositions,
                     durationInFrames,
@@ -279,7 +285,7 @@ registerRoot(RemotionVideo);`;
             });
             // Cleanup temporary files
             if (this.config.fileManagement.cleanupTempFiles) {
-                await fs.remove(compositionDir);
+                await fs_extra_1.default.remove(compositionDir);
             }
             this.logger.info('Text video created successfully', { videoPath });
             return videoPath;
@@ -289,7 +295,7 @@ registerRoot(RemotionVideo);`;
                 error: error instanceof Error ? error.message : String(error)
             });
             // Cleanup on error
-            await fs.remove(compositionDir).catch(() => { });
+            await fs_extra_1.default.remove(compositionDir).catch(() => { });
             throw error;
         }
     }
@@ -364,9 +370,9 @@ export const TextComposition: React.FC = () => {
         try {
             this.logger.info('Testing Remotion setup');
             // Test bundling a simple composition
-            const tempDir = getAssetPath(this.config, 'temp');
-            const testDir = path.join(tempDir, `test_${uuidv4()}`);
-            await fs.ensureDir(testDir);
+            const tempDir = (0, config_js_1.getAssetPath)(this.config, 'temp');
+            const testDir = path_1.default.join(tempDir, `test_${(0, uuid_1.v4)()}`);
+            await fs_extra_1.default.ensureDir(testDir);
             // Create minimal test composition
             const testComposition = `import React from 'react';
 import { AbsoluteFill } from 'remotion';
@@ -389,14 +395,14 @@ registerRoot(() => (
     height={1080}
   />
 ));`;
-            await fs.writeFile(path.join(testDir, 'TestComposition.tsx'), testComposition);
-            await fs.writeFile(path.join(testDir, 'index.ts'), testIndex);
+            await fs_extra_1.default.writeFile(path_1.default.join(testDir, 'TestComposition.tsx'), testComposition);
+            await fs_extra_1.default.writeFile(path_1.default.join(testDir, 'index.ts'), testIndex);
             // Try to bundle
-            await bundle({
-                entryPoint: path.join(testDir, 'index.ts'),
+            await (0, bundler_1.bundle)({
+                entryPoint: path_1.default.join(testDir, 'index.ts'),
             });
             // Cleanup
-            await fs.remove(testDir);
+            await fs_extra_1.default.remove(testDir);
             this.logger.info('Remotion setup test successful');
             return true;
         }
@@ -422,15 +428,15 @@ registerRoot(() => (
      */
     async createStudioProject(request, assets) {
         this.logger.info('Creating persistent Studio project');
-        const baseAssetDir = getAssetPath(this.config);
-        const projectsDir = path.join(baseAssetDir, 'projects');
-        await fs.ensureDir(projectsDir);
+        const baseAssetDir = (0, config_js_1.getAssetPath)(this.config);
+        const projectsDir = path_1.default.join(baseAssetDir, 'projects');
+        await fs_extra_1.default.ensureDir(projectsDir);
         const projectName = `video_${Date.now()}`;
-        const projectPath = path.join(projectsDir, projectName);
-        await fs.ensureDir(projectPath);
+        const projectPath = path_1.default.join(projectsDir, projectName);
+        await fs_extra_1.default.ensureDir(projectPath);
         // Create src directory
-        const srcPath = path.join(projectPath, 'src');
-        await fs.ensureDir(srcPath);
+        const srcPath = path_1.default.join(projectPath, 'src');
+        await fs_extra_1.default.ensureDir(srcPath);
         // Generate composition code
         const { generateBasicComposition, generateIndexFile, generateCompletePackageJson, generateRemotionConfig, generateTsConfig } = await import('../templates/simple-compositions.js');
         const compositionCode = await generateBasicComposition({
@@ -443,22 +449,22 @@ registerRoot(() => (
             dimensions: request.dimensions || { width: 1920, height: 1080 },
         });
         // Write files
-        await fs.writeFile(path.join(srcPath, 'Composition.tsx'), compositionCode);
+        await fs_extra_1.default.writeFile(path_1.default.join(srcPath, 'Composition.tsx'), compositionCode);
         const videoCode = generateIndexFile(request.duration || 30, request.fps || 30, request.dimensions || { width: 1920, height: 1080 });
-        await fs.writeFile(path.join(srcPath, 'Video.tsx'), videoCode);
+        await fs_extra_1.default.writeFile(path_1.default.join(srcPath, 'Video.tsx'), videoCode);
         // Create root index
         const rootIndexCode = `import { registerRoot } from 'remotion';
 import { RemotionVideo } from './Video';
 
 registerRoot(RemotionVideo);`;
-        await fs.writeFile(path.join(srcPath, 'index.ts'), rootIndexCode);
+        await fs_extra_1.default.writeFile(path_1.default.join(srcPath, 'index.ts'), rootIndexCode);
         // Create ALL required configuration files
         const packageJsonContent = generateCompletePackageJson();
-        await fs.writeFile(path.join(projectPath, 'package.json'), packageJsonContent);
+        await fs_extra_1.default.writeFile(path_1.default.join(projectPath, 'package.json'), packageJsonContent);
         const remotionConfigContent = generateRemotionConfig();
-        await fs.writeFile(path.join(projectPath, 'remotion.config.ts'), remotionConfigContent);
+        await fs_extra_1.default.writeFile(path_1.default.join(projectPath, 'remotion.config.ts'), remotionConfigContent);
         const tsconfigContent = generateTsConfig();
-        await fs.writeFile(path.join(projectPath, 'tsconfig.json'), tsconfigContent);
+        await fs_extra_1.default.writeFile(path_1.default.join(projectPath, 'tsconfig.json'), tsconfigContent);
         // Install dependencies immediately
         this.logger.info('Installing project dependencies...');
         const { safeNpmInstall } = await import('../utils/safe-spawn.js');
@@ -473,32 +479,32 @@ registerRoot(RemotionVideo);`;
             this.logger.info('Dependencies installed successfully');
         }
         // Create public directory and copy assets
-        const publicPath = path.join(projectPath, 'public');
-        await fs.ensureDir(publicPath);
+        const publicPath = path_1.default.join(projectPath, 'public');
+        await fs_extra_1.default.ensureDir(publicPath);
         // Copy assets to public directory
         for (const image of assets.images) {
-            if (await fs.pathExists(image.imagePath)) {
-                const fileName = path.basename(image.imagePath);
-                const targetPath = path.join(publicPath, fileName);
-                await fs.copy(image.imagePath, targetPath);
+            if (await fs_extra_1.default.pathExists(image.imagePath)) {
+                const fileName = path_1.default.basename(image.imagePath);
+                const targetPath = path_1.default.join(publicPath, fileName);
+                await fs_extra_1.default.copy(image.imagePath, targetPath);
                 // Update the image path in the asset
                 image.imagePath = fileName;
             }
         }
         for (const voice of assets.voiceTracks) {
-            if (await fs.pathExists(voice.audioPath)) {
-                const fileName = path.basename(voice.audioPath);
-                const targetPath = path.join(publicPath, fileName);
-                await fs.copy(voice.audioPath, targetPath);
+            if (await fs_extra_1.default.pathExists(voice.audioPath)) {
+                const fileName = path_1.default.basename(voice.audioPath);
+                const targetPath = path_1.default.join(publicPath, fileName);
+                await fs_extra_1.default.copy(voice.audioPath, targetPath);
                 // Update the audio path in the asset
                 voice.audioPath = fileName;
             }
         }
         for (const sfx of assets.soundEffects) {
-            if (await fs.pathExists(sfx.audioPath)) {
-                const fileName = path.basename(sfx.audioPath);
-                const targetPath = path.join(publicPath, fileName);
-                await fs.copy(sfx.audioPath, targetPath);
+            if (await fs_extra_1.default.pathExists(sfx.audioPath)) {
+                const fileName = path_1.default.basename(sfx.audioPath);
+                const targetPath = path_1.default.join(publicPath, fileName);
+                await fs_extra_1.default.copy(sfx.audioPath, targetPath);
                 // Update the audio path in the asset
                 sfx.audioPath = fileName;
             }
@@ -512,20 +518,20 @@ registerRoot(RemotionVideo);`;
      * Clean up old render files
      */
     async cleanupOldRenders(maxAgeHours = 24) {
-        const videoDir = getAssetPath(this.config, 'videos');
-        const tempDir = getAssetPath(this.config, 'temp');
+        const videoDir = (0, config_js_1.getAssetPath)(this.config, 'videos');
+        const tempDir = (0, config_js_1.getAssetPath)(this.config, 'temp');
         const directories = [videoDir, tempDir];
         let cleanedCount = 0;
         for (const dir of directories) {
             try {
-                if (await fs.pathExists(dir)) {
-                    const files = await fs.readdir(dir);
+                if (await fs_extra_1.default.pathExists(dir)) {
+                    const files = await fs_extra_1.default.readdir(dir);
                     for (const file of files) {
-                        const filePath = path.join(dir, file);
-                        const stats = await fs.stat(filePath);
+                        const filePath = path_1.default.join(dir, file);
+                        const stats = await fs_extra_1.default.stat(filePath);
                         const ageHours = (Date.now() - stats.mtime.getTime()) / (1000 * 60 * 60);
                         if (ageHours > maxAgeHours) {
-                            await fs.remove(filePath);
+                            await fs_extra_1.default.remove(filePath);
                             cleanedCount++;
                             this.logger.debug('Cleaned up old file', { filePath, ageHours });
                         }
@@ -542,4 +548,5 @@ registerRoot(RemotionVideo);`;
         this.logger.info('Cleanup completed', { cleanedCount });
     }
 }
+exports.RemotionService = RemotionService;
 //# sourceMappingURL=remotion.js.map

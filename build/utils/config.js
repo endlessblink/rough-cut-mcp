@@ -1,41 +1,47 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.loadConfig = loadConfig;
+exports.validateApiKeys = validateApiKeys;
+exports.getAssetPath = getAssetPath;
+exports.logConfig = logConfig;
 // Configuration management and validation
-import { config } from 'dotenv';
-import { z } from 'zod';
-import { paths } from '../config/paths.js';
+const dotenv_1 = require("dotenv");
+const zod_1 = require("zod");
+const paths_js_1 = require("../config/paths.js");
 // Load environment variables
-config();
+(0, dotenv_1.config)();
 // Zod schema for configuration validation
-const ConfigSchema = z.object({
-    assetsDir: z.string().default('./assets'),
-    apiKeys: z.object({
-        elevenlabs: z.string().optional(),
-        freesound: z.string().optional(),
-        flux: z.string().optional(),
+const ConfigSchema = zod_1.z.object({
+    assetsDir: zod_1.z.string().default('./assets'),
+    apiKeys: zod_1.z.object({
+        elevenlabs: zod_1.z.string().optional(),
+        freesound: zod_1.z.string().optional(),
+        flux: zod_1.z.string().optional(),
     }),
-    apiEndpoints: z.object({
-        elevenlabs: z.string().url().default('https://api.elevenlabs.io/v1'),
-        flux: z.string().url().default('https://api.bfl.ai/v1'),
+    apiEndpoints: zod_1.z.object({
+        elevenlabs: zod_1.z.string().url().default('https://api.elevenlabs.io/v1'),
+        flux: zod_1.z.string().url().default('https://api.bfl.ai/v1'),
     }),
-    remotion: z.object({
-        browserExecutable: z.string().optional(),
-        concurrency: z.number().int().positive().default(1),
-        timeout: z.number().int().positive().default(30000),
+    remotion: zod_1.z.object({
+        browserExecutable: zod_1.z.string().optional(),
+        concurrency: zod_1.z.number().int().positive().default(1),
+        timeout: zod_1.z.number().int().positive().default(30000),
     }),
-    fileManagement: z.object({
-        cleanupTempFiles: z.boolean().default(true),
-        maxAssetAgeHours: z.number().positive().default(24),
+    fileManagement: zod_1.z.object({
+        cleanupTempFiles: zod_1.z.boolean().default(true),
+        maxAssetAgeHours: zod_1.z.number().positive().default(24),
     }),
-    logging: z.object({
-        level: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
-        file: z.string().optional(),
+    logging: zod_1.z.object({
+        level: zod_1.z.enum(['error', 'warn', 'info', 'debug']).default('info'),
+        file: zod_1.z.string().optional(),
     }),
 });
 /**
  * Load and validate configuration from environment variables
  */
-export function loadConfig() {
+function loadConfig() {
     // Use centralized path management
-    const assetsDir = process.env.REMOTION_ASSETS_DIR || paths.getWindowsPath('assets');
+    const assetsDir = process.env.REMOTION_ASSETS_DIR || paths_js_1.paths.getWindowsPath('assets');
     const rawConfig = {
         assetsDir: assetsDir,
         apiKeys: {
@@ -65,7 +71,7 @@ export function loadConfig() {
         return ConfigSchema.parse(rawConfig);
     }
     catch (error) {
-        if (error instanceof z.ZodError) {
+        if (error instanceof zod_1.z.ZodError) {
             // logger.error('Configuration validation failed:');
             error.errors.forEach((err) => {
                 // logger.error(`  ${err.path.join('.')}: ${err.message}`);
@@ -78,7 +84,7 @@ export function loadConfig() {
 /**
  * Validate that required API keys are present for specific services
  */
-export function validateApiKeys(config, requiredServices) {
+function validateApiKeys(config, requiredServices) {
     const missingKeys = [];
     for (const service of requiredServices) {
         switch (service) {
@@ -108,15 +114,15 @@ export function validateApiKeys(config, requiredServices) {
 /**
  * Get absolute path for assets directory
  */
-export function getAssetPath(config, subpath = '') {
+function getAssetPath(config, subpath = '') {
     // Always use centralized path management for consistency
-    const basePath = config.assetsDir || paths.assetsDir;
-    return subpath ? paths.getWindowsPath(`assets/${subpath}`) : basePath;
+    const basePath = config.assetsDir || paths_js_1.paths.assetsDir;
+    return subpath ? paths_js_1.paths.getWindowsPath(`assets/${subpath}`) : basePath;
 }
 /**
  * Log configuration (without sensitive information)
  */
-export function logConfig(config) {
+function logConfig(config) {
     const safeConfig = {
         ...config,
         apiKeys: Object.keys(config.apiKeys).reduce((acc, key) => {

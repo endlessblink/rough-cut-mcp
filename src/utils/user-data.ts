@@ -128,7 +128,7 @@ export function getInstallationDirectory(): string {
   }
   
   // Fallback: try to detect based on __dirname equivalent
-  const currentDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+  const currentDir = path.resolve(__dirname, '../..');
   const packageJsonPath = path.join(currentDir, 'package.json');
   
   if (fs.existsSync(packageJsonPath)) {

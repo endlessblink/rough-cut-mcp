@@ -1,17 +1,56 @@
+"use strict";
 /**
  * Tool Registry Service for Dynamic Tool Management
  *
  * Implements a layered architecture for MCP tools to reduce context bloat
  * and improve performance by dynamically loading tools on demand.
  */
-import { ToolCategory, TOOL_CATEGORIES, DEFAULT_TOOL_CONFIGURATION, } from '../types/tool-categories.js';
-import { getLogger } from '../utils/logger.js';
-import fs from 'fs-extra';
-import * as path from 'path';
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ToolRegistry = void 0;
+const tool_categories_js_1 = require("../types/tool-categories.js");
+const logger_js_1 = require("../utils/logger.js");
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const path = __importStar(require("path"));
 /**
  * Tool Registry for managing and organizing MCP tools
  */
-export class ToolRegistry {
+class ToolRegistry {
     state;
     logger;
     config;
@@ -21,7 +60,7 @@ export class ToolRegistry {
     alwaysActiveTools = new Set(); // Discovery tools
     constructor(config) {
         this.config = config;
-        this.logger = getLogger().service('ToolRegistry');
+        this.logger = (0, logger_js_1.getLogger)().service('ToolRegistry');
         // Initialize state
         this.state = {
             allTools: new Map(),
@@ -56,7 +95,7 @@ export class ToolRegistry {
         }
         this.state.toolsByCategory.get(metadata.category).push(extendedTool);
         // Discovery tools are always active
-        if (metadata.category === ToolCategory.DISCOVERY) {
+        if (metadata.category === tool_categories_js_1.ToolCategory.DISCOVERY) {
             this.state.activeTools.add(tool.name);
             this.alwaysActiveTools.add(tool.name);
             this.logger.info('Discovery tool registered and activated', { name: tool.name });
@@ -70,7 +109,7 @@ export class ToolRegistry {
             name: tool.name,
             category: metadata.category,
             active: this.state.activeTools.has(tool.name),
-            isDiscovery: metadata.category === ToolCategory.DISCOVERY,
+            isDiscovery: metadata.category === tool_categories_js_1.ToolCategory.DISCOVERY,
             loadByDefault: metadata.loadByDefault
         });
     }
@@ -155,7 +194,7 @@ export class ToolRegistry {
             if (request.exclusive) {
                 for (const toolName of this.state.activeTools) {
                     const tool = this.state.allTools.get(toolName);
-                    if (tool && tool.metadata.category !== ToolCategory.DISCOVERY) {
+                    if (tool && tool.metadata.category !== tool_categories_js_1.ToolCategory.DISCOVERY) {
                         this.state.activeTools.delete(toolName);
                         deactivated.push(toolName);
                     }
@@ -253,7 +292,7 @@ export class ToolRegistry {
         for (const toolName of toolNames) {
             const tool = this.state.allTools.get(toolName);
             // Don't deactivate discovery tools
-            if (tool && tool.metadata.category !== ToolCategory.DISCOVERY) {
+            if (tool && tool.metadata.category !== tool_categories_js_1.ToolCategory.DISCOVERY) {
                 if (this.state.activeTools.delete(toolName)) {
                     deactivated.push(toolName);
                 }
@@ -319,7 +358,7 @@ export class ToolRegistry {
      */
     getCategories() {
         const categories = [];
-        for (const [id, info] of Object.entries(TOOL_CATEGORIES)) {
+        for (const [id, info] of Object.entries(tool_categories_js_1.TOOL_CATEGORIES)) {
             const categoryInfo = { ...info };
             const tools = this.state.toolsByCategory.get(id) || [];
             categoryInfo.toolCount = tools.length;
@@ -398,8 +437,8 @@ export class ToolRegistry {
      */
     async loadUsageStats() {
         try {
-            if (await fs.pathExists(this.usageStatsFile)) {
-                const stats = await fs.readJson(this.usageStatsFile);
+            if (await fs_extra_1.default.pathExists(this.usageStatsFile)) {
+                const stats = await fs_extra_1.default.readJson(this.usageStatsFile);
                 this.state.usageStats = new Map(Object.entries(stats));
                 this.logger.info('Loaded usage statistics', {
                     toolCount: this.state.usageStats.size
@@ -416,7 +455,7 @@ export class ToolRegistry {
     async saveUsageStats() {
         try {
             const stats = Object.fromEntries(this.state.usageStats);
-            await fs.writeJson(this.usageStatsFile, stats, { spaces: 2 });
+            await fs_extra_1.default.writeJson(this.usageStatsFile, stats, { spaces: 2 });
         }
         catch (error) {
             this.logger.warn('Failed to save usage statistics', { error });
@@ -460,7 +499,7 @@ export class ToolRegistry {
      */
     initializeDefaults() {
         const request = {
-            categories: DEFAULT_TOOL_CONFIGURATION.defaultCategories,
+            categories: tool_categories_js_1.DEFAULT_TOOL_CONFIGURATION.defaultCategories,
             exclusive: false,
         };
         const result = this.activateTools(request);
@@ -545,4 +584,5 @@ export class ToolRegistry {
         };
     }
 }
+exports.ToolRegistry = ToolRegistry;
 //# sourceMappingURL=tool-registry.js.map

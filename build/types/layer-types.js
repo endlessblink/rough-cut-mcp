@@ -1,13 +1,16 @@
+"use strict";
 /**
  * Layer Management Types for Advanced Tool Organization
  *
  * Defines types for layer-based tool management with support for
  * dependencies, exclusivity policies, and context weight tracking.
  */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ContextPressure = exports.LayerState = exports.LayerExclusivity = void 0;
 /**
  * Layer exclusivity policy
  */
-export var LayerExclusivity;
+var LayerExclusivity;
 (function (LayerExclusivity) {
     /** Layer can coexist with any other layers */
     LayerExclusivity["NONE"] = "none";
@@ -17,26 +20,26 @@ export var LayerExclusivity;
     LayerExclusivity["EXCLUSIVE"] = "exclusive";
     /** Layer is always active (cannot be deactivated) */
     LayerExclusivity["PERMANENT"] = "permanent";
-})(LayerExclusivity || (LayerExclusivity = {}));
+})(LayerExclusivity || (exports.LayerExclusivity = LayerExclusivity = {}));
 /**
  * Layer activation state
  */
-export var LayerState;
+var LayerState;
 (function (LayerState) {
     LayerState["INACTIVE"] = "inactive";
     LayerState["ACTIVATING"] = "activating";
     LayerState["ACTIVE"] = "active";
     LayerState["DEACTIVATING"] = "deactivating";
     LayerState["ERROR"] = "error";
-})(LayerState || (LayerState = {}));
+})(LayerState || (exports.LayerState = LayerState = {}));
 /**
  * Context pressure level
  */
-export var ContextPressure;
+var ContextPressure;
 (function (ContextPressure) {
     ContextPressure["LOW"] = "low";
     ContextPressure["MEDIUM"] = "medium";
     ContextPressure["HIGH"] = "high";
     ContextPressure["CRITICAL"] = "critical";
-})(ContextPressure || (ContextPressure = {}));
+})(ContextPressure || (exports.ContextPressure = ContextPressure = {}));
 //# sourceMappingURL=layer-types.js.map

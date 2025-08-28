@@ -1,25 +1,31 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.createRemotionProcess = createRemotionProcess;
+exports.normalizePath = normalizePath;
+exports.getBundlerOptions = getBundlerOptions;
+exports.patchRemotionSpawn = patchRemotionSpawn;
 // Platform-specific fixes for Windows spawn issues
-import { spawn } from 'child_process';
+const child_process_1 = require("child_process");
 /**
  * Fix for Windows spawn EINVAL issues
  * Wraps child_process.spawn with proper shell configuration
  */
-export function createRemotionProcess(command, args = [], options = {}) {
+function createRemotionProcess(command, args = [], options = {}) {
     const isWindows = process.platform === 'win32';
     if (isWindows) {
         // Use shell: true for Windows
-        return spawn(command, args, {
+        return (0, child_process_1.spawn)(command, args, {
             ...options,
             shell: true,
             stdio: options.stdio || 'pipe'
         });
     }
-    return spawn(command, args, options);
+    return (0, child_process_1.spawn)(command, args, options);
 }
 /**
  * Normalize paths for cross-platform compatibility
  */
-export function normalizePath(filePath) {
+function normalizePath(filePath) {
     if (process.platform === 'win32') {
         // Convert forward slashes to backslashes on Windows
         return filePath.replace(/\//g, '\\');
@@ -30,7 +36,7 @@ export function normalizePath(filePath) {
 /**
  * Get platform-specific Remotion bundler options
  */
-export function getBundlerOptions() {
+function getBundlerOptions() {
     const isWindows = process.platform === 'win32';
     if (isWindows) {
         return {
@@ -57,7 +63,7 @@ export function getBundlerOptions() {
 /**
  * Patch Remotion's internal spawn calls
  */
-export function patchRemotionSpawn() {
+function patchRemotionSpawn() {
     // Override global spawn
     global.spawn = function (command, args, options) {
         // logger.debug(`[PLATFORM-FIX] Intercepting spawn call: ${command}`);

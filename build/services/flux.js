@@ -1,21 +1,27 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.FluxService = void 0;
 // Flux (Black Forest Labs) image generation service
-import axios from 'axios';
-import fs from 'fs-extra';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import { getAssetPath } from '../utils/config.js';
-import { getLogger } from '../utils/logger.js';
-import { validateTextContent } from '../utils/validation.js';
-export class FluxService {
+const axios_1 = __importDefault(require("axios"));
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const path_1 = __importDefault(require("path"));
+const uuid_1 = require("uuid");
+const config_js_1 = require("../utils/config.js");
+const logger_js_1 = require("../utils/logger.js");
+const validation_js_1 = require("../utils/validation.js");
+class FluxService {
     client;
     config;
-    logger = getLogger().service('Flux');
+    logger = (0, logger_js_1.getLogger)().service('Flux');
     constructor(config) {
         this.config = config;
         if (!config.apiKeys.flux) {
             throw new Error('Flux API key is required');
         }
-        this.client = axios.create({
+        this.client = axios_1.default.create({
             baseURL: config.apiEndpoints.flux,
             headers: {
                 'Authorization': `Bearer ${config.apiKeys.flux}`,
@@ -37,15 +43,15 @@ export class FluxService {
         });
         try {
             // Validate input prompt
-            const promptValidation = validateTextContent(request.prompt, 1000);
+            const promptValidation = (0, validation_js_1.validateTextContent)(request.prompt, 1000);
             if (!promptValidation.isValid) {
                 throw new Error(`Invalid prompt: ${promptValidation.errors.join(', ')}`);
             }
             // Prepare output path
-            const imageDir = getAssetPath(this.config, 'images');
-            await fs.ensureDir(imageDir);
-            const filename = request.outputPath || `flux_${uuidv4()}.png`;
-            const imagePath = path.isAbsolute(filename) ? filename : path.join(imageDir, filename);
+            const imageDir = (0, config_js_1.getAssetPath)(this.config, 'images');
+            await fs_extra_1.default.ensureDir(imageDir);
+            const filename = request.outputPath || `flux_${(0, uuid_1.v4)()}.png`;
+            const imagePath = path_1.default.isAbsolute(filename) ? filename : path_1.default.join(imageDir, filename);
             // Generate image
             const generateResponse = await this.client.post('/image/generate', {
                 prompt: request.prompt,
@@ -92,7 +98,7 @@ export class FluxService {
             }
             else if (imageData.result.sample.startsWith('http')) {
                 // URL to download
-                const downloadResponse = await axios.get(imageData.result.sample, {
+                const downloadResponse = await axios_1.default.get(imageData.result.sample, {
                     responseType: 'arraybuffer',
                     timeout: 30000,
                 });
@@ -103,7 +109,7 @@ export class FluxService {
                 imageBuffer = Buffer.from(imageData.result.sample, 'base64');
             }
             // Save image file
-            await fs.writeFile(imagePath, imageBuffer);
+            await fs_extra_1.default.writeFile(imagePath, imageBuffer);
             const result = {
                 imagePath,
                 metadata: {
@@ -143,7 +149,7 @@ export class FluxService {
             model: options?.model,
             width: options?.width,
             height: options?.height,
-            outputPath: options?.outputDir ? path.join(options.outputDir, `variation_${i + 1}_${uuidv4()}.png`) : undefined,
+            outputPath: options?.outputDir ? path_1.default.join(options.outputDir, `variation_${i + 1}_${(0, uuid_1.v4)()}.png`) : undefined,
         }));
         const results = await Promise.allSettled(variations.map(variation => this.generateImage(variation)));
         const successful = [];
@@ -281,4 +287,5 @@ export class FluxService {
         return prompt;
     }
 }
+exports.FluxService = FluxService;
 //# sourceMappingURL=flux.js.map

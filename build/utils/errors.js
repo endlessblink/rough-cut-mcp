@@ -1,23 +1,27 @@
+"use strict";
 /**
  * Comprehensive Error Context System for Rough Cut MCP
  * Provides detailed, actionable error messages with troubleshooting guidance
  */
-import { getLogger } from './logger.js';
-const logger = getLogger().service('ErrorContext');
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ErrorFactory = exports.MCPError = exports.ErrorCategory = exports.ErrorSeverity = void 0;
+exports.withErrorContext = withErrorContext;
+const logger_js_1 = require("./logger.js");
+const logger = (0, logger_js_1.getLogger)().service('ErrorContext');
 /**
  * Error severity levels
  */
-export var ErrorSeverity;
+var ErrorSeverity;
 (function (ErrorSeverity) {
     ErrorSeverity["INFO"] = "info";
     ErrorSeverity["WARNING"] = "warning";
     ErrorSeverity["ERROR"] = "error";
     ErrorSeverity["CRITICAL"] = "critical";
-})(ErrorSeverity || (ErrorSeverity = {}));
+})(ErrorSeverity || (exports.ErrorSeverity = ErrorSeverity = {}));
 /**
  * Error categories for better organization
  */
-export var ErrorCategory;
+var ErrorCategory;
 (function (ErrorCategory) {
     ErrorCategory["CONFIGURATION"] = "configuration";
     ErrorCategory["FILESYSTEM"] = "filesystem";
@@ -29,11 +33,11 @@ export var ErrorCategory;
     ErrorCategory["VALIDATION"] = "validation";
     ErrorCategory["RENDER"] = "render";
     ErrorCategory["UNKNOWN"] = "unknown";
-})(ErrorCategory || (ErrorCategory = {}));
+})(ErrorCategory || (exports.ErrorCategory = ErrorCategory = {}));
 /**
  * Enhanced MCP Error with context and suggestions
  */
-export class MCPError extends Error {
+class MCPError extends Error {
     context;
     suggestions;
     userMessage;
@@ -132,10 +136,11 @@ export class MCPError extends Error {
         };
     }
 }
+exports.MCPError = MCPError;
 /**
  * Error factory for common error scenarios
  */
-export class ErrorFactory {
+class ErrorFactory {
     /**
      * Create a filesystem error
      */
@@ -304,6 +309,7 @@ export class ErrorFactory {
         ]);
     }
 }
+exports.ErrorFactory = ErrorFactory;
 /**
  * Get service documentation URL
  */
@@ -319,7 +325,7 @@ function getServiceUrl(service) {
 /**
  * Wrap async functions with error context
  */
-export function withErrorContext(fn, component, operation) {
+function withErrorContext(fn, component, operation) {
     return (async (...args) => {
         try {
             return await fn(...args);

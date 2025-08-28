@@ -1,8 +1,16 @@
+"use strict";
 // Simple composition generator for Claude-provided code
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.generateBasicComposition = generateBasicComposition;
+exports.generateIndexFile = generateIndexFile;
+exports.generateCompletePackageJson = generateCompletePackageJson;
+exports.generatePackageJson = generatePackageJson;
+exports.generateRemotionConfig = generateRemotionConfig;
+exports.generateTsConfig = generateTsConfig;
 /**
  * Generate composition code from Claude-provided code or basic fallback
  */
-export async function generateBasicComposition(request) {
+async function generateBasicComposition(request) {
     const { animationDesc, assets, style, duration, fps, dimensions, compositionCode } = request;
     // If Claude provided composition code, analyze and potentially transform it
     if (compositionCode && compositionCode.trim()) {
@@ -94,7 +102,7 @@ const ErrorScene: React.FC<{
 /**
  * Generate index file for Remotion composition
  */
-export function generateIndexFile(duration, fps, dimensions) {
+function generateIndexFile(duration, fps, dimensions) {
     const durationInFrames = Math.round(duration * fps);
     return `import { Composition } from 'remotion';
 import { VideoComposition } from './Composition';
@@ -115,7 +123,7 @@ export const RemotionVideo = () => {
 /**
  * Generate complete package.json with all required dependencies and scripts
  */
-export function generateCompletePackageJson() {
+function generateCompletePackageJson() {
     return JSON.stringify({
         name: "remotion-video",
         version: "1.0.0",
@@ -141,13 +149,13 @@ export function generateCompletePackageJson() {
 /**
  * Generate legacy package.json (deprecated - use generateCompletePackageJson)
  */
-export function generatePackageJson() {
+function generatePackageJson() {
     return generateCompletePackageJson();
 }
 /**
  * Generate remotion.config.ts file
  */
-export function generateRemotionConfig() {
+function generateRemotionConfig() {
     return `/**
  * Note: When using the Node.JS APIs, the config file
  * doesn't apply. Instead, pass options directly to the APIs.
@@ -173,7 +181,7 @@ Config.setOutputLocation('out');
 /**
  * Generate tsconfig.json for TypeScript compilation
  */
-export function generateTsConfig() {
+function generateTsConfig() {
     return JSON.stringify({
         compilerOptions: {
             target: "ES2018",

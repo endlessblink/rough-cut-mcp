@@ -1,11 +1,8 @@
 import path from 'path';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 
-// ESM equivalent of __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+// Use CommonJS __dirname which TypeScript provides
+// This works in both CommonJS and ESM contexts
 
 /**
  * Centralized path management for RoughCut MCP

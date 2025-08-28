@@ -1,9 +1,8 @@
 {
   "name": "rough-cut-mcp",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "A robust cross-platform MCP server for rapid video creation integrating Remotion with AI voice generation, sound effects, and image generation. Primary support for Windows, experimental macOS compatibility.",
   "main": "build/index.js",
-  "type": "module",
   "scripts": {
     "clean-tsx": "node -e \"try { require('fs').unlinkSync('src/templates/animations.ts'); } catch {}\"",
     "prebuild": "node scripts/check-platform.js && npm run clean-tsx",
@@ -18,12 +17,12 @@
     "studio": "cd assets/studio-project && npm start",
     "setup": "node install.js",
     "test": "node test/ci-test.js",
-    "test:full": "node test/test-runner.cjs", 
+    "test:full": "node test/test-runner.cjs",
     "test:quick": "node test/ci-test.js",
     "test:legacy": "node test/test-mcp-protocol.cjs",
     "test:integration": "npm run test:node-detection && npm run test:installation && npm run test:mcp-protocol",
     "test:node-detection": "node test/integration/node-detection.test.js",
-    "test:installation": "node test/integration/installation.test.js", 
+    "test:installation": "node test/integration/installation.test.js",
     "test:mcp-protocol": "node test/integration/mcp-protocol.test.js",
     "test:verdaccio": "node test/verdaccio-test.js",
     "test:vm": "vagrant up && vagrant ssh test-runner -c 'cd /vagrant && npm test'",
@@ -35,14 +34,14 @@
     "postinstall": "node scripts/postinstall.js"
   },
   "bin": {
-    "rough-cut-mcp": "./build/index.js",
+    "rough-cut-mcp": "./build/cli.js",
     "rough-cut-setup": "./scripts/postinstall.js"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/YOUR_USERNAME/RoughCut.git"
+    "url": "git+https://github.com/endlessblink/rough-cut-mcp.git"
   },
-  "author": "Your Name",
+  "author": "endlessblink",
   "license": "MIT",
   "keywords": [
     "remotion",
@@ -61,12 +60,6 @@
     "video-creation",
     "ai-video"
   ],
-  "author": "endlessblink",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/endlessblink/rough-cut-mcp.git"
-  },
   "bugs": {
     "url": "https://github.com/endlessblink/rough-cut-mcp/issues"
   },
@@ -74,7 +67,7 @@
   "files": [
     "build/",
     "scripts/check-platform.js",
-    "install-to-claude.js",
+    "scripts/postinstall.js",
     "README.md",
     "CHANGELOG.md",
     "LICENSE",
@@ -111,6 +104,7 @@
     "@types/node": "^20.10.0",
     "@types/uuid": "^9.0.0",
     "c8": "^10.1.3",
+    "esbuild": "^0.25.9",
     "nyc": "^17.1.0",
     "prettier": "^3.6.2",
     "typescript": "^5.3.0",

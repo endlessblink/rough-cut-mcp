@@ -1,14 +1,20 @@
+"use strict";
 /**
  * Configuration for Enhanced Tool Management Features
  *
  * Controls which advanced features are enabled and their settings.
  * These features are opt-in to maintain backward compatibility.
  */
-import { OptimizationStrategy } from '../services/context-manager.js';
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.MINIMAL_CONFIG = exports.PRODUCTION_CONFIG = exports.DEVELOPMENT_CONFIG = void 0;
+exports.getEnhancedConfig = getEnhancedConfig;
+exports.isEnhancedMode = isEnhancedMode;
+exports.isFeatureEnabled = isFeatureEnabled;
+const context_manager_js_1 = require("../services/context-manager.js");
 /**
  * Default configuration for development
  */
-export const DEVELOPMENT_CONFIG = {
+exports.DEVELOPMENT_CONFIG = {
     flags: {
         useLayers: true,
         useDependencies: true,
@@ -26,7 +32,7 @@ export const DEVELOPMENT_CONFIG = {
         maxWeight: 15000, // Higher limit for development
         warningThreshold: 0.8,
         criticalThreshold: 0.95,
-        strategy: OptimizationStrategy.SMART,
+        strategy: context_manager_js_1.OptimizationStrategy.SMART,
         autoOptimize: false, // Manual control in dev
     },
     dependencies: {
@@ -44,7 +50,7 @@ export const DEVELOPMENT_CONFIG = {
 /**
  * Default configuration for production
  */
-export const PRODUCTION_CONFIG = {
+exports.PRODUCTION_CONFIG = {
     flags: {
         useLayers: true,
         useDependencies: true,
@@ -62,7 +68,7 @@ export const PRODUCTION_CONFIG = {
         maxWeight: 10000, // Conservative limit
         warningThreshold: 0.75,
         criticalThreshold: 0.9,
-        strategy: OptimizationStrategy.SMART,
+        strategy: context_manager_js_1.OptimizationStrategy.SMART,
         autoOptimize: true, // Auto-manage in production
     },
     dependencies: {
@@ -80,7 +86,7 @@ export const PRODUCTION_CONFIG = {
 /**
  * Minimal configuration (legacy mode)
  */
-export const MINIMAL_CONFIG = {
+exports.MINIMAL_CONFIG = {
     flags: {
         useLayers: false,
         useDependencies: false,
@@ -98,7 +104,7 @@ export const MINIMAL_CONFIG = {
         maxWeight: 999999,
         warningThreshold: 1,
         criticalThreshold: 1,
-        strategy: OptimizationStrategy.LRU,
+        strategy: context_manager_js_1.OptimizationStrategy.LRU,
         autoOptimize: false,
     },
     dependencies: {
@@ -116,31 +122,31 @@ export const MINIMAL_CONFIG = {
 /**
  * Get configuration based on environment
  */
-export function getEnhancedConfig() {
+function getEnhancedConfig() {
     const env = process.env.NODE_ENV || 'development';
     const useEnhanced = process.env.MCP_ENHANCED_FEATURES !== 'false';
     if (!useEnhanced) {
-        return MINIMAL_CONFIG;
+        return exports.MINIMAL_CONFIG;
     }
     switch (env) {
         case 'production':
-            return PRODUCTION_CONFIG;
+            return exports.PRODUCTION_CONFIG;
         case 'development':
-            return DEVELOPMENT_CONFIG;
+            return exports.DEVELOPMENT_CONFIG;
         default:
-            return DEVELOPMENT_CONFIG;
+            return exports.DEVELOPMENT_CONFIG;
     }
 }
 /**
  * Check if enhanced features are enabled
  */
-export function isEnhancedMode() {
+function isEnhancedMode() {
     return process.env.MCP_ENHANCED_FEATURES !== 'false';
 }
 /**
  * Get specific feature flag
  */
-export function isFeatureEnabled(feature) {
+function isFeatureEnabled(feature) {
     const config = getEnhancedConfig();
     return config.flags[feature];
 }

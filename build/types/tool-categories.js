@@ -1,3 +1,4 @@
+"use strict";
 /**
  * Tool Categories and Metadata for Structured MCP Tool Organization
  *
@@ -5,10 +6,12 @@
  * tool selection performance by organizing tools into logical categories
  * that can be dynamically loaded on demand.
  */
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.DEFAULT_TOOL_CONFIGURATION = exports.TOOL_SUBCATEGORIES = exports.TOOL_CATEGORIES = exports.ToolCategory = void 0;
 /**
  * Tool category identifiers
  */
-export var ToolCategory;
+var ToolCategory;
 (function (ToolCategory) {
     ToolCategory["DISCOVERY"] = "discovery";
     ToolCategory["CORE_OPERATIONS"] = "core-operations";
@@ -19,11 +22,11 @@ export var ToolCategory;
     ToolCategory["VOICE_GENERATION"] = "voice-generation";
     ToolCategory["SOUND_EFFECTS"] = "sound-effects";
     ToolCategory["IMAGE_GENERATION"] = "image-generation";
-})(ToolCategory || (ToolCategory = {}));
+})(ToolCategory || (exports.ToolCategory = ToolCategory = {}));
 /**
  * Category definitions with metadata
  */
-export const TOOL_CATEGORIES = {
+exports.TOOL_CATEGORIES = {
     [ToolCategory.DISCOVERY]: {
         id: ToolCategory.DISCOVERY,
         name: 'Discovery & Management',
@@ -96,7 +99,7 @@ export const TOOL_CATEGORIES = {
  * Tool sub-category definitions for hierarchical organization
  * Updated for consolidated tools (~20 tools total)
  */
-export const TOOL_SUBCATEGORIES = {
+exports.TOOL_SUBCATEGORIES = {
     'discovery': {
         'discovery': ['discover', 'activate', 'search']
     },
@@ -128,7 +131,7 @@ export const TOOL_SUBCATEGORIES = {
 /**
  * Default tool loading configuration
  */
-export const DEFAULT_TOOL_CONFIGURATION = {
+exports.DEFAULT_TOOL_CONFIGURATION = {
     /** Maximum tools to load initially */
     maxInitialTools: 10,
     /** Categories to load by default */

@@ -1,16 +1,19 @@
+"use strict";
 /**
  * Context Weight Management System
  *
  * Manages context window usage to prevent LLM performance degradation
  * by tracking and optimizing tool/layer context consumption.
  */
-import { ContextPressure } from '../types/layer-types.js';
-import { getLogger } from '../utils/logger.js';
-import { EventEmitter } from 'events';
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ContextManager = exports.OptimizationStrategy = void 0;
+const layer_types_js_1 = require("../types/layer-types.js");
+const logger_js_1 = require("../utils/logger.js");
+const events_1 = require("events");
 /**
  * Context optimization strategy
  */
-export var OptimizationStrategy;
+var OptimizationStrategy;
 (function (OptimizationStrategy) {
     /** Remove least recently used items */
     OptimizationStrategy["LRU"] = "lru";
@@ -20,7 +23,7 @@ export var OptimizationStrategy;
     OptimizationStrategy["PRIORITY"] = "priority";
     /** Hybrid approach considering multiple factors */
     OptimizationStrategy["SMART"] = "smart";
-})(OptimizationStrategy || (OptimizationStrategy = {}));
+})(OptimizationStrategy || (exports.OptimizationStrategy = OptimizationStrategy = {}));
 /**
  * Default configuration
  */
@@ -35,7 +38,7 @@ const DEFAULT_CONFIG = {
 /**
  * Context Manager for tracking and optimizing context window usage
  */
-export class ContextManager extends EventEmitter {
+class ContextManager extends events_1.EventEmitter {
     items;
     config;
     logger;
@@ -47,7 +50,7 @@ export class ContextManager extends EventEmitter {
         this.items = new Map();
         this.currentWeight = 0;
         this.optimizationHistory = [];
-        this.logger = getLogger().service('ContextManager');
+        this.logger = (0, logger_js_1.getLogger)().service('ContextManager');
         this.logger.info('Context Manager initialized', this.config);
     }
     /**
@@ -84,7 +87,7 @@ export class ContextManager extends EventEmitter {
             totalWeight: this.currentWeight,
         });
         // Check if optimization needed
-        if (this.config.autoOptimize && this.getPressure() >= ContextPressure.HIGH) {
+        if (this.config.autoOptimize && this.getPressure() >= layer_types_js_1.ContextPressure.HIGH) {
             this.optimize();
         }
         // Emit pressure change event
@@ -130,12 +133,12 @@ export class ContextManager extends EventEmitter {
     getPressure() {
         const ratio = this.currentWeight / this.config.maxWeight;
         if (ratio < 0.5)
-            return ContextPressure.LOW;
+            return layer_types_js_1.ContextPressure.LOW;
         if (ratio < this.config.warningThreshold)
-            return ContextPressure.MEDIUM;
+            return layer_types_js_1.ContextPressure.MEDIUM;
         if (ratio < this.config.criticalThreshold)
-            return ContextPressure.HIGH;
-        return ContextPressure.CRITICAL;
+            return layer_types_js_1.ContextPressure.HIGH;
+        return layer_types_js_1.ContextPressure.CRITICAL;
     }
     /**
      * Optimize context by removing items based on strategy
@@ -315,9 +318,10 @@ export class ContextManager extends EventEmitter {
         this.config = { ...this.config, ...config };
         this.logger.info('Configuration updated', this.config);
         // Check if immediate optimization needed
-        if (this.config.autoOptimize && this.getPressure() >= ContextPressure.HIGH) {
+        if (this.config.autoOptimize && this.getPressure() >= layer_types_js_1.ContextPressure.HIGH) {
             this.optimize();
         }
     }
 }
+exports.ContextManager = ContextManager;
 //# sourceMappingURL=context-manager.js.map

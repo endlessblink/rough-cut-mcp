@@ -1,21 +1,27 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ElevenLabsService = void 0;
 // ElevenLabs voice generation service
-import axios from 'axios';
-import fs from 'fs-extra';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import { getAssetPath } from '../utils/config.js';
-import { getLogger } from '../utils/logger.js';
-import { validateTextContent } from '../utils/validation.js';
-export class ElevenLabsService {
+const axios_1 = __importDefault(require("axios"));
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const path_1 = __importDefault(require("path"));
+const uuid_1 = require("uuid");
+const config_js_1 = require("../utils/config.js");
+const logger_js_1 = require("../utils/logger.js");
+const validation_js_1 = require("../utils/validation.js");
+class ElevenLabsService {
     client;
     config;
-    logger = getLogger().service('ElevenLabs');
+    logger = (0, logger_js_1.getLogger)().service('ElevenLabs');
     constructor(config) {
         this.config = config;
         if (!config.apiKeys.elevenlabs) {
             throw new Error('ElevenLabs API key is required');
         }
-        this.client = axios.create({
+        this.client = axios_1.default.create({
             baseURL: 'https://api.elevenlabs.io/v1',
             headers: {
                 'xi-api-key': config.apiKeys.elevenlabs,
@@ -37,15 +43,15 @@ export class ElevenLabsService {
         });
         try {
             // Validate input text
-            const textValidation = validateTextContent(request.text, 10000);
+            const textValidation = (0, validation_js_1.validateTextContent)(request.text, 10000);
             if (!textValidation.isValid) {
                 throw new Error(`Invalid text content: ${textValidation.errors.join(', ')}`);
             }
             // Prepare output path
-            const audioDir = getAssetPath(this.config, 'audio');
-            await fs.ensureDir(audioDir);
-            const filename = request.outputPath || `voice_${uuidv4()}.mp3`;
-            const audioPath = path.isAbsolute(filename) ? filename : path.join(audioDir, filename);
+            const audioDir = (0, config_js_1.getAssetPath)(this.config, 'audio');
+            await fs_extra_1.default.ensureDir(audioDir);
+            const filename = request.outputPath || `voice_${(0, uuid_1.v4)()}.mp3`;
+            const audioPath = path_1.default.isAbsolute(filename) ? filename : path_1.default.join(audioDir, filename);
             // Generate audio using REST API
             const response = await this.client.post(`/text-to-speech/${request.voiceId || 'pNInz6obpgDQGcFmaJgB'}`, // Default Adam voice ID
             {
@@ -63,7 +69,7 @@ export class ElevenLabsService {
             // Convert response to buffer
             const audioBuffer = Buffer.from(response.data);
             // Save audio file
-            await fs.writeFile(audioPath, audioBuffer);
+            await fs_extra_1.default.writeFile(audioPath, audioBuffer);
             // Get audio duration (approximate based on text length and speaking rate)
             // Rough estimate: 150 words per minute, average 5 characters per word
             const estimatedDuration = (request.text.length / 5 / 150) * 60;
@@ -170,4 +176,5 @@ export class ElevenLabsService {
         throw lastError;
     }
 }
+exports.ElevenLabsService = ElevenLabsService;
 //# sourceMappingURL=elevenlabs.js.map

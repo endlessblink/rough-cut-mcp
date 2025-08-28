@@ -1,11 +1,50 @@
+"use strict";
 /**
  * Asset Tools - Manage generated assets and cleanup
  * 5 tools replacing 10+ individual tools
  */
-import { ToolCategory } from '../types/tool-categories.js';
-import * as path from 'path';
-import fs from 'fs-extra';
-export function registerAssetTools(server) {
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.registerAssetTools = registerAssetTools;
+const tool_categories_js_1 = require("../types/tool-categories.js");
+const path = __importStar(require("path"));
+const fs_extra_1 = __importDefault(require("fs-extra"));
+function registerAssetTools(server) {
     const logger = server.baseLogger.service('asset-tools');
     /**
      * 1. Manage Assets - List, organize, delete
@@ -44,7 +83,7 @@ export function registerAssetTools(server) {
                 : server.config.assetsDir;
             switch (args.action) {
                 case 'list': {
-                    if (!await fs.pathExists(assetsDir)) {
+                    if (!await fs_extra_1.default.pathExists(assetsDir)) {
                         return {
                             content: [{
                                     type: 'text',
@@ -52,7 +91,7 @@ export function registerAssetTools(server) {
                                 }]
                         };
                     }
-                    const files = await fs.readdir(assetsDir);
+                    const files = await fs_extra_1.default.readdir(assetsDir);
                     const assets = {
                         images: [],
                         videos: [],
@@ -96,14 +135,14 @@ export function registerAssetTools(server) {
                     };
                 }
                 case 'organize': {
-                    await fs.ensureDir(path.join(assetsDir, 'images'));
-                    await fs.ensureDir(path.join(assetsDir, 'videos'));
-                    await fs.ensureDir(path.join(assetsDir, 'audio'));
-                    const files = await fs.readdir(assetsDir);
+                    await fs_extra_1.default.ensureDir(path.join(assetsDir, 'images'));
+                    await fs_extra_1.default.ensureDir(path.join(assetsDir, 'videos'));
+                    await fs_extra_1.default.ensureDir(path.join(assetsDir, 'audio'));
+                    const files = await fs_extra_1.default.readdir(assetsDir);
                     let moved = 0;
                     for (const file of files) {
                         const filepath = path.join(assetsDir, file);
-                        const stat = await fs.stat(filepath);
+                        const stat = await fs_extra_1.default.stat(filepath);
                         if (!stat.isFile())
                             continue;
                         const ext = path.extname(file).toLowerCase();
@@ -118,7 +157,7 @@ export function registerAssetTools(server) {
                             targetDir = 'audio';
                         }
                         if (targetDir) {
-                            await fs.move(filepath, path.join(assetsDir, targetDir, file), { overwrite: true });
+                            await fs_extra_1.default.move(filepath, path.join(assetsDir, targetDir, file), { overwrite: true });
                             moved++;
                         }
                     }
@@ -134,15 +173,15 @@ export function registerAssetTools(server) {
                         throw new Error('olderThan parameter required for delete action');
                     }
                     const cutoffTime = Date.now() - (args.olderThan * 24 * 60 * 60 * 1000);
-                    const files = await fs.readdir(assetsDir);
+                    const files = await fs_extra_1.default.readdir(assetsDir);
                     let deleted = 0;
                     let freedSpace = 0;
                     for (const file of files) {
                         const filepath = path.join(assetsDir, file);
-                        const stat = await fs.stat(filepath);
+                        const stat = await fs_extra_1.default.stat(filepath);
                         if (stat.isFile() && stat.mtime.getTime() < cutoffTime) {
                             freedSpace += stat.size;
-                            await fs.remove(filepath);
+                            await fs_extra_1.default.remove(filepath);
                             deleted++;
                         }
                     }
@@ -180,7 +219,7 @@ Newest file: ${stats.newestFile ? new Date(stats.newestFile).toLocaleDateString(
         }
     }, {
         name: 'assets',
-        category: ToolCategory.MAINTENANCE,
+        category: tool_categories_js_1.ToolCategory.MAINTENANCE,
         subCategory: 'assets',
         tags: ['assets', 'manage', 'cleanup'],
         loadByDefault: false,
@@ -219,27 +258,27 @@ Newest file: ${stats.newestFile ? new Date(stats.newestFile).toLocaleDateString(
                     let cleared = 0;
                     let freedSpace = 0;
                     if (args.type === 'all' || args.type === 'build') {
-                        if (await fs.pathExists(cacheDir)) {
+                        if (await fs_extra_1.default.pathExists(cacheDir)) {
                             const stats = await getDirectoryStats(cacheDir);
                             freedSpace += stats.totalSize;
                             cleared += stats.totalFiles;
-                            await fs.emptyDir(cacheDir);
+                            await fs_extra_1.default.emptyDir(cacheDir);
                         }
                     }
                     if (args.type === 'all' || args.type === 'temp') {
-                        if (await fs.pathExists(tempDir)) {
+                        if (await fs_extra_1.default.pathExists(tempDir)) {
                             const stats = await getDirectoryStats(tempDir);
                             freedSpace += stats.totalSize;
                             cleared += stats.totalFiles;
-                            await fs.emptyDir(tempDir);
+                            await fs_extra_1.default.emptyDir(tempDir);
                         }
                     }
                     if (args.type === 'all' || args.type === 'logs') {
-                        if (await fs.pathExists(logsDir)) {
+                        if (await fs_extra_1.default.pathExists(logsDir)) {
                             const stats = await getDirectoryStats(logsDir);
                             freedSpace += stats.totalSize;
                             cleared += stats.totalFiles;
-                            await fs.emptyDir(logsDir);
+                            await fs_extra_1.default.emptyDir(logsDir);
                         }
                     }
                     return {
@@ -251,9 +290,9 @@ Freed: ${(freedSpace / (1024 * 1024)).toFixed(2)} MB`
                     };
                 }
                 case 'stats': {
-                    const cacheStats = await fs.pathExists(cacheDir) ? await getDirectoryStats(cacheDir) : null;
-                    const tempStats = await fs.pathExists(tempDir) ? await getDirectoryStats(tempDir) : null;
-                    const logsStats = await fs.pathExists(logsDir) ? await getDirectoryStats(logsDir) : null;
+                    const cacheStats = await fs_extra_1.default.pathExists(cacheDir) ? await getDirectoryStats(cacheDir) : null;
+                    const tempStats = await fs_extra_1.default.pathExists(tempDir) ? await getDirectoryStats(tempDir) : null;
+                    const logsStats = await fs_extra_1.default.pathExists(logsDir) ? await getDirectoryStats(logsDir) : null;
                     return {
                         content: [{
                                 type: 'text',
@@ -266,16 +305,16 @@ Logs: ${logsStats ? `${logsStats.totalFiles} files, ${(logsStats.totalSize / (10
                 }
                 case 'list': {
                     let output = '📁 Cache Contents:\n\n';
-                    if (await fs.pathExists(cacheDir)) {
-                        const files = await fs.readdir(cacheDir);
+                    if (await fs_extra_1.default.pathExists(cacheDir)) {
+                        const files = await fs_extra_1.default.readdir(cacheDir);
                         output += `Cache (${files.length}): ${files.slice(0, 5).join(', ')}${files.length > 5 ? '...' : ''}\n`;
                     }
-                    if (await fs.pathExists(tempDir)) {
-                        const files = await fs.readdir(tempDir);
+                    if (await fs_extra_1.default.pathExists(tempDir)) {
+                        const files = await fs_extra_1.default.readdir(tempDir);
                         output += `Temp (${files.length}): ${files.slice(0, 5).join(', ')}${files.length > 5 ? '...' : ''}\n`;
                     }
-                    if (await fs.pathExists(logsDir)) {
-                        const files = await fs.readdir(logsDir);
+                    if (await fs_extra_1.default.pathExists(logsDir)) {
+                        const files = await fs_extra_1.default.readdir(logsDir);
                         output += `Logs (${files.length}): ${files.slice(0, 5).join(', ')}${files.length > 5 ? '...' : ''}`;
                     }
                     return {
@@ -295,7 +334,7 @@ Logs: ${logsStats ? `${logsStats.totalFiles} files, ${(logsStats.totalSize / (10
         }
     }, {
         name: 'cache',
-        category: ToolCategory.MAINTENANCE,
+        category: tool_categories_js_1.ToolCategory.MAINTENANCE,
         subCategory: 'cache',
         tags: ['cache', 'cleanup', 'temp'],
         loadByDefault: false,
@@ -376,7 +415,7 @@ Logs: ${logsStats ? `${logsStats.totalFiles} files, ${(logsStats.totalSize / (10
         }
     }, {
         name: 'voices',
-        category: ToolCategory.VOICE_GENERATION,
+        category: tool_categories_js_1.ToolCategory.VOICE_GENERATION,
         subCategory: 'management',
         tags: ['voice', 'elevenlabs', 'tts'],
         loadByDefault: false,
@@ -456,7 +495,7 @@ Quality: High`
         }
     }, {
         name: 'image-models',
-        category: ToolCategory.IMAGE_GENERATION,
+        category: tool_categories_js_1.ToolCategory.IMAGE_GENERATION,
         subCategory: 'management',
         tags: ['image', 'flux', 'models'],
         loadByDefault: false,
@@ -548,7 +587,7 @@ Quality: High`
         }
     }, {
         name: 'sounds',
-        category: ToolCategory.SOUND_EFFECTS,
+        category: tool_categories_js_1.ToolCategory.SOUND_EFFECTS,
         subCategory: 'search',
         tags: ['sound', 'freesound', 'audio'],
         loadByDefault: false,
@@ -558,7 +597,7 @@ Quality: High`
 }
 // Helper function to get directory statistics
 async function getDirectoryStats(dir) {
-    if (!await fs.pathExists(dir)) {
+    if (!await fs_extra_1.default.pathExists(dir)) {
         return {
             totalFiles: 0,
             totalSize: 0,
@@ -585,10 +624,10 @@ async function getDirectoryStats(dir) {
         newestFile: null
     };
     async function processDir(currentDir) {
-        const files = await fs.readdir(currentDir);
+        const files = await fs_extra_1.default.readdir(currentDir);
         for (const file of files) {
             const filepath = path.join(currentDir, file);
-            const stat = await fs.stat(filepath);
+            const stat = await fs_extra_1.default.stat(filepath);
             if (stat.isDirectory()) {
                 await processDir(filepath);
             }

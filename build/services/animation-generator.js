@@ -1,7 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AnimationGeneratorService = void 0;
 // Intelligent animation generation service
-import { getLogger } from '../utils/logger.js';
-export class AnimationGeneratorService {
-    logger = getLogger().service('AnimationGenerator');
+const logger_js_1 = require("../utils/logger.js");
+class AnimationGeneratorService {
+    logger = (0, logger_js_1.getLogger)().service('AnimationGenerator');
     constructor() {
         this.logger.info('Animation generator service initialized');
     }
@@ -661,4 +664,5 @@ export const VideoComposition: React.FC = () => {
 };`;
     }
 }
+exports.AnimationGeneratorService = AnimationGeneratorService;
 //# sourceMappingURL=animation-generator.js.map

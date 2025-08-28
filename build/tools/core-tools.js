@@ -1,19 +1,58 @@
+"use strict";
 /**
  * Core Tools - Project and Studio Management
  * 4 tools replacing 30+ individual tools
  */
-import { ToolCategory } from '../types/tool-categories.js';
-import { RemotionService } from '../services/remotion.js';
-import { StudioRegistry } from '../services/studio-registry.js';
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.registerCoreTools = registerCoreTools;
+const tool_categories_js_1 = require("../types/tool-categories.js");
+const remotion_js_1 = require("../services/remotion.js");
+const studio_registry_js_1 = require("../services/studio-registry.js");
 // import { ProjectManagerService } from '../services/project-manager.js';
-import * as path from 'path';
-import fs from 'fs-extra';
-import { exec } from 'child_process';
-import { promisify } from 'util';
-const execAsync = promisify(exec);
-export function registerCoreTools(server) {
-    const remotionService = new RemotionService(server.config);
-    const studioRegistry = new StudioRegistry(server.config);
+const path = __importStar(require("path"));
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const child_process_1 = require("child_process");
+const util_1 = require("util");
+const execAsync = (0, util_1.promisify)(child_process_1.exec);
+function registerCoreTools(server) {
+    const remotionService = new remotion_js_1.RemotionService(server.config);
+    const studioRegistry = new studio_registry_js_1.StudioRegistry(server.config);
     // const projectManager = new ProjectManagerService(server.config);
     const logger = server.baseLogger.service('core-tools');
     /**
@@ -58,12 +97,12 @@ export function registerCoreTools(server) {
                     if (!args.name)
                         throw new Error('Name required');
                     const projectPath = path.join(server.config.assetsDir, 'projects', args.name);
-                    if (await fs.pathExists(projectPath)) {
+                    if (await fs_extra_1.default.pathExists(projectPath)) {
                         throw new Error(`Project "${args.name}" already exists`);
                     }
                     // Create project structure
-                    await fs.ensureDir(path.join(projectPath, 'src'));
-                    await fs.ensureDir(path.join(projectPath, 'public'));
+                    await fs_extra_1.default.ensureDir(path.join(projectPath, 'src'));
+                    await fs_extra_1.default.ensureDir(path.join(projectPath, 'public'));
                     // Create package.json
                     const packageJson = {
                         name: args.name,
@@ -81,7 +120,7 @@ export function registerCoreTools(server) {
                             'remotion': '^4.0.0'
                         }
                     };
-                    await fs.writeJson(path.join(projectPath, 'package.json'), packageJson, { spaces: 2 });
+                    await fs_extra_1.default.writeJson(path.join(projectPath, 'package.json'), packageJson, { spaces: 2 });
                     // Create basic VideoComposition.tsx
                     const fps = args.options?.fps || 30;
                     const width = args.options?.width || 1920;
@@ -111,8 +150,8 @@ export const RemotionRoot: React.FC = () => {
     />
   );
 };`;
-                    await fs.writeFile(path.join(projectPath, 'src', 'VideoComposition.tsx'), composition);
-                    await fs.writeFile(path.join(projectPath, 'src', 'Root.tsx'), composition);
+                    await fs_extra_1.default.writeFile(path.join(projectPath, 'src', 'VideoComposition.tsx'), composition);
+                    await fs_extra_1.default.writeFile(path.join(projectPath, 'src', 'Root.tsx'), composition);
                     return {
                         content: [{
                                 type: 'text',
@@ -124,17 +163,17 @@ export const RemotionRoot: React.FC = () => {
                     try {
                         const projectsDir = path.join(server.config.assetsDir, 'projects');
                         // Ensure the directory exists first
-                        await fs.ensureDir(projectsDir);
+                        await fs_extra_1.default.ensureDir(projectsDir);
                         // Read directory contents
-                        const projects = await fs.readdir(projectsDir);
+                        const projects = await fs_extra_1.default.readdir(projectsDir);
                         const validProjects = [];
                         for (const project of projects) {
                             try {
                                 const projectPath = path.join(projectsDir, project);
-                                const stat = await fs.stat(projectPath);
+                                const stat = await fs_extra_1.default.stat(projectPath);
                                 if (stat.isDirectory()) {
-                                    const hasPackageJson = await fs.pathExists(path.join(projectPath, 'package.json'));
-                                    const hasComposition = await fs.pathExists(path.join(projectPath, 'src', 'VideoComposition.tsx'));
+                                    const hasPackageJson = await fs_extra_1.default.pathExists(path.join(projectPath, 'package.json'));
+                                    const hasComposition = await fs_extra_1.default.pathExists(path.join(projectPath, 'src', 'VideoComposition.tsx'));
                                     validProjects.push({
                                         name: project,
                                         path: projectPath,
@@ -178,15 +217,15 @@ export const RemotionRoot: React.FC = () => {
                     if (!args.name)
                         throw new Error('Name required');
                     const projectPath = path.join(server.config.assetsDir, 'projects', args.name);
-                    if (!await fs.pathExists(projectPath)) {
+                    if (!await fs_extra_1.default.pathExists(projectPath)) {
                         throw new Error(`Project "${args.name}" not found`);
                     }
-                    const hasPackageJson = await fs.pathExists(path.join(projectPath, 'package.json'));
-                    const hasComposition = await fs.pathExists(path.join(projectPath, 'src', 'VideoComposition.tsx'));
-                    const hasNodeModules = await fs.pathExists(path.join(projectPath, 'node_modules'));
+                    const hasPackageJson = await fs_extra_1.default.pathExists(path.join(projectPath, 'package.json'));
+                    const hasComposition = await fs_extra_1.default.pathExists(path.join(projectPath, 'src', 'VideoComposition.tsx'));
+                    const hasNodeModules = await fs_extra_1.default.pathExists(path.join(projectPath, 'node_modules'));
                     let packageInfo = {};
                     if (hasPackageJson) {
-                        packageInfo = await fs.readJson(path.join(projectPath, 'package.json'));
+                        packageInfo = await fs_extra_1.default.readJson(path.join(projectPath, 'package.json'));
                     }
                     return {
                         content: [{
@@ -207,19 +246,19 @@ Version: ${packageInfo.version || 'Unknown'}`
                     }
                     const oldPath = path.join(server.config.assetsDir, 'projects', args.name);
                     const newPath = path.join(server.config.assetsDir, 'projects', args.newName);
-                    if (!await fs.pathExists(oldPath)) {
+                    if (!await fs_extra_1.default.pathExists(oldPath)) {
                         throw new Error(`Project "${args.name}" not found`);
                     }
-                    if (await fs.pathExists(newPath)) {
+                    if (await fs_extra_1.default.pathExists(newPath)) {
                         throw new Error(`Project "${args.newName}" already exists`);
                     }
-                    await fs.rename(oldPath, newPath);
+                    await fs_extra_1.default.rename(oldPath, newPath);
                     // Update package.json name
                     const packagePath = path.join(newPath, 'package.json');
-                    if (await fs.pathExists(packagePath)) {
-                        const pkg = await fs.readJson(packagePath);
+                    if (await fs_extra_1.default.pathExists(packagePath)) {
+                        const pkg = await fs_extra_1.default.readJson(packagePath);
                         pkg.name = args.newName;
-                        await fs.writeJson(packagePath, pkg, { spaces: 2 });
+                        await fs_extra_1.default.writeJson(packagePath, pkg, { spaces: 2 });
                     }
                     return {
                         content: [{
@@ -232,10 +271,10 @@ Version: ${packageInfo.version || 'Unknown'}`
                     if (!args.name)
                         throw new Error('Name required');
                     const projectPath = path.join(server.config.assetsDir, 'projects', args.name);
-                    if (!await fs.pathExists(projectPath)) {
+                    if (!await fs_extra_1.default.pathExists(projectPath)) {
                         throw new Error(`Project "${args.name}" not found`);
                     }
-                    await fs.remove(projectPath);
+                    await fs_extra_1.default.remove(projectPath);
                     return {
                         content: [{
                                 type: 'text',
@@ -249,19 +288,19 @@ Version: ${packageInfo.version || 'Unknown'}`
                     }
                     const sourcePath = path.join(server.config.assetsDir, 'projects', args.name);
                     const destPath = path.join(server.config.assetsDir, 'projects', args.newName);
-                    if (!await fs.pathExists(sourcePath)) {
+                    if (!await fs_extra_1.default.pathExists(sourcePath)) {
                         throw new Error(`Project "${args.name}" not found`);
                     }
-                    if (await fs.pathExists(destPath)) {
+                    if (await fs_extra_1.default.pathExists(destPath)) {
                         throw new Error(`Project "${args.newName}" already exists`);
                     }
-                    await fs.copy(sourcePath, destPath);
+                    await fs_extra_1.default.copy(sourcePath, destPath);
                     // Update package.json name
                     const packagePath = path.join(destPath, 'package.json');
-                    if (await fs.pathExists(packagePath)) {
-                        const pkg = await fs.readJson(packagePath);
+                    if (await fs_extra_1.default.pathExists(packagePath)) {
+                        const pkg = await fs_extra_1.default.readJson(packagePath);
                         pkg.name = args.newName;
-                        await fs.writeJson(packagePath, pkg, { spaces: 2 });
+                        await fs_extra_1.default.writeJson(packagePath, pkg, { spaces: 2 });
                     }
                     return {
                         content: [{
@@ -274,16 +313,16 @@ Version: ${packageInfo.version || 'Unknown'}`
                     if (!args.name)
                         throw new Error('Name required');
                     const projectPath = path.join(server.config.assetsDir, 'projects', args.name);
-                    if (!await fs.pathExists(projectPath)) {
+                    if (!await fs_extra_1.default.pathExists(projectPath)) {
                         throw new Error(`Project "${args.name}" not found`);
                     }
                     const fixes = [];
                     // Ensure directories exist
-                    await fs.ensureDir(path.join(projectPath, 'src'));
-                    await fs.ensureDir(path.join(projectPath, 'public'));
+                    await fs_extra_1.default.ensureDir(path.join(projectPath, 'src'));
+                    await fs_extra_1.default.ensureDir(path.join(projectPath, 'public'));
                     // Check and fix package.json
                     const packagePath = path.join(projectPath, 'package.json');
-                    if (!await fs.pathExists(packagePath)) {
+                    if (!await fs_extra_1.default.pathExists(packagePath)) {
                         const packageJson = {
                             name: args.name,
                             version: '1.0.0',
@@ -297,12 +336,12 @@ Version: ${packageInfo.version || 'Unknown'}`
                                 'remotion': '^4.0.0'
                             }
                         };
-                        await fs.writeJson(packagePath, packageJson, { spaces: 2 });
+                        await fs_extra_1.default.writeJson(packagePath, packageJson, { spaces: 2 });
                         fixes.push('Created package.json');
                     }
                     // Check and fix VideoComposition
                     const compositionPath = path.join(projectPath, 'src', 'VideoComposition.tsx');
-                    if (!await fs.pathExists(compositionPath)) {
+                    if (!await fs_extra_1.default.pathExists(compositionPath)) {
                         const composition = `import React from 'react';
 import { Composition } from 'remotion';
 
@@ -313,7 +352,7 @@ export const VideoComposition: React.FC = () => {
     </div>
   );
 };`;
-                        await fs.writeFile(compositionPath, composition);
+                        await fs_extra_1.default.writeFile(compositionPath, composition);
                         fixes.push('Created VideoComposition.tsx');
                     }
                     return {
@@ -333,7 +372,7 @@ export const VideoComposition: React.FC = () => {
         }
     }, {
         name: 'project',
-        category: ToolCategory.CORE_OPERATIONS,
+        category: tool_categories_js_1.ToolCategory.CORE_OPERATIONS,
         subCategory: 'project',
         tags: ['project', 'manage'],
         loadByDefault: true,
@@ -374,7 +413,7 @@ export const VideoComposition: React.FC = () => {
                     if (args.project) {
                         projectName = args.project;
                         projectPath = path.join(server.config.assetsDir, 'projects', args.project);
-                        if (!await fs.pathExists(projectPath)) {
+                        if (!await fs_extra_1.default.pathExists(projectPath)) {
                             throw new Error(`Project "${args.project}" not found`);
                         }
                     }
@@ -472,7 +511,7 @@ export const VideoComposition: React.FC = () => {
         }
     }, {
         name: 'studio',
-        category: ToolCategory.CORE_OPERATIONS,
+        category: tool_categories_js_1.ToolCategory.CORE_OPERATIONS,
         subCategory: 'studio',
         tags: ['studio', 'remotion', 'server'],
         loadByDefault: true,
@@ -511,7 +550,7 @@ export const VideoComposition: React.FC = () => {
     }, async (args) => {
         try {
             const compositionPath = path.join(server.config.assetsDir, 'projects', args.project, 'src', 'VideoComposition.tsx');
-            if (!await fs.pathExists(compositionPath)) {
+            if (!await fs_extra_1.default.pathExists(compositionPath)) {
                 throw new Error(`Composition not found for "${args.project}"`);
             }
             // For now, return placeholder - full AST manipulation would go here
@@ -528,7 +567,7 @@ export const VideoComposition: React.FC = () => {
         }
     }, {
         name: 'composition',
-        category: ToolCategory.VIDEO_CREATION,
+        category: tool_categories_js_1.ToolCategory.VIDEO_CREATION,
         subCategory: 'editing',
         tags: ['edit', 'composition', 'elements'],
         loadByDefault: false,
@@ -559,7 +598,7 @@ export const VideoComposition: React.FC = () => {
     }, async (args) => {
         try {
             const projectPath = path.join(server.config.assetsDir, 'projects', args.project);
-            if (!await fs.pathExists(projectPath)) {
+            if (!await fs_extra_1.default.pathExists(projectPath)) {
                 throw new Error(`Project "${args.project}" not found`);
             }
             switch (args.action) {
@@ -582,8 +621,8 @@ export const VideoComposition: React.FC = () => {
                     };
                 }
                 case 'check': {
-                    const hasNodeModules = await fs.pathExists(path.join(projectPath, 'node_modules'));
-                    const hasPackageLock = await fs.pathExists(path.join(projectPath, 'package-lock.json'));
+                    const hasNodeModules = await fs_extra_1.default.pathExists(path.join(projectPath, 'node_modules'));
+                    const hasPackageLock = await fs_extra_1.default.pathExists(path.join(projectPath, 'package-lock.json'));
                     return {
                         content: [{
                                 type: 'text',
@@ -601,7 +640,7 @@ export const VideoComposition: React.FC = () => {
         }
     }, {
         name: 'dependencies',
-        category: ToolCategory.MAINTENANCE,
+        category: tool_categories_js_1.ToolCategory.MAINTENANCE,
         subCategory: 'dependencies',
         tags: ['npm', 'install', 'dependencies'],
         loadByDefault: false,

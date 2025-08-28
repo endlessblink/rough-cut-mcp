@@ -1,15 +1,18 @@
-import path from 'path';
-import fs from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
-// ESM equivalent of __dirname
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.nodeExecutable = exports.claudeConfigPath = exports.configDir = exports.testDir = exports.scriptsDir = exports.tempDir = exports.cacheDir = exports.videosDir = exports.projectsDir = exports.srcDir = exports.buildDir = exports.assetsDir = exports.projectRoot = exports.paths = exports.PathManager = void 0;
+const path_1 = __importDefault(require("path"));
+const fs_1 = __importDefault(require("fs"));
+// Use CommonJS __dirname which TypeScript provides
+// This works in both CommonJS and ESM contexts
 /**
  * Centralized path management for RoughCut MCP
  * Handles both WSL2 development and Windows production environments
  */
-export class PathManager {
+class PathManager {
     static _instance;
     _projectRoot;
     _isWSL;
@@ -31,9 +34,9 @@ export class PathManager {
     detectWSL() {
         try {
             return process.platform === 'linux' &&
-                (fs.existsSync('/mnt/c') ||
+                (fs_1.default.existsSync('/mnt/c') ||
                     process.env.WSL_DISTRO_NAME !== undefined ||
-                    fs.readFileSync('/proc/version', 'utf8').toLowerCase().includes('microsoft'));
+                    fs_1.default.readFileSync('/proc/version', 'utf8').toLowerCase().includes('microsoft'));
         }
         catch {
             return false;
@@ -45,17 +48,17 @@ export class PathManager {
     findProjectRoot() {
         let currentDir = __dirname;
         // Walk up until we find package.json
-        while (currentDir !== path.dirname(currentDir)) {
-            if (fs.existsSync(path.join(currentDir, 'package.json'))) {
-                const packageJson = JSON.parse(fs.readFileSync(path.join(currentDir, 'package.json'), 'utf8'));
+        while (currentDir !== path_1.default.dirname(currentDir)) {
+            if (fs_1.default.existsSync(path_1.default.join(currentDir, 'package.json'))) {
+                const packageJson = JSON.parse(fs_1.default.readFileSync(path_1.default.join(currentDir, 'package.json'), 'utf8'));
                 if (packageJson.name === 'rough-cut-mcp') {
                     return currentDir;
                 }
             }
-            currentDir = path.dirname(currentDir);
+            currentDir = path_1.default.dirname(currentDir);
         }
         // Fallback - go up from src/config to project root
-        return path.resolve(__dirname, '../..');
+        return path_1.default.resolve(__dirname, '../..');
     }
     /**
      * Convert WSL path to Windows path if needed
@@ -85,7 +88,7 @@ export class PathManager {
      * Get platform-appropriate path
      */
     resolvePath(relativePath) {
-        const fullPath = path.resolve(this._projectRoot, relativePath);
+        const fullPath = path_1.default.resolve(this._projectRoot, relativePath);
         // For production builds, always use Windows paths
         if (process.env.NODE_ENV === 'production' || process.env.FORCE_WINDOWS_PATHS === 'true') {
             return this.toWindowsPath(fullPath);
@@ -96,14 +99,14 @@ export class PathManager {
      * Get Windows-compatible path (for MCP server output)
      */
     getWindowsPath(relativePath) {
-        const fullPath = path.resolve(this._projectRoot, relativePath);
+        const fullPath = path_1.default.resolve(this._projectRoot, relativePath);
         return this.toWindowsPath(fullPath);
     }
     /**
      * Get development path (current environment)
      */
     getDevPath(relativePath) {
-        return path.resolve(this._projectRoot, relativePath);
+        return path_1.default.resolve(this._projectRoot, relativePath);
     }
     // Pre-defined paths
     get projectRoot() {
@@ -149,7 +152,7 @@ export class PathManager {
         }
         else {
             // macOS/Linux
-            return path.join(process.env.HOME || '~', '.config/claude/claude_desktop_config.json');
+            return path_1.default.join(process.env.HOME || '~', '.config/claude/claude_desktop_config.json');
         }
     }
     // Node.js executable paths
@@ -173,7 +176,7 @@ export class PathManager {
      */
     validatePath(pathToCheck) {
         try {
-            return fs.existsSync(pathToCheck);
+            return fs_1.default.existsSync(pathToCheck);
         }
         catch {
             return false;
@@ -184,19 +187,20 @@ export class PathManager {
      */
     ensureDir(dirPath) {
         const fullPath = this.resolvePath(dirPath);
-        if (!fs.existsSync(fullPath)) {
-            fs.mkdirSync(fullPath, { recursive: true });
+        if (!fs_1.default.existsSync(fullPath)) {
+            fs_1.default.mkdirSync(fullPath, { recursive: true });
         }
     }
     /**
      * Get relative path from project root
      */
     getRelativePath(absolutePath) {
-        return path.relative(this._projectRoot, absolutePath);
+        return path_1.default.relative(this._projectRoot, absolutePath);
     }
 }
+exports.PathManager = PathManager;
 // Singleton instance
-export const paths = PathManager.getInstance();
+exports.paths = PathManager.getInstance();
 // Convenience exports
-export const { projectRoot, assetsDir, buildDir, srcDir, projectsDir, videosDir, cacheDir, tempDir, scriptsDir, testDir, configDir, claudeConfigPath, nodeExecutable } = paths;
+exports.projectRoot = exports.paths.projectRoot, exports.assetsDir = exports.paths.assetsDir, exports.buildDir = exports.paths.buildDir, exports.srcDir = exports.paths.srcDir, exports.projectsDir = exports.paths.projectsDir, exports.videosDir = exports.paths.videosDir, exports.cacheDir = exports.paths.cacheDir, exports.tempDir = exports.paths.tempDir, exports.scriptsDir = exports.paths.scriptsDir, exports.testDir = exports.paths.testDir, exports.configDir = exports.paths.configDir, exports.claudeConfigPath = exports.paths.claudeConfigPath, exports.nodeExecutable = exports.paths.nodeExecutable;
 //# sourceMappingURL=paths.js.map

@@ -1,13 +1,23 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.findProcessesByName = findProcessesByName;
+exports.getPortUsage = getPortUsage;
+exports.findRemotionStudioProcesses = findRemotionStudioProcesses;
+exports.getProcessWorkingDirectory = getProcessWorkingDirectory;
+exports.killProcess = killProcess;
+exports.isProcessRunning = isProcessRunning;
+exports.waitForPortListening = waitForPortListening;
+exports.findAvailablePort = findAvailablePort;
 // Process detection utilities for Windows
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import { getLogger } from './logger.js';
-const execAsync = promisify(exec);
-const logger = getLogger().service('ProcessDetection');
+const child_process_1 = require("child_process");
+const util_1 = require("util");
+const logger_js_1 = require("./logger.js");
+const execAsync = (0, util_1.promisify)(child_process_1.exec);
+const logger = (0, logger_js_1.getLogger)().service('ProcessDetection');
 /**
  * Get all running processes matching a pattern
  */
-export async function findProcessesByName(processName) {
+async function findProcessesByName(processName) {
     try {
         const cmd = `wmic process where "name like '${processName}%'" get processid,name,commandline /format:csv`;
         const { stdout } = await execAsync(cmd);
@@ -40,7 +50,7 @@ export async function findProcessesByName(processName) {
 /**
  * Get all processes using specific ports
  */
-export async function getPortUsage(portRange) {
+async function getPortUsage(portRange) {
     try {
         const cmd = 'netstat -ano';
         const { stdout } = await execAsync(cmd);
@@ -82,7 +92,7 @@ export async function getPortUsage(portRange) {
 /**
  * Find Remotion Studio processes specifically
  */
-export async function findRemotionStudioProcesses() {
+async function findRemotionStudioProcesses() {
     try {
         // Find all node.exe processes
         const nodeProcesses = await findProcessesByName('node.exe');
@@ -113,7 +123,7 @@ export async function findRemotionStudioProcesses() {
 /**
  * Get process working directory
  */
-export async function getProcessWorkingDirectory(pid) {
+async function getProcessWorkingDirectory(pid) {
     try {
         const cmd = `wmic process where "processid=${pid}" get commandline /format:csv`;
         const { stdout } = await execAsync(cmd);
@@ -141,7 +151,7 @@ export async function getProcessWorkingDirectory(pid) {
 /**
  * Kill process by PID
  */
-export async function killProcess(pid, force = false) {
+async function killProcess(pid, force = false) {
     try {
         const cmd = force ? `taskkill /PID ${pid} /F` : `taskkill /PID ${pid}`;
         await execAsync(cmd);
@@ -159,7 +169,7 @@ export async function killProcess(pid, force = false) {
 /**
  * Check if a process is still running
  */
-export async function isProcessRunning(pid) {
+async function isProcessRunning(pid) {
     try {
         const cmd = `tasklist /FI "PID eq ${pid}"`;
         const { stdout } = await execAsync(cmd);
@@ -173,7 +183,7 @@ export async function isProcessRunning(pid) {
 /**
  * Wait for a process to start listening on a specific port
  */
-export async function waitForPortListening(port, timeoutMs = 10000, intervalMs = 500) {
+async function waitForPortListening(port, timeoutMs = 10000, intervalMs = 500) {
     const startTime = Date.now();
     while (Date.now() - startTime < timeoutMs) {
         try {
@@ -203,7 +213,7 @@ export async function waitForPortListening(port, timeoutMs = 10000, intervalMs =
 /**
  * Find available port in range
  */
-export async function findAvailablePort(startPort = 7400, endPort = 7600) {
+async function findAvailablePort(startPort = 7400, endPort = 7600) {
     try {
         const usedPorts = await getPortUsage({ start: startPort, end: endPort });
         const usedPortNumbers = new Set(usedPorts.map(p => p.port));

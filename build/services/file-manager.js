@@ -1,12 +1,18 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.FileManagerService = void 0;
 // Asset lifecycle management service
-import fs from 'fs-extra';
-import path from 'path';
-import { getAssetPath } from '../utils/config.js';
-import { getLogger } from '../utils/logger.js';
-import { AudioExtensions, ImageExtensions, VideoExtensions } from '../utils/validation.js';
-export class FileManagerService {
+const fs_extra_1 = __importDefault(require("fs-extra"));
+const path_1 = __importDefault(require("path"));
+const config_js_1 = require("../utils/config.js");
+const logger_js_1 = require("../utils/logger.js");
+const validation_js_1 = require("../utils/validation.js");
+class FileManagerService {
     config;
-    logger = getLogger().service('FileManager');
+    logger = (0, logger_js_1.getLogger)().service('FileManager');
     constructor(config) {
         this.config = config;
         this.logger.info('File manager service initialized');
@@ -16,13 +22,13 @@ export class FileManagerService {
      */
     async initializeDirectories() {
         const directories = [
-            getAssetPath(this.config, 'temp'),
-            getAssetPath(this.config, 'videos'),
-            getAssetPath(this.config, 'audio'),
-            getAssetPath(this.config, 'images'),
+            (0, config_js_1.getAssetPath)(this.config, 'temp'),
+            (0, config_js_1.getAssetPath)(this.config, 'videos'),
+            (0, config_js_1.getAssetPath)(this.config, 'audio'),
+            (0, config_js_1.getAssetPath)(this.config, 'images'),
         ];
         for (const dir of directories) {
-            await fs.ensureDir(dir);
+            await fs_extra_1.default.ensureDir(dir);
             this.logger.debug('Ensured directory exists', { dir });
         }
         this.logger.info('Asset directories initialized');
@@ -32,10 +38,10 @@ export class FileManagerService {
      */
     async getAssetDiskUsage() {
         const directories = {
-            temp: getAssetPath(this.config, 'temp'),
-            videos: getAssetPath(this.config, 'videos'),
-            audio: getAssetPath(this.config, 'audio'),
-            images: getAssetPath(this.config, 'images'),
+            temp: (0, config_js_1.getAssetPath)(this.config, 'temp'),
+            videos: (0, config_js_1.getAssetPath)(this.config, 'videos'),
+            audio: (0, config_js_1.getAssetPath)(this.config, 'audio'),
+            images: (0, config_js_1.getAssetPath)(this.config, 'images'),
         };
         const result = {
             total: 0,
@@ -44,19 +50,19 @@ export class FileManagerService {
         };
         for (const [dirName, dirPath] of Object.entries(directories)) {
             try {
-                if (await fs.pathExists(dirPath)) {
+                if (await fs_extra_1.default.pathExists(dirPath)) {
                     const dirStats = await this.getDirectorySize(dirPath);
                     result.directories[dirName] = dirStats;
                     result.total += dirStats.size;
                     // Count by file type
                     await this.walkDirectory(dirPath, (filePath, stats) => {
-                        const ext = path.extname(filePath).toLowerCase().slice(1);
+                        const ext = path_1.default.extname(filePath).toLowerCase().slice(1);
                         let type = 'other';
-                        if (AudioExtensions.includes(ext))
+                        if (validation_js_1.AudioExtensions.includes(ext))
                             type = 'audio';
-                        else if (ImageExtensions.includes(ext))
+                        else if (validation_js_1.ImageExtensions.includes(ext))
                             type = 'image';
-                        else if (VideoExtensions.includes(ext))
+                        else if (validation_js_1.VideoExtensions.includes(ext))
                             type = 'video';
                         if (!result.byType[type]) {
                             result.byType[type] = { size: 0, count: 0 };
@@ -85,24 +91,24 @@ export class FileManagerService {
         const cutoffTime = Date.now() - (ageLimit * 60 * 60 * 1000);
         this.logger.info('Starting asset cleanup', { maxAgeHours: ageLimit, dryRun });
         const directories = {
-            temp: getAssetPath(this.config, 'temp'),
-            videos: getAssetPath(this.config, 'videos'),
-            audio: getAssetPath(this.config, 'audio'),
-            images: getAssetPath(this.config, 'images'),
+            temp: (0, config_js_1.getAssetPath)(this.config, 'temp'),
+            videos: (0, config_js_1.getAssetPath)(this.config, 'videos'),
+            audio: (0, config_js_1.getAssetPath)(this.config, 'audio'),
+            images: (0, config_js_1.getAssetPath)(this.config, 'images'),
         };
         const oldAssets = [];
         for (const [dirType, dirPath] of Object.entries(directories)) {
             try {
-                if (await fs.pathExists(dirPath)) {
+                if (await fs_extra_1.default.pathExists(dirPath)) {
                     await this.walkDirectory(dirPath, async (filePath, stats) => {
                         if (stats.mtime.getTime() < cutoffTime) {
-                            const ext = path.extname(filePath).toLowerCase().slice(1);
+                            const ext = path_1.default.extname(filePath).toLowerCase().slice(1);
                             let type = 'temp';
-                            if (AudioExtensions.includes(ext))
+                            if (validation_js_1.AudioExtensions.includes(ext))
                                 type = 'audio';
-                            else if (ImageExtensions.includes(ext))
+                            else if (validation_js_1.ImageExtensions.includes(ext))
                                 type = 'image';
-                            else if (VideoExtensions.includes(ext))
+                            else if (validation_js_1.VideoExtensions.includes(ext))
                                 type = 'video';
                             const assetInfo = {
                                 path: filePath,
@@ -113,7 +119,7 @@ export class FileManagerService {
                             };
                             oldAssets.push(assetInfo);
                             if (!dryRun) {
-                                await fs.remove(filePath);
+                                await fs_extra_1.default.remove(filePath);
                                 this.logger.debug('Removed old asset', {
                                     path: filePath,
                                     age: assetInfo.age.toFixed(1) + 'h'
@@ -147,24 +153,24 @@ export class FileManagerService {
      * Remove empty directories recursively
      */
     async removeEmptyDirectories() {
-        const baseDir = getAssetPath(this.config);
+        const baseDir = (0, config_js_1.getAssetPath)(this.config);
         const removeEmpty = async (dirPath) => {
             try {
-                const entries = await fs.readdir(dirPath);
+                const entries = await fs_extra_1.default.readdir(dirPath);
                 // Remove empty subdirectories first
                 for (const entry of entries) {
-                    const entryPath = path.join(dirPath, entry);
-                    const stats = await fs.stat(entryPath);
+                    const entryPath = path_1.default.join(dirPath, entry);
+                    const stats = await fs_extra_1.default.stat(entryPath);
                     if (stats.isDirectory()) {
                         const isEmpty = await removeEmpty(entryPath);
                         if (isEmpty) {
-                            await fs.rmdir(entryPath);
+                            await fs_extra_1.default.rmdir(entryPath);
                             this.logger.debug('Removed empty directory', { path: entryPath });
                         }
                     }
                 }
                 // Check if current directory is now empty
-                const remainingEntries = await fs.readdir(dirPath);
+                const remainingEntries = await fs_extra_1.default.readdir(dirPath);
                 return remainingEntries.length === 0;
             }
             catch (error) {
@@ -182,41 +188,41 @@ export class FileManagerService {
      */
     async organizeAssets() {
         this.logger.info('Starting asset organization');
-        const baseDir = getAssetPath(this.config);
+        const baseDir = (0, config_js_1.getAssetPath)(this.config);
         let moved = 0;
         let errors = 0;
         await this.walkDirectory(baseDir, async (filePath, stats) => {
             if (!stats.isFile())
                 return;
-            const ext = path.extname(filePath).toLowerCase().slice(1);
-            const relativePath = path.relative(baseDir, filePath);
+            const ext = path_1.default.extname(filePath).toLowerCase().slice(1);
+            const relativePath = path_1.default.relative(baseDir, filePath);
             // Skip if already in correct directory
-            if (relativePath.includes(path.sep)) {
-                const currentDir = relativePath.split(path.sep)[0];
+            if (relativePath.includes(path_1.default.sep)) {
+                const currentDir = relativePath.split(path_1.default.sep)[0];
                 if (this.isCorrectDirectory(ext, currentDir)) {
                     return;
                 }
             }
             let targetDir;
-            if (AudioExtensions.includes(ext)) {
-                targetDir = getAssetPath(this.config, 'audio');
+            if (validation_js_1.AudioExtensions.includes(ext)) {
+                targetDir = (0, config_js_1.getAssetPath)(this.config, 'audio');
             }
-            else if (ImageExtensions.includes(ext)) {
-                targetDir = getAssetPath(this.config, 'images');
+            else if (validation_js_1.ImageExtensions.includes(ext)) {
+                targetDir = (0, config_js_1.getAssetPath)(this.config, 'images');
             }
-            else if (VideoExtensions.includes(ext)) {
-                targetDir = getAssetPath(this.config, 'videos');
+            else if (validation_js_1.VideoExtensions.includes(ext)) {
+                targetDir = (0, config_js_1.getAssetPath)(this.config, 'videos');
             }
             else {
-                targetDir = getAssetPath(this.config, 'temp');
+                targetDir = (0, config_js_1.getAssetPath)(this.config, 'temp');
             }
             try {
-                await fs.ensureDir(targetDir);
-                const filename = path.basename(filePath);
-                const targetPath = path.join(targetDir, filename);
+                await fs_extra_1.default.ensureDir(targetDir);
+                const filename = path_1.default.basename(filePath);
+                const targetPath = path_1.default.join(targetDir, filename);
                 // Handle filename conflicts
                 const finalPath = await this.getUniqueFilePath(targetPath);
-                await fs.move(filePath, finalPath);
+                await fs_extra_1.default.move(filePath, finalPath);
                 moved++;
                 this.logger.debug('Moved asset to correct directory', {
                     from: filePath,
@@ -240,14 +246,14 @@ export class FileManagerService {
      */
     async createBackup(backupDir, includeTypes = ['video']) {
         this.logger.info('Creating asset backup', { backupDir, includeTypes });
-        await fs.ensureDir(backupDir);
+        await fs_extra_1.default.ensureDir(backupDir);
         let backedUp = 0;
         let totalSize = 0;
         for (const type of includeTypes) {
-            const sourceDir = getAssetPath(this.config, type);
-            const targetDir = path.join(backupDir, type);
-            if (await fs.pathExists(sourceDir)) {
-                await fs.copy(sourceDir, targetDir);
+            const sourceDir = (0, config_js_1.getAssetPath)(this.config, type);
+            const targetDir = path_1.default.join(backupDir, type);
+            if (await fs_extra_1.default.pathExists(sourceDir)) {
+                await fs_extra_1.default.copy(sourceDir, targetDir);
                 const dirStats = await this.getDirectorySize(targetDir);
                 backedUp += dirStats.count;
                 totalSize += dirStats.size;
@@ -270,12 +276,12 @@ export class FileManagerService {
     async getUniqueFilePath(originalPath) {
         let counter = 0;
         let testPath = originalPath;
-        while (await fs.pathExists(testPath)) {
+        while (await fs_extra_1.default.pathExists(testPath)) {
             counter++;
-            const ext = path.extname(originalPath);
-            const base = path.basename(originalPath, ext);
-            const dir = path.dirname(originalPath);
-            testPath = path.join(dir, `${base}_${counter}${ext}`);
+            const ext = path_1.default.extname(originalPath);
+            const base = path_1.default.basename(originalPath, ext);
+            const dir = path_1.default.dirname(originalPath);
+            testPath = path_1.default.join(dir, `${base}_${counter}${ext}`);
         }
         return testPath;
     }
@@ -283,11 +289,11 @@ export class FileManagerService {
      * Check if file is in correct directory based on extension
      */
     isCorrectDirectory(extension, currentDir) {
-        if (AudioExtensions.includes(extension) && currentDir === 'audio')
+        if (validation_js_1.AudioExtensions.includes(extension) && currentDir === 'audio')
             return true;
-        if (ImageExtensions.includes(extension) && currentDir === 'images')
+        if (validation_js_1.ImageExtensions.includes(extension) && currentDir === 'images')
             return true;
-        if (VideoExtensions.includes(extension) && currentDir === 'videos')
+        if (validation_js_1.VideoExtensions.includes(extension) && currentDir === 'videos')
             return true;
         if (currentDir === 'temp')
             return true;
@@ -298,10 +304,10 @@ export class FileManagerService {
      */
     async walkDirectory(dirPath, callback) {
         try {
-            const entries = await fs.readdir(dirPath);
+            const entries = await fs_extra_1.default.readdir(dirPath);
             for (const entry of entries) {
-                const entryPath = path.join(dirPath, entry);
-                const stats = await fs.stat(entryPath);
+                const entryPath = path_1.default.join(dirPath, entry);
+                const stats = await fs_extra_1.default.stat(entryPath);
                 if (stats.isDirectory()) {
                     await this.walkDirectory(entryPath, callback);
                 }
@@ -366,4 +372,5 @@ export class FileManagerService {
         };
     }
 }
+exports.FileManagerService = FileManagerService;
 //# sourceMappingURL=file-manager.js.map

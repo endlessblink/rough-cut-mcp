@@ -1,7 +1,13 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.pathFollowing = exports.scaleAnimation = exports.fadeTransition = exports.typewriterText = exports.smoothRotation = exports.physicsBounce = exports.walkCyclePrimitive = void 0;
+exports.getAllPrimitives = getAllPrimitives;
+exports.getPrimitive = getPrimitive;
+exports.combinePrimitives = combinePrimitives;
 /**
  * Character Walk Cycle Primitive
  */
-export const walkCyclePrimitive = {
+exports.walkCyclePrimitive = {
     name: 'walk-cycle',
     description: 'Creates a frame-by-frame walking character animation',
     requiredParams: ['dimensions', 'duration', 'fps'],
@@ -55,7 +61,7 @@ export const walkCyclePrimitive = {
 /**
  * Physics Bounce Primitive
  */
-export const physicsBounce = {
+exports.physicsBounce = {
     name: 'physics-bounce',
     description: 'Creates realistic bouncing ball physics with dampening',
     requiredParams: ['dimensions', 'duration', 'fps'],
@@ -98,7 +104,7 @@ export const physicsBounce = {
 /**
  * Smooth Rotation Primitive
  */
-export const smoothRotation = {
+exports.smoothRotation = {
     name: 'smooth-rotation',
     description: 'Creates smooth rotation animation with easing',
     requiredParams: ['duration', 'fps'],
@@ -128,7 +134,7 @@ export const smoothRotation = {
 /**
  * Typewriter Text Primitive
  */
-export const typewriterText = {
+exports.typewriterText = {
     name: 'typewriter-text',
     description: 'Creates typewriter effect for text animation',
     requiredParams: ['text'],
@@ -156,7 +162,7 @@ export const typewriterText = {
 /**
  * Fade Transition Primitive
  */
-export const fadeTransition = {
+exports.fadeTransition = {
     name: 'fade-transition',
     description: 'Creates smooth fade in/out transitions',
     requiredParams: ['duration', 'fps'],
@@ -190,7 +196,7 @@ export const fadeTransition = {
 /**
  * Scale Animation Primitive
  */
-export const scaleAnimation = {
+exports.scaleAnimation = {
     name: 'scale-animation',
     description: 'Creates smooth scaling animations',
     requiredParams: ['duration', 'fps'],
@@ -230,7 +236,7 @@ export const scaleAnimation = {
 /**
  * Path Following Primitive
  */
-export const pathFollowing = {
+exports.pathFollowing = {
     name: 'path-following',
     description: 'Makes objects follow predefined paths',
     requiredParams: ['dimensions', 'duration', 'fps'],
@@ -289,28 +295,28 @@ export const pathFollowing = {
 /**
  * Get all available animation primitives
  */
-export function getAllPrimitives() {
+function getAllPrimitives() {
     return [
-        walkCyclePrimitive,
-        physicsBounce,
-        smoothRotation,
-        typewriterText,
-        fadeTransition,
-        scaleAnimation,
-        pathFollowing,
+        exports.walkCyclePrimitive,
+        exports.physicsBounce,
+        exports.smoothRotation,
+        exports.typewriterText,
+        exports.fadeTransition,
+        exports.scaleAnimation,
+        exports.pathFollowing,
     ];
 }
 /**
  * Get primitive by name
  */
-export function getPrimitive(name) {
+function getPrimitive(name) {
     const primitives = getAllPrimitives();
     return primitives.find(p => p.name === name) || null;
 }
 /**
  * Combine multiple primitives into a single code block
  */
-export function combinePrimitives(primitives, baseParams) {
+function combinePrimitives(primitives, baseParams) {
     const codeBlocks = [];
     for (const { name, params } of primitives) {
         const primitive = getPrimitive(name);

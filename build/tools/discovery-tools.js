@@ -1,9 +1,12 @@
+"use strict";
 /**
  * Discovery Tools - Minimal set for tool discovery and activation
  * Works with Enhanced Registry's layered architecture
  */
-import { ToolCategory, TOOL_CATEGORIES, TOOL_SUBCATEGORIES } from '../types/tool-categories.js';
-export function registerDiscoveryTools(server) {
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.registerDiscoveryTools = registerDiscoveryTools;
+const tool_categories_js_1 = require("../types/tool-categories.js");
+function registerDiscoveryTools(server) {
     const logger = server.baseLogger.service('discovery-tools');
     // Debug: Log that we're registering discovery tools
     logger.info('Starting discovery tools registration');
@@ -35,8 +38,8 @@ export function registerDiscoveryTools(server) {
             switch (type) {
                 case 'all':
                 case 'categories': {
-                    const categories = Object.entries(TOOL_CATEGORIES).map(([id, info]) => {
-                        const subCats = TOOL_SUBCATEGORIES[id.replace('_', '-').toLowerCase()] || {};
+                    const categories = Object.entries(tool_categories_js_1.TOOL_CATEGORIES).map(([id, info]) => {
+                        const subCats = tool_categories_js_1.TOOL_SUBCATEGORIES[id.replace('_', '-').toLowerCase()] || {};
                         const subCategoryList = Object.entries(subCats)
                             .map(([name, tools]) => `  - ${name}: ${tools.length} tools`)
                             .join('\n');
@@ -124,11 +127,11 @@ ${subCategoryList ? 'Sub-categories:\n' + subCategoryList : ''}`;
                     const allToolsCount = server.toolRegistry.getTotalToolsCount();
                     const activeToolsCount = server.toolRegistry.getActiveTools().length;
                     // Build category tree with detailed navigation info
-                    const categories = Object.entries(TOOL_CATEGORIES).map(([categoryId, categoryInfo]) => {
+                    const categories = Object.entries(tool_categories_js_1.TOOL_CATEGORIES).map(([categoryId, categoryInfo]) => {
                         const categoryKey = categoryId.replace('_', '-').toLowerCase();
-                        const subCats = TOOL_SUBCATEGORIES[categoryKey] || {};
+                        const subCats = tool_categories_js_1.TOOL_SUBCATEGORIES[categoryKey] || {};
                         const toolsInCategory = server.toolRegistry.getToolsByCategory(categoryId);
-                        const isActive = server.toolRegistry.getActiveTools().some((tool) => tool.metadata.category === categoryId && tool.metadata.category !== ToolCategory.DISCOVERY);
+                        const isActive = server.toolRegistry.getActiveTools().some((tool) => tool.metadata.category === categoryId && tool.metadata.category !== tool_categories_js_1.ToolCategory.DISCOVERY);
                         // Build subcategory structure
                         const subCategories = Object.entries(subCats).map(([subId, tools]) => ({
                             id: subId,
@@ -141,12 +144,12 @@ ${subCategoryList ? 'Sub-categories:\n' + subCategoryList : ''}`;
                             id: categoryKey,
                             name: categoryInfo.name,
                             description: categoryInfo.description,
-                            status: categoryId === ToolCategory.DISCOVERY ? 'exposed' : (isActive ? 'exposed' : 'available'),
+                            status: categoryId === tool_categories_js_1.ToolCategory.DISCOVERY ? 'exposed' : (isActive ? 'exposed' : 'available'),
                             toolCount: toolsInCategory.length,
                             subCategories,
                             estimatedTokens: categoryInfo.estimatedTokens || 500,
                             requiredApiKeys: categoryInfo.requiredApiKeys || [],
-                            canActivate: categoryId !== ToolCategory.DISCOVERY,
+                            canActivate: categoryId !== tool_categories_js_1.ToolCategory.DISCOVERY,
                             activationHint: isActive ? 'Already active' : `Use activate({ categories: ['${categoryKey}'] }) to expose tools`
                         };
                     });
@@ -207,7 +210,7 @@ ${subCategoryList ? 'Sub-categories:\n' + subCategoryList : ''}`;
         }
     }, {
         name: 'discover',
-        category: ToolCategory.DISCOVERY,
+        category: tool_categories_js_1.ToolCategory.DISCOVERY,
         subCategory: 'discovery',
         tags: ['discover', 'capabilities', 'help'],
         loadByDefault: true,
@@ -327,7 +330,7 @@ ${subCategoryList ? 'Sub-categories:\n' + subCategoryList : ''}`;
                 // Add helpful suggestions on failure
                 output += `💡 **Suggestions:**\n`;
                 output += `  • Use discover({ type: 'tree' }) to see available categories\n`;
-                output += `  • Check category names: ${Object.keys(TOOL_CATEGORIES).map(k => k.toLowerCase().replace('_', '-')).join(', ')}\n`;
+                output += `  • Check category names: ${Object.keys(tool_categories_js_1.TOOL_CATEGORIES).map(k => k.toLowerCase().replace('_', '-')).join(', ')}\n`;
                 output += `  • Use search({ query: 'keyword' }) to find specific tools\n`;
             }
             return {
@@ -343,7 +346,7 @@ ${subCategoryList ? 'Sub-categories:\n' + subCategoryList : ''}`;
         }
     }, {
         name: 'activate',
-        category: ToolCategory.DISCOVERY,
+        category: tool_categories_js_1.ToolCategory.DISCOVERY,
         subCategory: 'discovery',
         tags: ['activate', 'load', 'enable'],
         loadByDefault: true,
@@ -477,7 +480,7 @@ ${subCategoryList ? 'Sub-categories:\n' + subCategoryList : ''}`;
         }
     }, {
         name: 'search',
-        category: ToolCategory.DISCOVERY,
+        category: tool_categories_js_1.ToolCategory.DISCOVERY,
         subCategory: 'discovery',
         tags: ['search', 'find', 'lookup'],
         loadByDefault: true,

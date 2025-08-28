@@ -1,21 +1,57 @@
+"use strict";
 /**
  * Enhanced Tool Registry with Advanced Management Features
  *
  * Integrates LayerManager, DependencyResolver, ContextManager, and AuditLogger
  * for comprehensive tool management with minimal changes to existing code.
  */
-import { ToolCategory, TOOL_CATEGORIES, } from '../types/tool-categories.js';
-import { LayerExclusivity, LayerState, } from '../types/layer-types.js';
-import { ToolRegistry } from './tool-registry.js';
-import { LayerManager } from './layer-manager.js';
-import { DependencyResolver } from './dependency-resolver.js';
-import { ContextManager, OptimizationStrategy } from './context-manager.js';
-import { AuditLogger, AuditEventType, AuditSeverity } from './audit-logger.js';
-import * as path from 'path';
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.EnhancedToolRegistry = void 0;
+const tool_categories_js_1 = require("../types/tool-categories.js");
+const layer_types_js_1 = require("../types/layer-types.js");
+const tool_registry_js_1 = require("./tool-registry.js");
+const layer_manager_js_1 = require("./layer-manager.js");
+const dependency_resolver_js_1 = require("./dependency-resolver.js");
+const context_manager_js_1 = require("./context-manager.js");
+const audit_logger_js_1 = require("./audit-logger.js");
+const path = __importStar(require("path"));
 /**
  * Enhanced Tool Registry with integrated advanced features
  */
-export class EnhancedToolRegistry extends ToolRegistry {
+class EnhancedToolRegistry extends tool_registry_js_1.ToolRegistry {
     layerManager;
     dependencyResolver;
     contextManager;
@@ -47,7 +83,7 @@ export class EnhancedToolRegistry extends ToolRegistry {
     initializeServices() {
         // Initialize Layer Manager
         if (this.enhancedConfig.enableLayers) {
-            this.layerManager = new LayerManager({
+            this.layerManager = new layer_manager_js_1.LayerManager({
                 maxContextWeight: this.enhancedConfig.maxContextWeight || 10000,
                 autoDeactivate: true,
                 autoResolveDependencies: this.enhancedConfig.enableDependencies !== false,
@@ -62,15 +98,15 @@ export class EnhancedToolRegistry extends ToolRegistry {
         }
         // Initialize Dependency Resolver
         if (this.enhancedConfig.enableDependencies) {
-            this.dependencyResolver = new DependencyResolver();
+            this.dependencyResolver = new dependency_resolver_js_1.DependencyResolver();
         }
         // Initialize Context Manager
         if (this.enhancedConfig.enableContextManagement) {
-            this.contextManager = new ContextManager({
+            this.contextManager = new context_manager_js_1.ContextManager({
                 maxWeight: this.enhancedConfig.maxContextWeight || 10000,
                 warningThreshold: 0.75,
                 criticalThreshold: 0.9,
-                strategy: this.enhancedConfig.contextStrategy || OptimizationStrategy.SMART,
+                strategy: this.enhancedConfig.contextStrategy || context_manager_js_1.OptimizationStrategy.SMART,
                 autoOptimize: true,
                 minRetentionTime: 60000,
             });
@@ -86,7 +122,7 @@ export class EnhancedToolRegistry extends ToolRegistry {
         if (this.enhancedConfig.enableAudit) {
             const auditDir = this.enhancedConfig.auditDir ||
                 path.join(this.enhancedConfig.baseConfig.assetsDir, 'audit');
-            this.auditLogger = new AuditLogger(auditDir, 10000, 60000);
+            this.auditLogger = new audit_logger_js_1.AuditLogger(auditDir, 10000, 60000);
         }
     }
     /**
@@ -96,20 +132,20 @@ export class EnhancedToolRegistry extends ToolRegistry {
         if (!this.layerManager)
             return;
         // Create layers for each category
-        for (const [categoryId, categoryInfo] of Object.entries(TOOL_CATEGORIES)) {
+        for (const [categoryId, categoryInfo] of Object.entries(tool_categories_js_1.TOOL_CATEGORIES)) {
             const layer = {
                 id: categoryId,
                 name: categoryInfo.name,
                 description: categoryInfo.description,
                 categories: [categoryId],
-                exclusivity: categoryId === ToolCategory.DISCOVERY
-                    ? LayerExclusivity.PERMANENT
-                    : LayerExclusivity.NONE,
+                exclusivity: categoryId === tool_categories_js_1.ToolCategory.DISCOVERY
+                    ? layer_types_js_1.LayerExclusivity.PERMANENT
+                    : layer_types_js_1.LayerExclusivity.NONE,
                 dependencies: [],
                 contextWeight: categoryInfo.estimatedTokens || 1000,
                 priority: categoryInfo.loadByDefault ? 1 : 5,
                 loadByDefault: categoryInfo.loadByDefault,
-                state: LayerState.INACTIVE,
+                state: layer_types_js_1.LayerState.INACTIVE,
                 tools: new Set(),
                 requiredApiKeys: categoryInfo.requiredApiKeys,
             };
@@ -117,7 +153,7 @@ export class EnhancedToolRegistry extends ToolRegistry {
         }
         // Activate default layers
         this.layerManager.activateLayers({
-            layerIds: [ToolCategory.DISCOVERY, ToolCategory.CORE_OPERATIONS],
+            layerIds: [tool_categories_js_1.ToolCategory.DISCOVERY, tool_categories_js_1.ToolCategory.CORE_OPERATIONS],
             reason: 'Initial setup',
             requestedBy: 'system',
         });
@@ -148,8 +184,8 @@ export class EnhancedToolRegistry extends ToolRegistry {
         // Log registration
         if (this.auditLogger) {
             this.auditLogger.logEvent({
-                type: AuditEventType.CONFIGURATION_CHANGED,
-                severity: AuditSeverity.DEBUG,
+                type: audit_logger_js_1.AuditEventType.CONFIGURATION_CHANGED,
+                severity: audit_logger_js_1.AuditSeverity.DEBUG,
                 entity: tool.name,
                 action: 'Tool registered',
                 triggeredBy: 'system',
@@ -245,8 +281,8 @@ export class EnhancedToolRegistry extends ToolRegistry {
             this.logger.error('Enhanced activation failed', { error });
             if (this.auditLogger) {
                 this.auditLogger.logEvent({
-                    type: AuditEventType.TOOL_FAILED,
-                    severity: AuditSeverity.ERROR,
+                    type: audit_logger_js_1.AuditEventType.TOOL_FAILED,
+                    severity: audit_logger_js_1.AuditSeverity.ERROR,
                     entity: 'system',
                     action: 'Tool activation failed',
                     triggeredBy: 'user',
@@ -304,8 +340,8 @@ export class EnhancedToolRegistry extends ToolRegistry {
         this.logger.debug('Context pressure changed', event);
         if (event.pressure === 'critical' && this.auditLogger) {
             this.auditLogger.logEvent({
-                type: AuditEventType.CONTEXT_OPTIMIZED,
-                severity: AuditSeverity.WARNING,
+                type: audit_logger_js_1.AuditEventType.CONTEXT_OPTIMIZED,
+                severity: audit_logger_js_1.AuditSeverity.WARNING,
                 entity: 'context',
                 action: 'Critical context pressure detected',
                 triggeredBy: 'system',
@@ -356,4 +392,5 @@ export class EnhancedToolRegistry extends ToolRegistry {
         this.logger.info('Enhanced Tool Registry cleaned up');
     }
 }
+exports.EnhancedToolRegistry = EnhancedToolRegistry;
 //# sourceMappingURL=enhanced-tool-registry.js.map
