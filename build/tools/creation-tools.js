@@ -45,6 +45,7 @@ const tool_categories_js_1 = require("../types/tool-categories.js");
 const animation_generator_js_1 = require("../services/animation-generator.js");
 const interpolation_validator_js_1 = require("../utils/interpolation-validator.js");
 const version_detector_js_1 = require("../utils/version-detector.js");
+const composition_editor_js_1 = require("./composition-editor.js");
 const path = __importStar(require("path"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
 const child_process_1 = require("child_process");
@@ -54,8 +55,7 @@ function registerCreationTools(server) {
     const animationGenerator = new animation_generator_js_1.AnimationGeneratorService();
     const logger = server.baseLogger.service('creation-tools');
     // Register composition tools first
-    const { registerCompositionTools } = require('./composition-editor.js');
-    registerCompositionTools(server);
+    (0, composition_editor_js_1.registerCompositionTools)(server);
     /**
      * 1. Create Video - All video types in one tool
      */

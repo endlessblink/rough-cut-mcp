@@ -10,7 +10,6 @@ function registerDiscoveryTools(server) {
     const logger = server.baseLogger.service('discovery-tools');
     // Debug: Log that we're registering discovery tools
     logger.info('Starting discovery tools registration');
-    console.error('DEBUG: registerDiscoveryTools called');
     /**
      * 1. Discover - Single tool for all discovery needs
      */
@@ -217,7 +216,6 @@ ${subCategoryList ? 'Sub-categories:\n' + subCategoryList : ''}`;
         priority: 0,
         estimatedTokens: 80
     });
-    console.error('DEBUG: discover tool registered');
     /**
      * 2. Activate - Single tool for activation
      */
@@ -353,7 +351,6 @@ ${subCategoryList ? 'Sub-categories:\n' + subCategoryList : ''}`;
         priority: 0,
         estimatedTokens: 60
     });
-    console.error('DEBUG: activate tool registered');
     /**
      * 3. Search - Find tools by query
      */
@@ -487,10 +484,6 @@ ${subCategoryList ? 'Sub-categories:\n' + subCategoryList : ''}`;
         priority: 0,
         estimatedTokens: 60
     });
-    console.error('DEBUG: search tool registered');
-    console.error('DEBUG: All 3 discovery tools registered');
-    // Check what's in the registry after registration
-    const activeTools = server.toolRegistry.getActiveTools();
-    console.error('DEBUG: Active tools after discovery registration:', activeTools.map(t => t.name));
+    // All discovery tools registered successfully
 }
 //# sourceMappingURL=discovery-tools.js.map

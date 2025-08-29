@@ -44,15 +44,11 @@ export class RemotionCreativeMCPServer {
   private initializationPromise: Promise<void> | null = null;
 
   constructor() {
-    if (process.env.NODE_ENV === 'test') {
-      console.error('DEBUG: Loading config...');
-    }
+    // Loading config...
     // Load configuration
     this.config = loadConfig();
     
-    if (process.env.NODE_ENV === 'test') {
-      console.error('DEBUG: Initializing logger...');
-    }
+    // Initializing logger...
     // Initialize logging (disable file logging for MCP compatibility)
     const baseLogger = initLogger(
       this.config.logging.level,
@@ -62,15 +58,11 @@ export class RemotionCreativeMCPServer {
     // Store base logger for creating child services
     (this as any).baseLogger = baseLogger;
 
-    if (process.env.NODE_ENV === 'test') {
-      console.error('DEBUG: Initializing file manager...');
-    }
+    // Initializing file manager...
     // Initialize file manager
     this.fileManager = new FileManagerService(this.config);
 
-    if (process.env.NODE_ENV === 'test') {
-      console.error('DEBUG: Initializing tool registry...');
-    }
+    // Initializing tool registry...
     // Initialize enhanced tool registry with all features
     this.toolRegistry = new EnhancedToolRegistry({
       baseConfig: this.config,
@@ -81,9 +73,7 @@ export class RemotionCreativeMCPServer {
       maxContextWeight: 10000,
     });
 
-    if (process.env.NODE_ENV === 'test') {
-      console.error('DEBUG: Creating MCP server...');
-    }
+    // Creating MCP server...
     // Create MCP server
     this.server = new Server(
       {
@@ -577,7 +567,6 @@ export class RemotionCreativeMCPServer {
    */
   connectTransport(): void {
     if (process.env.NODE_ENV === 'test') {
-      console.error('DEBUG: Creating stdio transport...');
     }
     
     const transport = new StdioServerTransport();
@@ -587,7 +576,6 @@ export class RemotionCreativeMCPServer {
     this.logger.info('MCP Server connected to stdio transport');
     
     if (process.env.NODE_ENV === 'test') {
-      console.error('DEBUG: Transport connection completed');
     }
   }
 
@@ -646,7 +634,6 @@ export class RemotionCreativeMCPServer {
  */
 function main(): void {
   if (process.env.NODE_ENV === 'test') {
-    console.error('DEBUG: Inside main() function');
   }
   
   let server: RemotionCreativeMCPServer | null = null;
@@ -654,34 +641,28 @@ function main(): void {
   try {
     // Debug output in test mode only
     if (process.env.NODE_ENV === 'test') {
-      console.error('DEBUG: Starting MCP Server construction...');
     }
     server = new RemotionCreativeMCPServer();
     if (process.env.NODE_ENV === 'test') {
-      console.error('DEBUG: Server constructed, connecting transport...');
     }
 
     // Set up request handlers FIRST - MUST be before connecting transport
     server.setupRequestHandlers();
     if (process.env.NODE_ENV === 'test') {
-      console.error('DEBUG: Handlers set up, connecting transport...');
     }
     
     // Connect transport AFTER handlers are ready - CRITICAL for MCP protocol
     server.connectTransport();
     if (process.env.NODE_ENV === 'test') {
-      console.error('DEBUG: Transport connected, starting initialization...');
     }
     
     // Initialize tools and assets asynchronously (won't block protocol)
     server.initialize().then(() => {
       if (process.env.NODE_ENV === 'test') {
-        console.error('DEBUG: Server fully initialized');
       }
       server!.logger.info('✅ Rough Cut MCP Server fully initialized and ready');
     }).catch((error) => {
       if (process.env.NODE_ENV === 'test') {
-        console.error('DEBUG: Initialization error:', error.message);
       }
       server!.logger.warn('⚠️  Initialization warning:', error.message || error);
       server!.logger.warn('Server can still respond to basic protocol messages');
@@ -725,7 +706,6 @@ function main(): void {
 
 // Start the server immediately when this module is run directly
 if (process.env.NODE_ENV === 'test') {
-  console.error('DEBUG: About to call main()');
 }
 main();
 

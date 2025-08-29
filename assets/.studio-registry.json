@@ -1,4 +1,41 @@
 {
-  "lastUpdated": "2025-08-28T20:04:18.994Z",
-  "instances": []
+  "lastUpdated": "2025-08-29T15:08:28.765Z",
+  "instances": [
+    {
+      "pid": 30692,
+      "port": 3006,
+      "projectPath": "D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\my-builds\\Video + Motion\\RoughCut\\assets",
+      "projectName": "unknown",
+      "startTime": 1756479513519,
+      "status": "running",
+      "url": "http://localhost:3006"
+    },
+    {
+      "pid": 45684,
+      "port": 3000,
+      "projectPath": "D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\my-builds\\Video + Motion\\RoughCut\\assets",
+      "projectName": "unknown",
+      "startTime": 1756479513525,
+      "status": "running",
+      "url": "http://localhost:3000"
+    },
+    {
+      "pid": 45936,
+      "port": 3003,
+      "projectPath": "D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\my-builds\\Video + Motion\\RoughCut\\assets",
+      "projectName": "unknown",
+      "startTime": 1756479513530,
+      "status": "error",
+      "url": "http://localhost:3003"
+    },
+    {
+      "pid": 56424,
+      "port": 3005,
+      "projectPath": "D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\my-builds\\Video + Motion\\RoughCut\\assets",
+      "projectName": "unknown",
+      "startTime": 1756479513535,
+      "status": "running",
+      "url": "http://localhost:3005"
+    }
+  ]
 }

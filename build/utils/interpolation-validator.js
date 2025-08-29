@@ -77,8 +77,7 @@ function validateRangePair(inputRange, outputRange) {
     const validInput = validInputResult.corrected;
     // Ensure output range has same length as input
     if (outputRange.length !== validInput.length) {
-        console.warn(`Output range length (${outputRange.length}) doesn't match input range length (${validInput.length})`);
-        // Truncate or extend output range to match
+        // Output range length doesn't match input range length, truncate or extend
         const validOutput = outputRange.slice(0, validInput.length);
         while (validOutput.length < validInput.length) {
             validOutput.push(validOutput[validOutput.length - 1] || 0);
@@ -160,7 +159,7 @@ function processVideoCode(code) {
     });
     // Log changes if any were made
     if (hasChanges && typeof console !== 'undefined') {
-        console.log('🔧 Fixed interpolation ranges:', changes.join(', '));
+        // Fixed interpolation ranges
     }
     return processedCode;
 }

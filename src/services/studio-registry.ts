@@ -9,6 +9,13 @@ import { spawn, ChildProcess } from 'child_process';
 import { getLogger } from '../utils/logger.js';
 import { MCPConfig } from '../types/index.js';
 import { buildNetworkUrls, formatStudioUrls, NetworkUrls } from '../utils/network-utils.js';
+import { StudioDiscoveryService } from './studio-discovery.js';
+import { PortValidator } from './port-validator.js';
+import { DiscoveredStudio, AdoptStudioResult } from '../types/studio-discovery.js';
+import { PortManager } from './port-manager.js';
+import { ProcessDiscovery, StudioProcess } from './process-discovery.js';
+import { StudioLifecycle } from './studio-lifecycle.js';
+import axios from 'axios';
 
 export interface StudioInstance {
   pid: number;
@@ -27,18 +34,44 @@ export class StudioRegistry {
   private registryFile: string;
   private logger = getLogger().service('StudioRegistry');
   private config: MCPConfig;
-  private portRange = { min: 3000, max: 3100 };
+  private portRange = { min: 3002, max: 3100 }; // Exclude 3001
+  private discoveryService: StudioDiscoveryService;
+  private portValidator: PortValidator;
+  private lastDiscoveryTime: Date = new Date(0);
+  private discoveryCache: Map<number, any> = new Map();
 
   constructor(config: MCPConfig) {
     this.config = config;
     this.instances = new Map();
     this.registryFile = path.join(config.assetsDir, '.studio-registry.json');
+    this.discoveryService = new StudioDiscoveryService();
+    this.portValidator = new PortValidator();
     
-    // Load existing registry
-    this.loadRegistry();
-    
-    // Clean up dead instances
-    this.cleanupDeadInstances();
+    // Initialize registry with discovery
+    this.initializeRegistry();
+  }
+
+  /**
+   * Initialize registry with enhanced process discovery
+   */
+  private async initializeRegistry(): Promise<void> {
+    try {
+      // Step 1: Load saved registry
+      await this.loadRegistry();
+      
+      // Step 2: Use enhanced process discovery to find actual studios
+      await this.discoverAndAdoptStudiosEnhanced();
+      
+      // Step 3: Clean up dead instances
+      await this.cleanupDeadInstances();
+      
+      this.logger.info('Registry initialized with enhanced discovery', {
+        trackedInstances: this.instances.size,
+        registryFile: this.registryFile
+      });
+    } catch (error) {
+      this.logger.error('Failed to initialize registry', { error });
+    }
   }
 
   /**
@@ -54,10 +87,91 @@ export class StudioRegistry {
             this.instances.set(instance.port, instance);
           }
         }
-        this.logger.info(`Loaded ${this.instances.size} studio instances from registry`);
+        this.logger.debug(`Loaded ${this.instances.size} studio instances from registry`);
       }
     } catch (error) {
       this.logger.warn('Failed to load studio registry', { error });
+    }
+  }
+
+  /**
+   * Enhanced discovery using ProcessDiscovery service
+   */
+  private async discoverAndAdoptStudiosEnhanced(): Promise<void> {
+    try {
+      // Use the new ProcessDiscovery service for accurate studio detection
+      const processDiscovery = await ProcessDiscovery.discoverStudioProcesses();
+      
+      let adopted = 0;
+      for (const studio of processDiscovery.remotionStudios) {
+        // Only adopt responding studios not already tracked
+        if (studio.isResponding && !this.instances.has(studio.port)) {
+          // Convert to DiscoveredStudio format for compatibility
+          const discoveredStudio: DiscoveredStudio = {
+            port: studio.port,
+            pid: studio.pid,
+            project: studio.projectName || 'unknown',
+            projectPath: studio.projectPath,
+            isHealthy: studio.isResponding,
+            url: `http://localhost:${studio.port}`,
+            uptime: Date.now() - (studio.startupTime?.getTime() || Date.now()),
+            lastSeen: new Date(),
+            responseTime: studio.responseTime || 0,
+            version: 'unknown'
+          };
+          
+          await this.adoptExistingStudio(discoveredStudio);
+          adopted++;
+        }
+      }
+      
+      this.logger.info('Enhanced discovery and adoption completed', {
+        totalNodeProcesses: processDiscovery.totalNodeProcesses,
+        remotionStudios: processDiscovery.remotionStudios.length,
+        responding: processDiscovery.remotionStudios.filter(s => s.isResponding).length,
+        adopted,
+        conflicts: processDiscovery.conflicts.length
+      });
+      
+      // Log any port conflicts found
+      if (processDiscovery.conflicts.length > 0) {
+        this.logger.warn('Port conflicts detected', {
+          conflicts: processDiscovery.conflicts.map(c => ({
+            port: c.port,
+            process: c.processName,
+            isSystemService: c.isSystemService
+          }))
+        });
+      }
+      
+    } catch (error) {
+      this.logger.warn('Failed to discover and adopt studios with enhanced discovery', { error });
+      // Fallback to original discovery method
+      await this.discoverAndAdoptStudiosLegacy();
+    }
+  }
+
+  /**
+   * Legacy discovery method as fallback
+   */
+  private async discoverAndAdoptStudiosLegacy(): Promise<void> {
+    try {
+      const discoveredStudios = await this.discoveryService.discoverRunningStudios();
+      
+      for (const discovered of discoveredStudios) {
+        // Only adopt healthy studios not already tracked
+        if (discovered.isHealthy && !this.instances.has(discovered.port)) {
+          await this.adoptExistingStudio(discovered);
+        }
+      }
+      
+      this.logger.info('Legacy discovery and adoption completed', {
+        discovered: discoveredStudios.length,
+        healthy: discoveredStudios.filter(s => s.isHealthy).length,
+        adopted: discoveredStudios.filter(s => s.isHealthy && !this.instances.has(s.port)).length
+      });
+    } catch (error) {
+      this.logger.warn('Failed to discover and adopt studios', { error });
     }
   }
 
@@ -99,15 +213,17 @@ export class StudioRegistry {
   }
 
   /**
-   * Clean up instances that are no longer running
+   * Enhanced cleanup using process discovery
    */
   private async cleanupDeadInstances(): Promise<void> {
     const deadPorts: number[] = [];
     
     for (const [port, instance] of this.instances) {
-      if (!this.isProcessAlive(instance.pid)) {
+      // Use ProcessDiscovery for more accurate process validation
+      const isAlive = await ProcessDiscovery.isProcessRunning(instance.pid);
+      if (!isAlive) {
         deadPorts.push(port);
-        this.logger.info(`Removing dead studio instance on port ${port}`);
+        this.logger.info(`Removing dead studio instance on port ${port} (PID: ${instance.pid})`);
       }
     }
     
@@ -117,16 +233,55 @@ export class StudioRegistry {
     
     if (deadPorts.length > 0) {
       await this.saveRegistry();
+      this.logger.info(`Cleaned up ${deadPorts.length} dead instances`);
     }
   }
 
   /**
-   * Find an available port
+   * Find an available port using enhanced PortManager
    */
   private async findAvailablePort(): Promise<number> {
+    try {
+      // Use the new PortManager for intelligent port allocation
+      const portResult = await PortManager.findAvailablePort();
+      
+      if (portResult.available) {
+        return portResult.port;
+      } else if (portResult.conflictDetails) {
+        // Log the conflict and try to find another port
+        this.logger.warn('Port conflict detected', {
+          port: portResult.port,
+          conflictProcess: portResult.conflictDetails.processName,
+          isSystemService: portResult.conflictDetails.isSystemService
+        });
+        
+        // Find any available port in safe range
+        const fallbackResult = await PortManager.findAvailablePort();
+        if (fallbackResult.available) {
+          return fallbackResult.port;
+        }
+      }
+      
+      throw new Error('No available ports found in safe range');
+      
+    } catch (error) {
+      this.logger.error('Enhanced port finding failed, using fallback', { error });
+      
+      // Fallback to original method
+      return this.findAvailablePortLegacy();
+    }
+  }
+
+  /**
+   * Legacy port finding method as fallback
+   */
+  private async findAvailablePortLegacy(): Promise<number> {
     const net = await import('net');
     
     for (let port = this.portRange.min; port <= this.portRange.max; port++) {
+      // Skip port 3001 (reserved/excluded)
+      if (port === 3001) continue;
+      
       // Check if port is already in use by our instances
       if (this.instances.has(port)) continue;
       
@@ -150,9 +305,327 @@ export class StudioRegistry {
   }
 
   /**
-   * Launch a new Remotion Studio instance
+   * Find existing studio serving a specific project
    */
-  async launchStudio(projectPath: string, projectName?: string, requestedPort?: number): Promise<StudioInstance> {
+  private async findStudioByProject(projectName: string): Promise<StudioInstance | null> {
+    if (!projectName) return null;
+    
+    try {
+      // Use ProcessDiscovery to scan all active studios
+      const activeStudios = await ProcessDiscovery.getActiveStudios();
+      
+      for (const studio of activeStudios) {
+        if (studio.isResponding) {
+          // Test if this studio serves the specific project
+          const isMatchingProject = await this.testStudioForProject(studio.port, projectName);
+          if (isMatchingProject) {
+            this.logger.info('Found existing studio for project', {
+              project: projectName,
+              port: studio.port,
+              pid: studio.pid
+            });
+            
+            // Convert to StudioInstance format
+            return this.convertStudioProcessToInstance(studio, projectName);
+          }
+        }
+      }
+      
+      this.logger.debug('No existing studio found for project', { project: projectName });
+      return null;
+      
+    } catch (error) {
+      this.logger.error('Error finding studio by project', { project: projectName, error });
+      return null;
+    }
+  }
+
+  /**
+   * Create flexible project name patterns for matching
+   */
+  private createProjectPatterns(projectName: string): string[] {
+    const lower = projectName.toLowerCase();
+    
+    const patterns = [
+      lower,                           // exact match
+      lower.replace(/[-_\s]/g, ''),   // remove all separators
+      lower.replace(/[-_]/g, ' '),    // spaces instead of separators
+      `"${lower}"`,                  // quoted versions
+      `'${lower}'`,
+      ...lower.split(/[-_\s]+/),      // individual words
+      // Reverse word order (e.g., "matrix-endlessblink" vs "endlessblink-matrix")
+      lower.split(/[-_\s]+/).reverse().join(''),
+      lower.split(/[-_\s]+/).reverse().join(' ')
+    ].filter(Boolean);
+    
+    // Remove duplicates
+    return [...new Set(patterns)];
+  }
+
+  /**
+   * Test if a studio on a specific port serves a given project (cross-platform)
+   */
+  private async testStudioForProject(port: number, projectName: string): Promise<boolean> {
+    try {
+      const patterns = this.createProjectPatterns(projectName);
+      
+      // Test multiple endpoints that Remotion Studio serves
+      const endpoints = [
+        `http://localhost:${port}`,
+        `http://localhost:${port}/api/compositions`,
+        `http://localhost:${port}/${projectName}`
+      ];
+      
+      for (const endpoint of endpoints) {
+        try {
+          const response = await axios.get(endpoint, {
+            timeout: 3000,
+            validateStatus: () => true, // Accept any status for content analysis
+            headers: {
+              'User-Agent': 'RoughCut-MCP-Discovery'
+            }
+          });
+          
+          if (response.status < 500) {
+            const content = String(response.data).toLowerCase();
+            
+            // Check if any pattern matches the response content
+            for (const pattern of patterns) {
+              if (content.includes(pattern)) {
+                this.logger.debug('Project match found in response', {
+                  port,
+                  projectName,
+                  endpoint,
+                  matchedPattern: pattern
+                });
+                return true;
+              }
+            }
+          }
+          
+        } catch (endpointError) {
+          // Continue to next endpoint
+          continue;
+        }
+      }
+      
+      return false;
+      
+    } catch (error) {
+      this.logger.debug('Error testing studio for project', { port, projectName, error });
+      return false;
+    }
+  }
+
+  /**
+   * Convert StudioProcess to StudioInstance format
+   */
+  private convertStudioProcessToInstance(studio: StudioProcess, projectName: string): StudioInstance {
+    const networkUrls = buildNetworkUrls(studio.port);
+    
+    return {
+      pid: studio.pid,
+      port: studio.port,
+      projectPath: studio.projectPath || path.join(this.config.assetsDir, 'projects', projectName),
+      projectName: projectName,
+      startTime: studio.startupTime?.getTime() || Date.now(),
+      status: 'running',
+      url: networkUrls.primary,
+      urls: networkUrls
+    };
+  }
+
+  /**
+   * Enhanced smart studio launch with robust lifecycle management
+   * This is the main method that solves the MCP reuse problem
+   */
+  async smartLaunchStudio(projectPath: string, projectName?: string, requestedPort?: number): Promise<StudioInstance & { wasReused: boolean }> {
+    this.logger.info('Enhanced smart studio launch requested', { 
+      projectPath, 
+      projectName, 
+      requestedPort 
+    });
+
+    try {
+      // Step 1: FIRST - Try to find existing studio for this specific project
+      if (projectName) {
+        const existingStudio = await this.findStudioByProject(projectName);
+        if (existingStudio) {
+          this.logger.info('Found and reusing existing studio for project', {
+            project: projectName,
+            port: existingStudio.port,
+            pid: existingStudio.pid
+          });
+          
+          // Adopt into registry if not already tracked
+          if (!this.instances.has(existingStudio.port)) {
+            this.instances.set(existingStudio.port, existingStudio);
+            await this.saveRegistry();
+          }
+          
+          return { ...existingStudio, wasReused: true };
+        }
+      }
+      
+      // Step 2: Look for any healthy studio that could be reused (fallback)
+      const activeStudios = await ProcessDiscovery.getActiveStudios();
+      const healthyStudio = activeStudios.find(studio => studio.isResponding);
+      
+      if (healthyStudio && !projectName) {
+        this.logger.info('Found existing healthy studio for general reuse', {
+          port: healthyStudio.port,
+          pid: healthyStudio.pid
+        });
+
+        // Convert and adopt if not tracked
+        const instance = this.convertStudioProcessToInstance(healthyStudio, 'reused-studio');
+        if (!this.instances.has(healthyStudio.port)) {
+          this.instances.set(healthyStudio.port, instance);
+          await this.saveRegistry();
+        }
+        
+        return { ...instance, wasReused: true };
+      }
+
+      // Step 3: No existing studio found, launch new one using robust lifecycle
+      this.logger.info('No suitable existing studio found - launching new studio with enhanced lifecycle');
+      const newInstance = await this.launchStudioWithLifecycle(projectPath, projectName, requestedPort);
+      return { ...newInstance, wasReused: false };
+
+    } catch (error) {
+      this.logger.error('Enhanced smart studio launch failed', { error });
+      throw error;
+    }
+  }
+
+  /**
+   * Adopt an existing discovered studio into the registry
+   */
+  async adoptExistingStudio(discovered: DiscoveredStudio): Promise<AdoptStudioResult> {
+    try {
+      this.logger.info('Adopting existing studio', {
+        port: discovered.port,
+        pid: discovered.pid,
+        project: discovered.project
+      });
+
+      // Check for conflicts
+      const conflicts: string[] = [];
+      if (this.instances.has(discovered.port)) {
+        conflicts.push(`Port ${discovered.port} already tracked in registry`);
+      }
+
+      if (conflicts.length > 0) {
+        this.logger.warn('Cannot adopt studio due to conflicts', { conflicts });
+        return {
+          success: false,
+          conflicts,
+          error: 'Registry conflicts prevent adoption'
+        };
+      }
+
+      // Build network URLs
+      const networkUrls = buildNetworkUrls(discovered.port);
+
+      // Create studio instance from discovered info
+      const instance: StudioInstance = {
+        pid: discovered.pid,
+        port: discovered.port,
+        projectPath: discovered.projectPath || this.config.assetsDir,
+        projectName: discovered.project || 'adopted-studio',
+        startTime: Date.now() - discovered.uptime,
+        status: 'running',
+        url: networkUrls.primary,
+        urls: networkUrls,
+        // Note: No process object since we didn't spawn it
+        process: undefined
+      };
+
+      // Add to registry
+      this.instances.set(discovered.port, instance);
+      await this.saveRegistry();
+
+      this.logger.info('Studio adopted successfully', {
+        port: discovered.port,
+        project: instance.projectName,
+        uptime: Math.round(discovered.uptime / 1000) + 's'
+      });
+
+      return {
+        success: true,
+        adoptedStudio: discovered
+      };
+
+    } catch (error) {
+      this.logger.error('Failed to adopt studio', { 
+        port: discovered.port, 
+        error 
+      });
+      
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown adoption error'
+      };
+    }
+  }
+
+  /**
+   * Launch studio using enhanced lifecycle management
+   */
+  async launchStudioWithLifecycle(projectPath: string, projectName?: string, requestedPort?: number): Promise<StudioInstance> {
+    try {
+      // Use the new StudioLifecycle service for robust startup
+      const launchResult = await StudioLifecycle.launchStudio({
+        projectPath,
+        preferredPort: requestedPort,
+        forceNewInstance: false,
+        timeout: 60000,
+        validate: true
+      });
+      
+      if (!launchResult.success) {
+        throw new Error(launchResult.error || 'Studio launch failed');
+      }
+      
+      // Convert lifecycle result to StudioInstance
+      const networkUrls = buildNetworkUrls(launchResult.port!);
+      
+      const instance: StudioInstance = {
+        pid: launchResult.pid!,
+        port: launchResult.port!,
+        projectPath: launchResult.projectPath || projectPath,
+        projectName: projectName || path.basename(projectPath),
+        startTime: Date.now(),
+        status: 'running',
+        url: networkUrls.primary,
+        urls: networkUrls
+      };
+      
+      // Store in registry
+      this.instances.set(launchResult.port!, instance);
+      await this.saveRegistry();
+      
+      this.logger.info('Studio launched successfully with enhanced lifecycle', {
+        port: launchResult.port,
+        pid: launchResult.pid,
+        project: projectName || path.basename(projectPath),
+        reusedExisting: launchResult.reusedExisting,
+        warnings: launchResult.warnings
+      });
+      
+      return instance;
+      
+    } catch (error) {
+      this.logger.error('Enhanced studio launch failed', { error });
+      // Fallback to legacy launch method
+      return this.launchStudioLegacy(projectPath, projectName, requestedPort);
+    }
+  }
+
+  /**
+   * Legacy studio launch method as fallback
+   */
+  async launchStudioLegacy(projectPath: string, projectName?: string, requestedPort?: number): Promise<StudioInstance> {
     try {
       // Ensure project path exists
       if (!await fs.pathExists(projectPath)) {
@@ -232,7 +705,7 @@ export class StudioRegistry {
   }
 
   /**
-   * Stop a studio instance
+   * Stop studio instance using enhanced lifecycle management
    */
   async stopStudio(port: number): Promise<boolean> {
     const instance = this.instances.get(port);
@@ -243,22 +716,54 @@ export class StudioRegistry {
     }
 
     try {
-      // Try to kill the process
-      if (instance.process) {
-        instance.process.kill();
-      } else if (instance.pid) {
-        process.kill(instance.pid);
+      // Use enhanced lifecycle management for shutdown
+      const shutdownResult = await StudioLifecycle.shutdownStudios({
+        port,
+        force: false
+      });
+      
+      if (shutdownResult.success && shutdownResult.killedProcesses.length > 0) {
+        // Remove from registry
+        this.instances.delete(port);
+        await this.saveRegistry();
+        
+        this.logger.info(`Enhanced shutdown completed for studio on port ${port}`, {
+          killedProcesses: shutdownResult.killedProcesses
+        });
+        return true;
+      } else {
+        // If enhanced shutdown failed, try legacy method
+        return this.stopStudioLegacy(port, instance);
       }
 
-      // Remove from registry
+    } catch (error) {
+      this.logger.error(`Enhanced studio shutdown failed for port ${port}`, { error });
+      // Fallback to legacy shutdown
+      return this.stopStudioLegacy(port, instance);
+    }
+  }
+
+  /**
+   * Legacy studio shutdown method
+   */
+  private async stopStudioLegacy(port: number, instance: StudioInstance): Promise<boolean> {
+    try {
+      // Try to kill the process using PortManager
+      const killSuccess = await PortManager.killProcess(instance.pid, false);
+      
+      // Remove from registry regardless of kill success
       this.instances.delete(port);
       await this.saveRegistry();
-
-      this.logger.info(`Stopped studio on port ${port}`);
-      return true;
-
+      
+      if (killSuccess) {
+        this.logger.info(`Legacy shutdown successful for studio on port ${port}`);
+        return true;
+      } else {
+        this.logger.warn(`Process kill failed but removed from registry: port ${port}`);
+        return false;
+      }
     } catch (error) {
-      this.logger.error(`Failed to stop studio on port ${port}`, { error });
+      this.logger.error(`Legacy studio shutdown failed for port ${port}`, { error });
       
       // Force remove from registry even if kill failed
       this.instances.delete(port);
@@ -333,7 +838,7 @@ export class StudioRegistry {
     await new Promise(resolve => setTimeout(resolve, 1000));
     
     // Launch new instance
-    return this.launchStudio(projectPath, projectName, port);
+    return this.launchStudioLegacy(projectPath, projectName, port);
   }
 
   /**
@@ -351,5 +856,225 @@ export class StudioRegistry {
       runningInstances: instances.filter(i => i.status === 'running').length,
       instances
     };
+  }
+
+  /**
+   * Get comprehensive studio report including discovered instances
+   */
+  async getComprehensiveReport(): Promise<{
+    tracked: StudioInstance[];
+    discovered: DiscoveredStudio[];
+    recommendations: string[];
+    portUsage: number[];
+    systemHealth: 'excellent' | 'good' | 'fair' | 'poor';
+  }> {
+    const trackedInstances = this.getInstances();
+    const discoveryReport = await this.discoveryService.getStudioReport();
+    
+    // Determine system health
+    let systemHealth: 'excellent' | 'good' | 'fair' | 'poor' = 'excellent';
+    
+    if (discoveryReport.unhealthyStudios > 0) {
+      systemHealth = discoveryReport.unhealthyStudios > 2 ? 'poor' : 'fair';
+    } else if (discoveryReport.totalStudios > 3) {
+      systemHealth = 'good'; // Too many instances
+    }
+
+    const recommendations = [
+      ...discoveryReport.recommendations,
+      `Registry tracking ${trackedInstances.length} instance(s)`,
+    ];
+
+    if (trackedInstances.length !== discoveryReport.healthyStudios) {
+      recommendations.push('Some healthy studios are not tracked - consider adoption');
+    }
+
+    return {
+      tracked: trackedInstances,
+      discovered: discoveryReport.studios,
+      recommendations,
+      portUsage: discoveryReport.portUsage,
+      systemHealth
+    };
+  }
+
+  /**
+   * Refresh discovery and update registry
+   */
+  async refreshDiscovery(): Promise<{
+    newlyAdopted: number;
+    cleaned: number;
+    errors: string[];
+  }> {
+    const errors: string[] = [];
+    let newlyAdopted = 0;
+    let cleaned = 0;
+
+    try {
+      // Clean up dead instances first
+      const deadPorts: number[] = [];
+      
+      for (const [port, instance] of this.instances) {
+        if (!this.isProcessAlive(instance.pid)) {
+          deadPorts.push(port);
+        }
+      }
+      
+      for (const port of deadPorts) {
+        this.instances.delete(port);
+        cleaned++;
+      }
+
+      // Discover new studios
+      const discovered = await this.discoveryService.discoverRunningStudios();
+      
+      for (const studio of discovered) {
+        if (studio.isHealthy && !this.instances.has(studio.port)) {
+          const result = await this.adoptExistingStudio(studio);
+          if (result.success) {
+            newlyAdopted++;
+          } else if (result.error) {
+            errors.push(`Failed to adopt ${studio.port}: ${result.error}`);
+          }
+        }
+      }
+
+      await this.saveRegistry();
+
+      this.logger.info('Discovery refresh completed', {
+        newlyAdopted,
+        cleaned,
+        errors: errors.length
+      });
+
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      errors.push(`Discovery refresh failed: ${errorMsg}`);
+      this.logger.error('Discovery refresh failed', { error });
+    }
+
+    return {
+      newlyAdopted,
+      cleaned,
+      errors
+    };
+  }
+
+  /**
+   * Kill all orphaned processes (not tracked by registry)
+   */
+  async killOrphanedProcesses(): Promise<{
+    killed: number;
+    errors: string[];
+  }> {
+    const errors: string[] = [];
+    let killed = 0;
+
+    try {
+      const discovered = await this.discoveryService.discoverRunningStudios({ includeUnhealthy: true });
+      
+      for (const studio of discovered) {
+        // If studio is not tracked by registry, consider it orphaned
+        if (!this.instances.has(studio.port)) {
+          try {
+            const success = await this.portValidator.killProcessOnPort(studio.port, true);
+            if (success) {
+              killed++;
+              this.logger.info('Killed orphaned studio process', {
+                port: studio.port,
+                pid: studio.pid
+              });
+            } else {
+              errors.push(`Failed to kill process on port ${studio.port}`);
+            }
+          } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+            errors.push(`Error killing process ${studio.pid}: ${errorMsg}`);
+          }
+        }
+      }
+
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      errors.push(`Orphaned process cleanup failed: ${errorMsg}`);
+    }
+
+    return {
+      killed,
+      errors
+    };
+  }
+
+  /**
+   * Health check all tracked instances
+   */
+  async performHealthCheck(): Promise<{
+    healthy: number;
+    unhealthy: number;
+    recovered: number;
+    instances: Array<{
+      port: number;
+      pid: number;
+      isHealthy: boolean;
+      responseTime?: number;
+      error?: string;
+    }>;
+  }> {
+    const results = {
+      healthy: 0,
+      unhealthy: 0,
+      recovered: 0,
+      instances: [] as Array<{
+        port: number;
+        pid: number;
+        isHealthy: boolean;
+        responseTime?: number;
+        error?: string;
+      }>
+    };
+
+    for (const [port, instance] of this.instances) {
+      try {
+        const startTime = Date.now();
+        const isHealthy = await this.discoveryService.pingStudio(port);
+        const responseTime = Date.now() - startTime;
+
+        const instanceResult = {
+          port,
+          pid: instance.pid,
+          isHealthy,
+          responseTime: isHealthy ? responseTime : undefined
+        };
+
+        if (isHealthy) {
+          results.healthy++;
+          if (instance.status !== 'running') {
+            // Studio recovered
+            instance.status = 'running';
+            results.recovered++;
+          }
+        } else {
+          results.unhealthy++;
+          instance.status = 'error';
+          (instanceResult as any).error = 'Studio not responding';
+        }
+
+        results.instances.push(instanceResult);
+
+      } catch (error) {
+        results.unhealthy++;
+        results.instances.push({
+          port,
+          pid: instance.pid,
+          isHealthy: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    }
+
+    // Save updated statuses
+    await this.saveRegistry();
+
+    return results;
   }
 }

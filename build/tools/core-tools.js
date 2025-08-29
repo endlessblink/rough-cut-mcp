@@ -44,6 +44,10 @@ exports.registerCoreTools = registerCoreTools;
 const tool_categories_js_1 = require("../types/tool-categories.js");
 const remotion_js_1 = require("../services/remotion.js");
 const studio_registry_js_1 = require("../services/studio-registry.js");
+const port_manager_js_1 = require("../services/port-manager.js");
+const process_discovery_js_1 = require("../services/process-discovery.js");
+const studio_lifecycle_js_1 = require("../services/studio-lifecycle.js");
+const studio_health_monitor_js_1 = require("../services/studio-health-monitor.js");
 // import { ProjectManagerService } from '../services/project-manager.js';
 const path = __importStar(require("path"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
@@ -53,6 +57,11 @@ const execAsync = (0, util_1.promisify)(child_process_1.exec);
 function registerCoreTools(server) {
     const remotionService = new remotion_js_1.RemotionService(server.config);
     const studioRegistry = new studio_registry_js_1.StudioRegistry(server.config);
+    const healthMonitor = new studio_health_monitor_js_1.StudioHealthMonitor({
+        checkInterval: 30000,
+        autoRecover: true,
+        maxRecoveryAttempts: 3
+    });
     // const projectManager = new ProjectManagerService(server.config);
     const logger = server.baseLogger.service('core-tools');
     /**
@@ -390,7 +399,7 @@ export const VideoComposition: React.FC = () => {
             properties: {
                 action: {
                     type: 'string',
-                    enum: ['start', 'stop', 'restart', 'status', 'list'],
+                    enum: ['start', 'stop', 'restart', 'status', 'list', 'discover', 'adopt', 'health', 'cleanup', 'report', 'monitor', 'ports', 'processes', 'lifecycle'],
                     description: 'Studio action'
                 },
                 project: {
@@ -417,12 +426,14 @@ export const VideoComposition: React.FC = () => {
                             throw new Error(`Project "${args.project}" not found`);
                         }
                     }
-                    // Launch studio using the registry
-                    const instance = await studioRegistry.launchStudio(projectPath, projectName, args.port);
+                    // 🎯 ENHANCED: Use enhanced smart launch with robust lifecycle management
+                    const result = await studioRegistry.smartLaunchStudio(projectPath, projectName, args.port);
+                    const statusIcon = result.wasReused ? '♻️' : '✅';
+                    const statusText = result.wasReused ? 'Found and reused existing studio' : 'Started new studio';
                     return {
                         content: [{
                                 type: 'text',
-                                text: `✅ Studio started\nURL: ${instance.url}\nPort: ${instance.port}\nPID: ${instance.pid}\nProject: ${instance.projectName}`
+                                text: `${statusIcon} ${statusText}\nURL: ${result.url}\nPort: ${result.port}\nPID: ${result.pid}\nProject: ${result.projectName}\nStatus: ${result.wasReused ? '♻️ Reused existing instance' : '✨ New instance created'}`
                             }]
                     };
                 }
@@ -501,6 +512,122 @@ export const VideoComposition: React.FC = () => {
                             }]
                     };
                 }
+                case 'discover': {
+                    // Discover all running studios (not just tracked ones)
+                    const report = await studioRegistry.getComprehensiveReport();
+                    const discoveredList = report.discovered.map(studio => `${studio.isHealthy ? '✅' : '❌'} Port ${studio.port} (PID: ${studio.pid})\n   Project: ${studio.project || 'Unknown'}\n   Uptime: ${Math.round(studio.uptime / 1000)}s\n   Tracked: ${report.tracked.some(t => t.port === studio.port) ? 'Yes' : 'No'}`).join('\n\n');
+                    return {
+                        content: [{
+                                type: 'text',
+                                text: `🔍 Discovered Studios:\n\n${discoveredList || 'No studios found'}\n\nSystem Health: ${report.systemHealth}\nRecommendations:\n${report.recommendations.map(r => `• ${r}`).join('\n')}`
+                            }]
+                    };
+                }
+                case 'adopt': {
+                    // Refresh discovery and adopt new studios
+                    const refreshResult = await studioRegistry.refreshDiscovery();
+                    return {
+                        content: [{
+                                type: 'text',
+                                text: `🔄 Discovery Refresh Complete\n\nAdopted: ${refreshResult.newlyAdopted} studio(s)\nCleaned: ${refreshResult.cleaned} dead instance(s)\nErrors: ${refreshResult.errors.length}\n\n${refreshResult.errors.length > 0 ? 'Errors:\n' + refreshResult.errors.map(e => `• ${e}`).join('\n') : 'All operations successful!'}`
+                            }]
+                    };
+                }
+                case 'health': {
+                    // Health check all tracked instances
+                    const healthResult = await studioRegistry.performHealthCheck();
+                    const healthList = healthResult.instances.map(inst => `${inst.isHealthy ? '✅' : '❌'} Port ${inst.port} (PID: ${inst.pid})\n   ${inst.isHealthy ? `Response: ${inst.responseTime}ms` : `Error: ${inst.error}`}`).join('\n\n');
+                    return {
+                        content: [{
+                                type: 'text',
+                                text: `🏥 Health Check Results\n\nHealthy: ${healthResult.healthy}\nUnhealthy: ${healthResult.unhealthy}\nRecovered: ${healthResult.recovered}\n\n${healthList}`
+                            }]
+                    };
+                }
+                case 'cleanup': {
+                    // Clean up orphaned processes
+                    const cleanupResult = await studioRegistry.killOrphanedProcesses();
+                    return {
+                        content: [{
+                                type: 'text',
+                                text: `🧹 Cleanup Complete\n\nOrphaned processes killed: ${cleanupResult.killed}\nErrors: ${cleanupResult.errors.length}\n\n${cleanupResult.errors.length > 0 ? 'Errors:\n' + cleanupResult.errors.map(e => `• ${e}`).join('\n') : 'Cleanup successful!'}`
+                            }]
+                    };
+                }
+                case 'report': {
+                    // Comprehensive system report
+                    const report = await studioRegistry.getComprehensiveReport();
+                    const trackedList = report.tracked.map(inst => `Port ${inst.port} (${inst.status}) - ${inst.projectName}`).join(', ');
+                    const discoveredList = report.discovered.map(studio => `Port ${studio.port} (${studio.isHealthy ? 'healthy' : 'unhealthy'})`).join(', ');
+                    return {
+                        content: [{
+                                type: 'text',
+                                text: `📊 Studio System Report\n\n🔧 Tracked: ${report.tracked.length} instance(s)\n   ${trackedList || 'None'}\n\n🔍 Discovered: ${report.discovered.length} instance(s)\n   ${discoveredList || 'None'}\n\n📈 System Health: ${report.systemHealth}\n\n💡 Recommendations:\n${report.recommendations.map(r => `• ${r}`).join('\n')}\n\n🔌 Port Usage: ${report.portUsage.join(', ') || 'None'}`
+                            }]
+                    };
+                }
+                case 'monitor': {
+                    // Control health monitoring
+                    const subAction = args.project || 'status'; // Using project field as sub-action
+                    switch (subAction) {
+                        case 'start':
+                            healthMonitor.start();
+                            return {
+                                content: [{
+                                        type: 'text',
+                                        text: '✅ Health monitoring started'
+                                    }]
+                            };
+                        case 'stop':
+                            healthMonitor.stop();
+                            return {
+                                content: [{
+                                        type: 'text',
+                                        text: '✅ Health monitoring stopped'
+                                    }]
+                            };
+                        case 'status':
+                        default:
+                            const status = healthMonitor.getStatus();
+                            return {
+                                content: [{
+                                        type: 'text',
+                                        text: `🔍 Health Monitor Status\n\nRunning: ${status.isRunning}\nCheck Interval: ${status.config.checkInterval}ms\nAuto Recovery: ${status.config.autoRecover}\n\nHealth Report:\nTotal Studios: ${status.healthReport.totalStudios}\nHealthy: ${status.healthReport.healthyStudios}\nUnhealthy: ${status.healthReport.unhealthyStudios}\nAvg Response Time: ${status.healthReport.averageResponseTime}ms\nActive Recoveries: ${status.recoveryQueue.length}`
+                                    }]
+                            };
+                    }
+                }
+                case 'ports': {
+                    // Enhanced port management information
+                    const portReport = await port_manager_js_1.PortManager.getPortUsageReport();
+                    const portUsage = await port_manager_js_1.PortManager.getPortsInUse();
+                    return {
+                        content: [{
+                                type: 'text',
+                                text: `🔌 Port Management Report\n\n${portReport}\n\nDetailed Port Usage:\n${portUsage.map(p => `Port ${p.port}: ${p.processName} (PID: ${p.pid})${p.isSystemService ? ' [SYSTEM]' : ''}${p.isNodeJs ? ' [NODE.JS]' : ''}`).join('\n')}`
+                            }]
+                    };
+                }
+                case 'processes': {
+                    // Enhanced process discovery information
+                    const discoveryReport = await process_discovery_js_1.ProcessDiscovery.getDiscoveryReport();
+                    return {
+                        content: [{
+                                type: 'text',
+                                text: `🔍 Process Discovery Report\n\n${discoveryReport}`
+                            }]
+                    };
+                }
+                case 'lifecycle': {
+                    // Studio lifecycle management information
+                    const lifecycleReport = await studio_lifecycle_js_1.StudioLifecycle.getLifecycleReport();
+                    return {
+                        content: [{
+                                type: 'text',
+                                text: `🔄 Studio Lifecycle Report\n\n${lifecycleReport}`
+                            }]
+                    };
+                }
                 default:
                     throw new Error(`Unknown action: ${args.action}`);
             }
@@ -513,10 +640,10 @@ export const VideoComposition: React.FC = () => {
         name: 'studio',
         category: tool_categories_js_1.ToolCategory.CORE_OPERATIONS,
         subCategory: 'studio',
-        tags: ['studio', 'remotion', 'server'],
+        tags: ['studio', 'remotion', 'server', 'enhanced', 'lifecycle', 'health'],
         loadByDefault: true,
         priority: 2,
-        estimatedTokens: 80
+        estimatedTokens: 120
     });
     /**
      * 3. Composition Editor - Modify video elements

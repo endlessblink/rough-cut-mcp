@@ -410,7 +410,23 @@ LOG_LEVEL=debug
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see [LICENSE](LICENSE) file for details.
+
+### 🚨 Important Licensing Notice
+
+**This software uses Remotion libraries which have their own licensing requirements:**
+
+- **Remotion is FREE** for individuals and teams up to 3 people
+- **Companies with 4+ members** require a [Remotion Company License](https://www.remotion.pro/license)
+- Some @remotion/* packages are MIT licensed (e.g., @remotion/media-utils, @remotion/shapes)
+- Core Remotion packages require compliance with [Remotion licensing terms](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md)
+
+**Before using this software in a commercial environment, please:**
+1. Review the [Remotion License](https://github.com/remotion-dev/remotion/blob/main/LICENSE.md)
+2. Check if you need a [Company License](https://www.remotion.pro/license)
+3. See [Terms & Conditions](https://www.remotion.pro/terms)
+
+**Users are responsible for ensuring compliance with all third-party licensing requirements.**
 
 ## 🙏 Acknowledgments
 

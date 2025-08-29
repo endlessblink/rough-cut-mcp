@@ -42,7 +42,7 @@ export async function getParentRemotionVersions(): Promise<RemotionVersions> {
     };
   } catch (error) {
     // Fallback to safe default versions if detection fails
-    console.warn('Failed to detect parent Remotion versions, using defaults', error);
+    // Failed to detect parent Remotion versions, using defaults
     return {
       cli: '4.0.340',
       bundler: '4.0.340',

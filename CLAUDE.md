@@ -1,5 +1,35 @@
 # 🦾 ROUGHCUT MCP - END-TO-END WINDOWS EXECUTION GUIDE
 
+## 🔴 CRITICAL RULE #1: NEVER HARDCODE PROJECT NAMES! 🔴
+```
+❌ NEVER EVER HARDCODE SPECIFIC PROJECT NAMES OR USERS IN THE CODE!
+❌ Do NOT add specific project names like "endlessblink-matrix", "matrix", "john-video"
+❌ Do NOT hardcode user names or specific use cases
+❌ This makes the MCP unusable for everyone else!
+```
+
+### ⚡ WHY THIS DESTROYS THE MCP:
+- **Breaks universality**: Only works for the hardcoded names
+- **Makes distribution impossible**: Other users can't use it
+- **Violates MCP principles**: Should be generic and reusable
+- **Creates maintenance nightmare**: Need to update code for every user
+
+### ✅ DO THIS INSTEAD:
+```typescript
+// ✅ GOOD: Generic pattern matching
+const variations = [
+  name.toLowerCase(),
+  name.replace(/[-_]/g, ''),  // Remove separators
+  name.replace(/[-_]/g, ' '), // Replace with spaces
+  ...name.split(/[-_]/)       // Split into words
+];
+
+// ❌ BAD: Hardcoded names
+const variations = ['endlessblink-matrix', 'matrix', 'john-project'];
+```
+
+**ALWAYS use dynamic, pattern-based matching that works for ANY project name!**
+
 ## 🔴 CRITICAL: THE #1 RULE TO REMEMBER 🔴
 ```
 WSL PATHS (/mnt/d/...) SHOULD NEVER EXIST IN THE FIRST PLACE!
@@ -73,6 +103,10 @@ D:\MY PROJECTS\AI\LLM\AI Code Gen\my-builds\Video + Motion\RoughCut\
 - ⭐ **Do not use any console.log, console.error, etc. in MCP!**
 - ⭐ Use only file-based logging.
 - **MCP config file must only use Windows paths:**
+
+⚠️ **CRITICAL: Always use Windows Claude Desktop config path:**
+**✅ CORRECT**: `C:\Users\endle\AppData\Roaming\Claude\claude_desktop_config.json`
+**❌ NEVER USE**: `/mnt/c/Users/endle/AppData/...` or `/home/endlessblink/AppData/...`
 
 ```json
 {

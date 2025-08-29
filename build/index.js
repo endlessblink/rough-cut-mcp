@@ -35,28 +35,20 @@ class RemotionCreativeMCPServer {
     initializationComplete = false;
     initializationPromise = null;
     constructor() {
-        if (process.env.NODE_ENV === 'test') {
-            console.error('DEBUG: Loading config...');
-        }
+        // Loading config...
         // Load configuration
         this.config = (0, config_js_1.loadConfig)();
-        if (process.env.NODE_ENV === 'test') {
-            console.error('DEBUG: Initializing logger...');
-        }
+        // Initializing logger...
         // Initialize logging (disable file logging for MCP compatibility)
         const baseLogger = (0, logger_js_1.initLogger)(this.config.logging.level, undefined // Disable file logging to avoid blocking
         );
         this.logger = baseLogger.service('MCPServer');
         // Store base logger for creating child services
         this.baseLogger = baseLogger;
-        if (process.env.NODE_ENV === 'test') {
-            console.error('DEBUG: Initializing file manager...');
-        }
+        // Initializing file manager...
         // Initialize file manager
         this.fileManager = new file_manager_js_1.FileManagerService(this.config);
-        if (process.env.NODE_ENV === 'test') {
-            console.error('DEBUG: Initializing tool registry...');
-        }
+        // Initializing tool registry...
         // Initialize enhanced tool registry with all features
         this.toolRegistry = new enhanced_tool_registry_js_1.EnhancedToolRegistry({
             baseConfig: this.config,
@@ -66,9 +58,7 @@ class RemotionCreativeMCPServer {
             enableAudit: true,
             maxContextWeight: 10000,
         });
-        if (process.env.NODE_ENV === 'test') {
-            console.error('DEBUG: Creating MCP server...');
-        }
+        // Creating MCP server...
         // Create MCP server
         this.server = new index_js_1.Server({
             name: 'rough-cut-mcp',
@@ -506,14 +496,12 @@ class RemotionCreativeMCPServer {
      */
     connectTransport() {
         if (process.env.NODE_ENV === 'test') {
-            console.error('DEBUG: Creating stdio transport...');
         }
         const transport = new stdio_js_1.StdioServerTransport();
         // Connect immediately - this enables JSON-RPC communication
         this.server.connect(transport);
         this.logger.info('MCP Server connected to stdio transport');
         if (process.env.NODE_ENV === 'test') {
-            console.error('DEBUG: Transport connection completed');
         }
     }
     /**
@@ -567,37 +555,30 @@ exports.RemotionCreativeMCPServer = RemotionCreativeMCPServer;
  */
 function main() {
     if (process.env.NODE_ENV === 'test') {
-        console.error('DEBUG: Inside main() function');
     }
     let server = null;
     try {
         // Debug output in test mode only
         if (process.env.NODE_ENV === 'test') {
-            console.error('DEBUG: Starting MCP Server construction...');
         }
         server = new RemotionCreativeMCPServer();
         if (process.env.NODE_ENV === 'test') {
-            console.error('DEBUG: Server constructed, connecting transport...');
         }
         // Set up request handlers FIRST - MUST be before connecting transport
         server.setupRequestHandlers();
         if (process.env.NODE_ENV === 'test') {
-            console.error('DEBUG: Handlers set up, connecting transport...');
         }
         // Connect transport AFTER handlers are ready - CRITICAL for MCP protocol
         server.connectTransport();
         if (process.env.NODE_ENV === 'test') {
-            console.error('DEBUG: Transport connected, starting initialization...');
         }
         // Initialize tools and assets asynchronously (won't block protocol)
         server.initialize().then(() => {
             if (process.env.NODE_ENV === 'test') {
-                console.error('DEBUG: Server fully initialized');
             }
             server.logger.info('✅ Rough Cut MCP Server fully initialized and ready');
         }).catch((error) => {
             if (process.env.NODE_ENV === 'test') {
-                console.error('DEBUG: Initialization error:', error.message);
             }
             server.logger.warn('⚠️  Initialization warning:', error.message || error);
             server.logger.warn('Server can still respond to basic protocol messages');
@@ -637,7 +618,6 @@ function main() {
 }
 // Start the server immediately when this module is run directly
 if (process.env.NODE_ENV === 'test') {
-    console.error('DEBUG: About to call main()');
 }
 main();
 //# sourceMappingURL=index.js.map

@@ -8,6 +8,7 @@ import { ToolCategory } from '../types/tool-categories.js';
 import { AnimationGeneratorService } from '../services/animation-generator.js';
 import { processVideoCode } from '../utils/interpolation-validator.js';
 import { generateSafeDependencies } from '../utils/version-detector.js';
+import { registerCompositionTools } from './composition-editor.js';
 import * as path from 'path';
 import fs from 'fs-extra';
 import { exec } from 'child_process';
@@ -20,7 +21,6 @@ export function registerCreationTools(server: MCPServer): void {
   const logger = (server as any).baseLogger.service('creation-tools');
 
   // Register composition tools first
-  const { registerCompositionTools } = require('./composition-editor.js');
   registerCompositionTools(server);
 
   /**
