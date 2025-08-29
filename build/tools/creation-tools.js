@@ -114,10 +114,10 @@ function registerCreationTools(server) {
             switch (args.type || 'text') {
                 case 'text': {
                     composition = `import React from 'react';
-import { Composition, Sequence, AbsoluteFill, interpolate, useCurrentFrame } from 'remotion';
+import { Sequence, AbsoluteFill, interpolate, useCurrentFrame } from 'remotion';
 
 // Helper to ensure interpolation ranges are valid (prevents Remotion errors)
-function validateRange(range) {
+function validateRange(range: number[]): number[] {
   if (range.length <= 1) return range;
   const valid = [...range];
   for (let i = 1; i < valid.length; i++) {
@@ -129,7 +129,7 @@ function validateRange(range) {
 }
 
 // Safe interpolate wrapper
-function safeInterpolate(frame, inputRange, outputRange, options) {
+function safeInterpolate(frame: number, inputRange: number[], outputRange: number[], options?: any): number {
   const validInput = validateRange(inputRange);
   return interpolate(frame, validInput, outputRange, options);
 }
@@ -141,7 +141,7 @@ export const VideoComposition: React.FC = () => {
   const opacity = safeInterpolate(frame, [0, 30], [0, 1], { extrapolateRight: 'clamp' });
   
   return (
-    <AbsoluteFill style={{ backgroundColor: '${content.backgroundColor || 'white'}', opacity }}
+    <AbsoluteFill style={{ backgroundColor: '${content.backgroundColor || 'white'}', opacity }}>
       <Sequence from={0} durationInFrames={${duration * fps}}>
         <AbsoluteFill style={{ 
           justifyContent: 'center', 
@@ -160,19 +160,6 @@ export const VideoComposition: React.FC = () => {
       </Sequence>
     </AbsoluteFill>
   );
-};
-
-export const RemotionRoot: React.FC = () => {
-  return (
-    <Composition
-      id="MainComp"
-      component={VideoComposition}
-      durationInFrames={${duration * fps}}
-      fps={${fps}}
-      width={${width}}
-      height={${height}}
-    />
-  );
 };`;
                     break;
                 }
@@ -186,10 +173,10 @@ export const RemotionRoot: React.FC = () => {
           </AbsoluteFill>
         </Sequence>`).join('');
                     composition = `import React from 'react';
-import { Composition, Sequence, AbsoluteFill, interpolate, useCurrentFrame } from 'remotion';
+import { Sequence, AbsoluteFill, interpolate, useCurrentFrame } from 'remotion';
 
 // Helper to ensure interpolation ranges are valid (prevents Remotion errors)
-function validateRange(range) {
+function validateRange(range: number[]): number[] {
   if (range.length <= 1) return range;
   const valid = [...range];
   for (let i = 1; i < valid.length; i++) {
@@ -201,7 +188,7 @@ function validateRange(range) {
 }
 
 // Safe interpolate wrapper
-function safeInterpolate(frame, inputRange, outputRange, options) {
+function safeInterpolate(frame: number, inputRange: number[], outputRange: number[], options?: any): number {
   const validInput = validateRange(inputRange);
   return interpolate(frame, validInput, outputRange, options);
 }
@@ -212,19 +199,6 @@ export const VideoComposition: React.FC = () => {
     <AbsoluteFill style={{ backgroundColor: '${content.backgroundColor || 'black'}' }}>
       ${imageSequences || '<div>No images provided</div>'}
     </AbsoluteFill>
-  );
-};
-
-export const RemotionRoot: React.FC = () => {
-  return (
-    <Composition
-      id="MainComp"
-      component={VideoComposition}
-      durationInFrames={${duration * fps}}
-      fps={${fps}}
-      width={${width}}
-      height={${height}}
-    />
   );
 };`;
                     break;

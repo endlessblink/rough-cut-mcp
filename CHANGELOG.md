@@ -5,6 +5,24 @@ All notable changes to the RoughCut MCP Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1] - 2025-08-29
+
+### Fixed
+- **CRITICAL**: Fixed JSX syntax error in video creation templates causing "undefined component" errors
+- **CRITICAL**: Removed hardcoded test projects from package that were causing VM installation issues
+- Fixed missing React imports and inconsistent TypeScript types in generated templates
+- Fixed unclosed JSX tags in AbsoluteFill components
+
+### Removed
+- Eliminated bundled test projects from git tracking and npm package
+- Removed unused RemotionRoot exports from templates
+- Cleaned up assets/projects directory from repository
+
+### Improved  
+- Enhanced template generation with proper TypeScript annotations
+- Better error handling for component compilation issues
+- Cleaner package distribution without broken example projects
+
 ## [2.0.9] - 2025-08-28
 
 ### Fixed
