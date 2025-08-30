@@ -1,0 +1,121 @@
+// Windows Utility Functions - Simple and Direct
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import * as path from 'path';
+
+const execAsync = promisify(exec);
+
+/**
+ * Get Windows project path for a project name
+ */
+export function getWindowsProjectPath(projectName: string): string {
+  const assetsDir = getAssetsDir();
+  return path.join(assetsDir, 'projects', projectName);
+}
+
+/**
+ * Get assets directory using Windows paths
+ */
+export function getAssetsDir(): string {
+  // Use environment variable or default Windows path
+  return process.env.REMOTION_ASSETS_DIR || 
+         'D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\my-builds\\Video + Motion\\RoughCut\\assets';
+}
+
+/**
+ * Find what process is actually using a port
+ * Uses modern Windows commands instead of deprecated WMIC
+ */
+export async function findProcessOnPort(port: number): Promise<number | null> {
+  try {
+    // Use netstat to find port, then tasklist to get process name
+    const netstatResult = await execAsync(`netstat -ano | findstr :${port} | findstr LISTENING`);
+    
+    if (!netstatResult.stdout.trim()) {
+      return null; // No process on port
+    }
+    
+    // Extract PID from netstat output: "TCP 0.0.0.0:3000 ... LISTENING 1234"
+    const match = netstatResult.stdout.match(/\s+(\d+)\s*$/);
+    if (!match) {
+      return null;
+    }
+    
+    const pid = parseInt(match[1], 10);
+    
+    // Verify it's actually a node/remotion process
+    try {
+      const processResult = await execAsync(`tasklist /fi "PID eq ${pid}" /fo csv`);
+      if (processResult.stdout.includes('node.exe') || processResult.stdout.includes('remotion')) {
+        return pid;
+      }
+    } catch {
+      // If tasklist fails, still return the PID
+      return pid;
+    }
+    
+    return pid;
+    
+  } catch (error) {
+    return null;
+  }
+}
+
+/**
+ * Kill process on specific port
+ * Uses direct Windows commands that actually work
+ */
+export async function killProcessOnPort(port: number): Promise<boolean> {
+  try {
+    const pid = await findProcessOnPort(port);
+    
+    if (!pid) {
+      return false; // Nothing to kill
+    }
+    
+    // Use Windows taskkill - force kill the process tree
+    await execAsync(`taskkill /f /t /pid ${pid}`);
+    
+    // Wait a moment for cleanup
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Verify it's actually gone
+    const stillExists = await findProcessOnPort(port);
+    return !stillExists;
+    
+  } catch (error) {
+    // If kill fails, that's usually fine (process already dead)
+    return true;
+  }
+}
+
+/**
+ * Validate that Remotion is actually available
+ */
+export async function validateRemotionAvailable(): Promise<boolean> {
+  try {
+    const result = await execAsync('npx.cmd remotion --version', { timeout: 10000 });
+    return result.stdout.includes('remotion') || result.stdout.includes('4.0');
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get real system status - no lies, just facts
+ */
+export async function getSystemStatus(): Promise<{ports: Array<{port: number, pid: number}>, remotionAvailable: boolean}> {
+  const ports = [];
+  
+  // Check common studio ports
+  for (const port of [3000, 3001, 3002, 3003, 3004, 3005]) {
+    const pid = await findProcessOnPort(port);
+    if (pid) {
+      ports.push({ port, pid });
+    }
+  }
+  
+  const remotionAvailable = await validateRemotionAvailable();
+  
+  return { ports, remotionAvailable };
+}

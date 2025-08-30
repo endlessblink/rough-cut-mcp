@@ -21,8 +21,8 @@ export declare const SoundEffectSearchSchema: z.ZodObject<{
     maxResults: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
     outputDir: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    query: string;
     duration: string;
+    query: string;
     maxResults: number;
     outputDir?: string | undefined;
 }, {
@@ -38,15 +38,15 @@ export declare const ImageGenerationSchema: z.ZodObject<{
     height: z.ZodDefault<z.ZodOptional<z.ZodNumber>>;
     outputPath: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    prompt: string;
     model: string;
+    prompt: string;
     width: number;
     height: number;
     outputPath?: string | undefined;
 }, {
     prompt: string;
-    outputPath?: string | undefined;
     model?: string | undefined;
+    outputPath?: string | undefined;
     width?: number | undefined;
     height?: number | undefined;
 }>;
@@ -71,30 +71,30 @@ export declare const VideoCreationSchema: z.ZodObject<{
     }>>;
 }, "strip", z.ZodTypeAny, {
     duration: number;
-    animationDesc: string;
     fps: number;
-    narration?: string | undefined;
-    sfxDesc?: string[] | undefined;
-    imageDesc?: string[] | undefined;
-    style?: string | undefined;
-    compositionCode?: string | undefined;
+    animationDesc: string;
     dimensions?: {
         width: number;
         height: number;
     } | undefined;
-}, {
-    animationDesc: string;
-    duration?: number | undefined;
+    compositionCode?: string | undefined;
     narration?: string | undefined;
     sfxDesc?: string[] | undefined;
     imageDesc?: string[] | undefined;
     style?: string | undefined;
-    compositionCode?: string | undefined;
-    fps?: number | undefined;
+}, {
+    animationDesc: string;
     dimensions?: {
         width?: number | undefined;
         height?: number | undefined;
     } | undefined;
+    duration?: number | undefined;
+    fps?: number | undefined;
+    compositionCode?: string | undefined;
+    narration?: string | undefined;
+    sfxDesc?: string[] | undefined;
+    imageDesc?: string[] | undefined;
+    style?: string | undefined;
 }>;
 export declare const AssetCleanupSchema: z.ZodObject<{
     maxAge: z.ZodOptional<z.ZodNumber>;
@@ -103,11 +103,11 @@ export declare const AssetCleanupSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     dryRun: boolean;
     maxAge?: number | undefined;
-    assetTypes?: ("audio" | "image" | "video" | "temp")[] | undefined;
+    assetTypes?: ("image" | "audio" | "video" | "temp")[] | undefined;
 }, {
     maxAge?: number | undefined;
     dryRun?: boolean | undefined;
-    assetTypes?: ("audio" | "image" | "video" | "temp")[] | undefined;
+    assetTypes?: ("image" | "audio" | "video" | "temp")[] | undefined;
 }>;
 export declare function validateFilePath(filePath: string): boolean;
 export declare function validateFileExtension(filePath: string, allowedExtensions: string[]): boolean;
