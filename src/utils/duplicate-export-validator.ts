@@ -164,8 +164,9 @@ export function validateAdvancedDuplicates(code: string): {
   }
 
   // 3. Fix the most common case: VideoComposition declared multiple times
+  const videoCompositionMatches = code.match(/export.*VideoComposition/g);
   if (code.includes('export const VideoComposition') && 
-      code.match(/export.*VideoComposition/g)?.length > 1) {
+      videoCompositionMatches && videoCompositionMatches.length > 1) {
     
     // Keep only the last VideoComposition export
     const videoCompositionRegex = /export\s+const\s+VideoComposition[^;]+;?/g;
