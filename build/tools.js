@@ -555,7 +555,7 @@ async function getMCPInfo() {
             content: [{
                     type: 'text',
                     text: `🔍 MCP Server Debug Info:
-Version: 4.1.0 (TypeScript 5.9.2 + Direct Import Fix)
+Version: 4.2.0 (Missing Export Fix + Auto-Restart)
 Architecture: Direct Tools (No Complex Abstractions)
 Total Tools: ${toolCount}
 Port Range: 6600-6620 (NOT 3000-3010!)
