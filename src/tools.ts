@@ -388,7 +388,7 @@ async function listProjects(): Promise<any> {
       const projectPath = path.join(projectsDir, project);
       const stats = await fs.stat(projectPath);
       if (stats.isDirectory()) {
-        const hasComposition = await fs.pathExists(path.join(projectPath, 'VideoComposition.tsx'));
+        const hasComposition = await fs.pathExists(path.join(projectPath, 'src', 'VideoComposition.tsx'));
         validProjects.push({
           name: project,
           path: projectPath,
