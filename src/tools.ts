@@ -264,7 +264,7 @@ async function createVideo(name: string, jsx: string): Promise<any> {
       devDependencies: {
         "@types/react": "^18.2.0",
         "@types/react-dom": "^18.2.0",
-        "typescript": "^5.5.4"
+        "typescript": "^5.9.2"
       }
     };
     await fs.writeFile(path.join(projectPath, 'package.json'), JSON.stringify(packageJson, null, 2));
