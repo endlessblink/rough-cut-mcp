@@ -281,17 +281,16 @@ import { Root } from './Root';
 
 registerRoot(Root);`;
         await fs.writeFile(path.join(projectPath, 'src', 'index.ts'), indexContent);
-        // Create src/Root.tsx  
+        // Create src/Root.tsx (using research-backed lazyComponent pattern)
         const rootContent = `import React from 'react';
 import { Composition } from 'remotion';
-import VideoComposition from './VideoComposition';
 
 export const Root: React.FC = () => {
   return (
     <>
       <Composition
         id="Main"
-        component={VideoComposition}
+        lazyComponent={() => import('./VideoComposition')}
         durationInFrames={300}
         fps={30}
         width={1920}
