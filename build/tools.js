@@ -51,7 +51,7 @@ function getTools() {
                 type: 'object',
                 properties: {
                     project: { type: 'string', description: 'Project name' },
-                    port: { type: 'number', description: 'Port number (3000-3010)' }
+                    port: { type: 'number', description: 'Port number (6600-6620)' }
                 },
                 required: ['project']
             }
@@ -157,7 +157,7 @@ async function handleToolCall(name, args) {
 async function launchStudio(projectName, port) {
     try {
         const projectPath = (0, utils_js_1.getWindowsProjectPath)(projectName);
-        const targetPort = port || 3000;
+        const targetPort = port || 6600; // Use 6600-6620 range as requested
         // Check if project exists
         if (!await fs.pathExists(projectPath)) {
             throw new Error(`Project '${projectName}' not found`);
@@ -227,10 +227,11 @@ async function stopStudio(port) {
 async function createVideo(name, jsx) {
     try {
         const projectPath = (0, utils_js_1.getWindowsProjectPath)(name);
-        // Create project directory
+        // Create proper Remotion project structure
         await fs.ensureDir(projectPath);
-        // Write VideoComposition.tsx
-        await fs.writeFile(path.join(projectPath, 'VideoComposition.tsx'), jsx);
+        await fs.ensureDir(path.join(projectPath, 'src'));
+        // Write VideoComposition.tsx in src/
+        await fs.writeFile(path.join(projectPath, 'src', 'VideoComposition.tsx'), jsx);
         // Create basic package.json
         const packageJson = {
             name: name,
@@ -246,23 +247,32 @@ async function createVideo(name, jsx) {
             cwd: projectPath,
             timeout: 60000
         });
-        // Create Root.tsx
-        const rootContent = `import { Composition } from 'remotion';
+        // Create proper src/index.ts (Remotion entrypoint)
+        const indexContent = `import { registerRoot } from 'remotion';
+import { Root } from './Root';
+
+registerRoot(Root);`;
+        await fs.writeFile(path.join(projectPath, 'src', 'index.ts'), indexContent);
+        // Create src/Root.tsx  
+        const rootContent = `import React from 'react';
+import { Composition } from 'remotion';
 import { VideoComposition } from './VideoComposition';
 
-export const RemotionRoot: React.FC = () => {
+export const Root: React.FC = () => {
   return (
-    <Composition
-      id="Main"
-      component={VideoComposition}
-      durationInFrames={240}
-      fps={30}
-      width={1920}
-      height={1080}
-    />
+    <>
+      <Composition
+        id="Main"
+        component={VideoComposition}
+        durationInFrames={300}
+        fps={30}
+        width={1920}
+        height={1080}
+      />
+    </>
   );
 };`;
-        await fs.writeFile(path.join(projectPath, 'Root.tsx'), rootContent);
+        await fs.writeFile(path.join(projectPath, 'src', 'Root.tsx'), rootContent);
         return {
             content: [{
                     type: 'text',
@@ -282,17 +292,27 @@ export const RemotionRoot: React.FC = () => {
 async function editVideoJSX(projectName, jsx) {
     try {
         const projectPath = (0, utils_js_1.getWindowsProjectPath)(projectName);
-        const compositionFile = path.join(projectPath, 'VideoComposition.tsx');
+        const compositionFile = path.join(projectPath, 'src', 'VideoComposition.tsx');
         // Check if project exists
         if (!await fs.pathExists(compositionFile)) {
             throw new Error(`Project '${projectName}' not found`);
         }
         // Write new JSX (Claude's unlimited editing power!)
         await fs.writeFile(compositionFile, jsx);
+        // Check if studio is actually running for this project
+        const runningPorts = [];
+        for (const port of [6600, 6601, 6602, 6603, 6604, 6605, 6606, 6607, 6608, 6609, 6610]) {
+            const pid = await (0, utils_js_1.findProcessOnPort)(port);
+            if (pid)
+                runningPorts.push(port);
+        }
+        const statusMsg = runningPorts.length > 0
+            ? `Studio running on ports: ${runningPorts.join(', ')} - will hot-reload`
+            : 'No studio running - use launch-studio to start one';
         return {
             content: [{
                     type: 'text',
-                    text: `✅ Updated ${projectName} with new JSX\nFile: VideoComposition.tsx\nStudio will hot-reload automatically if running`
+                    text: `✅ Updated ${projectName} with new JSX\nFile: src/VideoComposition.tsx\n${statusMsg}`
                 }]
         };
     }
@@ -354,8 +374,8 @@ async function listProjects() {
 async function getStatus() {
     try {
         const studios = [];
-        // Check common ports for studios
-        for (const port of [3000, 3001, 3002, 3003]) {
+        // Check 6600-6620 port range for studios
+        for (const port of [6600, 6601, 6602, 6603, 6604, 6605]) {
             const pid = await (0, utils_js_1.findProcessOnPort)(port);
             if (pid) {
                 studios.push(`Port ${port}: PID ${pid}`);

@@ -133,8 +133,8 @@ async function validateRemotionAvailable() {
  */
 async function getSystemStatus() {
     const ports = [];
-    // Check common studio ports
-    for (const port of [3000, 3001, 3002, 3003, 3004, 3005]) {
+    // Check 6600-6620 studio port range
+    for (const port of [6600, 6601, 6602, 6603, 6604, 6605, 6606, 6607, 6608, 6609, 6610]) {
         const pid = await findProcessOnPort(port);
         if (pid) {
             ports.push({ port, pid });
