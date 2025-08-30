@@ -1,5 +1,41 @@
 # 🦾 ROUGHCUT MCP - END-TO-END WINDOWS EXECUTION GUIDE
 
+## 🚨 CRITICAL MCP RULE: ALWAYS FIX THE MCP, NOT SPECIFIC ANIMATIONS! 🚨
+```
+❌ NEVER fix VideoComposition.tsx files to solve GENERATION ERRORS from the MCP!
+❌ NEVER patch individual projects when the MCP is creating invalid code!
+❌ NEVER band-aid animation files when the root cause is in the MCP system!
+✅ ALWAYS fix the MCP generation system in src/services/ and src/tools/
+✅ Fix the root cause in animation-generator.ts or creation-tools.ts
+✅ Ensure ALL future animations work, not just one specific case
+```
+
+**⚠️ CLARIFICATION: When TO edit VideoComposition.tsx:**
+- ✅ **User requests specific edits** to their animation content
+- ✅ **Composition tool usage** - editing elements via the MCP tool
+- ✅ **User customization** - changing colors, text, timing per user request
+
+**❌ When NOT to edit VideoComposition.tsx:**
+- ❌ **Fixing MCP generation bugs** like interpolation errors, syntax errors
+- ❌ **Correcting invalid code** that the MCP generated incorrectly
+- ❌ **Patching system-level issues** that affect multiple projects
+
+### ⚡ WHY THIS IS CRITICAL:
+- **Fixes the system**: Updates benefit ALL future animations
+- **Prevents recurring issues**: Root cause elimination vs symptom treatment  
+- **Scalable solution**: One fix solves the problem universally
+- **Professional approach**: Infrastructure fixes, not band-aids
+
+### 🛠️ WHERE TO FIX MCP ISSUES:
+- `src/services/animation-generator.ts` - AI animation generation
+- `src/tools/creation-tools.ts` - Video creation templates  
+- `src/utils/interpolation-validator.ts` - Validation logic
+- `src/tools/composition-editor.ts` - Element editing logic
+
+**ALWAYS ask: "How can I fix this in the MCP so it never happens again?"**
+
+---
+
 ## 🔴 CRITICAL RULE #1: NEVER HARDCODE PROJECT NAMES! 🔴
 ```
 ❌ NEVER EVER HARDCODE SPECIFIC PROJECT NAMES OR USERS IN THE CODE!

@@ -500,7 +500,7 @@ function registerCompositionTools(server) {
         category: tool_categories_js_1.ToolCategory.VIDEO_CREATION,
         subCategory: 'editing',
         tags: ['composition', 'element', 'edit', 'add', 'remove'],
-        loadByDefault: false,
+        loadByDefault: true,
         priority: 1,
         estimatedTokens: 200
     });
