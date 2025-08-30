@@ -236,11 +236,21 @@ async function createVideo(name: string, jsx: string): Promise<any> {
     await fs.ensureDir(projectPath);
     await fs.ensureDir(path.join(projectPath, 'src'));
     
-    // Ensure JSX uses default export (required for React.lazy/Remotion)
+    // Ensure JSX uses default export (required for Remotion components)
     let fixedJSX = jsx;
+    
+    // Check if JSX has named export and convert to default export
     if (jsx.includes('export const VideoComposition')) {
-      // Convert named export to default export
-      fixedJSX = jsx.replace('export const VideoComposition', 'const VideoComposition') + '\n\nexport default VideoComposition;';
+      // Remove the export keyword, add default export at end
+      fixedJSX = jsx.replace('export const VideoComposition', 'const VideoComposition');
+      
+      // Add default export at the very end if not already present
+      if (!fixedJSX.includes('export default VideoComposition')) {
+        fixedJSX += '\n\nexport default VideoComposition;';
+      }
+    } else if (!jsx.includes('export default') && jsx.includes('VideoComposition')) {
+      // If no export at all, add default export
+      fixedJSX += '\n\nexport default VideoComposition;';
     }
     
     // Write VideoComposition.tsx in src/
