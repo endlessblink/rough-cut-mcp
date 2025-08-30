@@ -11,6 +11,8 @@ import { generateSafeDependencies } from '../utils/version-detector.js';
 import { registerCompositionTools } from './composition-editor.js';
 import { processComponentStructure } from '../utils/component-validator.js';
 import { processEasingInCode } from '../utils/easing-validator.js';
+import { processImportsAndSyntax } from '../utils/import-validator.js';
+import { processJSXSyntax } from '../utils/jsx-syntax-validator.js';
 import * as path from 'path';
 import fs from 'fs-extra';
 import { exec } from 'child_process';
@@ -270,18 +272,25 @@ export const VideoComposition: React.FC = () => {
         // BULLETPROOF: Apply ALL validation layers to generated code
         let bulletproofComposition = composition;
         
-        // Layer 1: Fix component structure issues
+        // Layer 1: Fix imports and JSX syntax issues (CRITICAL - catches missing braces)
+        bulletproofComposition = processImportsAndSyntax(bulletproofComposition);
+        
+        // Layer 2: Fix component structure issues
         bulletproofComposition = processComponentStructure(bulletproofComposition);
         
-        // Layer 2: Fix easing function errors  
+        // Layer 3: Fix easing function errors  
         bulletproofComposition = processEasingInCode(bulletproofComposition);
         
-        // Layer 3: Fix interpolation and color issues
+        // Layer 4: Fix interpolation and color issues
         bulletproofComposition = processVideoCode(bulletproofComposition);
         
-        logger.info('Applied comprehensive validation layers', { 
+        // Layer 5: Final JSX syntax validation (catches any remaining issues)
+        bulletproofComposition = processJSXSyntax(bulletproofComposition);
+        
+        logger.info('Applied 5-layer bulletproof validation system', { 
           originalLength: composition.length,
-          processedLength: bulletproofComposition.length
+          processedLength: bulletproofComposition.length,
+          layers: ['imports+jsx', 'structure', 'easing', 'interpolation', 'final-jsx']
         });
         
         // CRITICAL: Ensure src directory exists before writing files

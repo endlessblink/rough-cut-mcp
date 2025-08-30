@@ -46,6 +46,8 @@ const animation_generator_js_1 = require("../services/animation-generator.js");
 const interpolation_validator_js_1 = require("../utils/interpolation-validator.js");
 const version_detector_js_1 = require("../utils/version-detector.js");
 const composition_editor_js_1 = require("./composition-editor.js");
+const component_validator_js_1 = require("../utils/component-validator.js");
+const easing_validator_js_1 = require("../utils/easing-validator.js");
 const path = __importStar(require("path"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
 const child_process_1 = require("child_process");
@@ -284,15 +286,25 @@ export const VideoComposition: React.FC = () => {
                 default:
                     throw new Error(`Unknown video type: ${args.type}`);
             }
-            // Process composition code to fix any interpolation issues
-            const safeComposition = (0, interpolation_validator_js_1.processVideoCode)(composition);
+            // BULLETPROOF: Apply ALL validation layers to generated code
+            let bulletproofComposition = composition;
+            // Layer 1: Fix component structure issues
+            bulletproofComposition = (0, component_validator_js_1.processComponentStructure)(bulletproofComposition);
+            // Layer 2: Fix easing function errors  
+            bulletproofComposition = (0, easing_validator_js_1.processEasingInCode)(bulletproofComposition);
+            // Layer 3: Fix interpolation and color issues
+            bulletproofComposition = (0, interpolation_validator_js_1.processVideoCode)(bulletproofComposition);
+            logger.info('Applied comprehensive validation layers', {
+                originalLength: composition.length,
+                processedLength: bulletproofComposition.length
+            });
             // CRITICAL: Ensure src directory exists before writing files
             const srcPath = path.join(projectPath, 'src');
             await fs_extra_1.default.ensureDir(srcPath);
-            // Write VideoComposition.tsx with error handling
+            // Write VideoComposition.tsx with bulletproof code
             const compositionFile = path.join(srcPath, 'VideoComposition.tsx');
             try {
-                await fs_extra_1.default.writeFile(compositionFile, safeComposition);
+                await fs_extra_1.default.writeFile(compositionFile, bulletproofComposition);
                 logger.info('VideoComposition.tsx created successfully', { file: compositionFile });
             }
             catch (error) {

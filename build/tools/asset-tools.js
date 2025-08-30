@@ -42,6 +42,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerAssetTools = registerAssetTools;
 const tool_categories_js_1 = require("../types/tool-categories.js");
+const force_delete_js_1 = require("../utils/force-delete.js");
 const path = __importStar(require("path"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
 function registerAssetTools(server) {
@@ -57,7 +58,7 @@ function registerAssetTools(server) {
             properties: {
                 action: {
                     type: 'string',
-                    enum: ['list', 'organize', 'delete', 'stats'],
+                    enum: ['list', 'organize', 'delete', 'stats', 'force-delete-project'],
                     description: 'Asset action'
                 },
                 type: {
@@ -72,6 +73,15 @@ function registerAssetTools(server) {
                 olderThan: {
                     type: 'number',
                     description: 'Delete files older than X days'
+                },
+                projectName: {
+                    type: 'string',
+                    description: 'Project name (required for force-delete-project action)'
+                },
+                forceKill: {
+                    type: 'boolean',
+                    description: 'Kill related processes before deletion (for force-delete-project)',
+                    default: true
                 }
             },
             required: ['action']
@@ -206,6 +216,53 @@ Videos: ${stats.videoCount} (${(stats.videoSize / (1024 * 1024)).toFixed(2)} MB)
 Audio: ${stats.audioCount} (${(stats.audioSize / (1024 * 1024)).toFixed(2)} MB)
 Oldest file: ${stats.oldestFile ? new Date(stats.oldestFile).toLocaleDateString() : 'N/A'}
 Newest file: ${stats.newestFile ? new Date(stats.newestFile).toLocaleDateString() : 'N/A'}`
+                            }]
+                    };
+                }
+                case 'force-delete-project': {
+                    if (!args.projectName) {
+                        throw new Error('projectName required for force-delete-project action');
+                    }
+                    const projectPath = path.join(server.config.assetsDir, 'projects', args.projectName);
+                    if (!await fs_extra_1.default.pathExists(projectPath)) {
+                        return {
+                            content: [{
+                                    type: 'text',
+                                    text: `❌ Project "${args.projectName}" not found`
+                                }]
+                        };
+                    }
+                    logger.info('Force deleting project', { projectName: args.projectName, projectPath });
+                    const deleteResult = await (0, force_delete_js_1.forceDeleteProject)({
+                        projectPath,
+                        projectName: args.projectName,
+                        killProcesses: args.forceKill !== false,
+                        removeNodeModules: true,
+                        timeout: 60000
+                    });
+                    let statusText = '';
+                    if (deleteResult.success) {
+                        statusText = `✅ Successfully force-deleted project "${args.projectName}"`;
+                        if (deleteResult.processesKilled.length > 0) {
+                            statusText += `\n🔄 Killed ${deleteResult.processesKilled.length} related processes`;
+                        }
+                        if (deleteResult.filesRemoved.length > 0) {
+                            statusText += `\n📁 Removed ${deleteResult.filesRemoved.length} files/directories`;
+                        }
+                        if (deleteResult.warnings.length > 0) {
+                            statusText += `\n⚠️ Warnings: ${deleteResult.warnings.join(', ')}`;
+                        }
+                    }
+                    else {
+                        statusText = `❌ Failed to delete project "${args.projectName}"`;
+                        if (deleteResult.errors.length > 0) {
+                            statusText += `\nErrors: ${deleteResult.errors.join(', ')}`;
+                        }
+                    }
+                    return {
+                        content: [{
+                                type: 'text',
+                                text: statusText
                             }]
                     };
                 }

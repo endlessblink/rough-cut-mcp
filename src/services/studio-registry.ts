@@ -439,15 +439,28 @@ export class StudioRegistry {
    * Enhanced smart studio launch with robust lifecycle management
    * This is the main method that solves the MCP reuse problem
    */
-  async smartLaunchStudio(projectPath: string, projectName?: string, requestedPort?: number): Promise<StudioInstance & { wasReused: boolean }> {
+  async smartLaunchStudio(projectPath: string, projectName?: string, requestedPort?: number, forceNewPort?: boolean): Promise<StudioInstance & { wasReused: boolean }> {
     this.logger.info('Enhanced smart studio launch requested', { 
       projectPath, 
       projectName, 
-      requestedPort 
+      requestedPort,
+      forceNewPort 
     });
 
     try {
-      // Step 1: FIRST - Try to find existing studio for this specific project
+      // CRITICAL: If user requests specific port, HONOR IT - don't reuse existing
+      if (forceNewPort || requestedPort) {
+        this.logger.info('User requested specific port or forced new instance - skipping reuse', {
+          requestedPort,
+          forceNewPort
+        });
+        
+        // Launch new instance on requested port
+        const newInstance = await this.launchStudioWithLifecycle(projectPath, projectName, requestedPort);
+        return { ...newInstance, wasReused: false };
+      }
+      
+      // Step 1: FIRST - Try to find existing studio for this specific project (only if not forced)
       if (projectName) {
         const existingStudio = await this.findStudioByProject(projectName);
         if (existingStudio) {
