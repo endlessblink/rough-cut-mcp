@@ -36,6 +36,31 @@
 
 ---
 
+## 🔍 CRITICAL RULE: RESEARCH FIRST, DON'T GUESS! 🔍
+
+### ⚡ LESSON LEARNED - ALWAYS RESEARCH BEFORE IMPLEMENTING:
+- ✅ **Research official Remotion docs** for correct project structure  
+- ✅ **Proper src/index.ts** with `registerRoot(Root)` (required entrypoint)
+- ✅ **Complete dependencies** including React types and TypeScript
+- ✅ **tsconfig.json** for proper TypeScript support
+- ✅ **6600-6620 port range** (configured range, not default 3000s)
+
+### 🚨 WHY THIS IS CRITICAL:
+- **Assumptions create broken systems**: Guessing leads to complex fixes for wrong problems
+- **Research prevents complexity hell**: Understanding requirements prevents over-engineering  
+- **Official docs are truth**: Framework expectations must be met exactly
+- **Structure errors cascade**: Wrong project structure breaks everything downstream
+
+### 🛡️ BEFORE ANY MAJOR CHANGE:
+1. **Research official documentation** for the target system
+2. **Understand the expected patterns** and requirements
+3. **Test minimal examples** before building complex solutions
+4. **Verify assumptions** with authoritative sources
+
+**NEVER assume - always verify with official sources first!**
+
+---
+
 ## 🔴 CRITICAL RULE #1: NEVER HARDCODE PROJECT NAMES! 🔴
 ```
 ❌ NEVER EVER HARDCODE SPECIFIC PROJECT NAMES OR USERS IN THE CODE!
