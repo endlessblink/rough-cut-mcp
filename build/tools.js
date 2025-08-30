@@ -106,6 +106,28 @@ function getTools() {
                 type: 'object',
                 properties: {}
             }
+        },
+        {
+            name: 'install-dependencies',
+            description: 'Install npm dependencies for a project',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    project: { type: 'string', description: 'Project name' }
+                },
+                required: ['project']
+            }
+        },
+        {
+            name: 'delete-project',
+            description: 'Delete a video project completely',
+            inputSchema: {
+                type: 'object',
+                properties: {
+                    project: { type: 'string', description: 'Project name to delete' }
+                },
+                required: ['project']
+            }
         }
     ];
 }
@@ -123,6 +145,10 @@ async function handleToolCall(name, args) {
             return await listProjects();
         case 'get-status':
             return await getStatus();
+        case 'install-dependencies':
+            return await installDependencies(args.project);
+        case 'delete-project':
+            return await deleteProject(args.project);
         default:
             throw new Error(`Unknown tool: ${name}`);
     }
@@ -136,8 +162,12 @@ async function launchStudio(projectName, port) {
         if (!await fs.pathExists(projectPath)) {
             throw new Error(`Project '${projectName}' not found`);
         }
-        // Kill anything on the target port first
-        await (0, utils_js_1.killProcessOnPort)(targetPort);
+        // ALWAYS kill anything on the target port first (fixes same-port restart)
+        const wasKilled = await (0, utils_js_1.killProcessOnPort)(targetPort);
+        if (wasKilled) {
+            // Wait for port to be freed
+            await new Promise(resolve => setTimeout(resolve, 2000));
+        }
         // Launch studio with REAL error detection
         const command = `npx.cmd remotion studio --port ${targetPort}`;
         const result = await execAsync(command, {
@@ -211,6 +241,11 @@ async function createVideo(name, jsx) {
             }
         };
         await fs.writeFile(path.join(projectPath, 'package.json'), JSON.stringify(packageJson, null, 2));
+        // Install dependencies automatically so project works immediately
+        await execAsync('npm install', {
+            cwd: projectPath,
+            timeout: 60000
+        });
         // Create Root.tsx
         const rootContent = `import { Composition } from 'remotion';
 import { VideoComposition } from './VideoComposition';
@@ -340,6 +375,70 @@ async function getStatus() {
             content: [{
                     type: 'text',
                     text: `❌ Error getting status: ${error instanceof Error ? error.message : String(error)}`
+                }]
+        };
+    }
+}
+async function installDependencies(projectName) {
+    try {
+        const projectPath = (0, utils_js_1.getWindowsProjectPath)(projectName);
+        if (!await fs.pathExists(projectPath)) {
+            throw new Error(`Project '${projectName}' not found`);
+        }
+        // Install dependencies
+        await execAsync('npm install', {
+            cwd: projectPath,
+            timeout: 60000
+        });
+        return {
+            content: [{
+                    type: 'text',
+                    text: `✅ Dependencies installed for ${projectName}\nProject is now ready to launch`
+                }]
+        };
+    }
+    catch (error) {
+        return {
+            content: [{
+                    type: 'text',
+                    text: `❌ Failed to install dependencies: ${error instanceof Error ? error.message : String(error)}`
+                }]
+        };
+    }
+}
+async function deleteProject(projectName) {
+    try {
+        const projectPath = (0, utils_js_1.getWindowsProjectPath)(projectName);
+        if (!await fs.pathExists(projectPath)) {
+            throw new Error(`Project '${projectName}' not found`);
+        }
+        // Find and stop any studio running this project
+        const { ports } = await (0, utils_js_1.getSystemStatus)();
+        for (const portInfo of ports) {
+            // Stop all studios to be safe
+            await (0, utils_js_1.killProcessOnPort)(portInfo.port);
+        }
+        // Wait for processes to cleanup
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        // Delete project directory
+        await fs.remove(projectPath);
+        // Verify deletion
+        const stillExists = await fs.pathExists(projectPath);
+        if (stillExists) {
+            throw new Error('Project directory could not be completely deleted');
+        }
+        return {
+            content: [{
+                    type: 'text',
+                    text: `✅ Deleted project '${projectName}'\nPath: ${projectPath}`
+                }]
+        };
+    }
+    catch (error) {
+        return {
+            content: [{
+                    type: 'text',
+                    text: `❌ Failed to delete project: ${error instanceof Error ? error.message : String(error)}`
                 }]
         };
     }

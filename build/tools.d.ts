@@ -84,6 +84,22 @@ export declare function getTools(): ({
         };
         required?: undefined;
     };
+} | {
+    name: string;
+    description: string;
+    inputSchema: {
+        type: string;
+        properties: {
+            project: {
+                type: string;
+                description: string;
+            };
+            port?: undefined;
+            name?: undefined;
+            jsx?: undefined;
+        };
+        required: string[];
+    };
 })[];
 export declare function handleToolCall(name: string, args: any): Promise<any>;
 //# sourceMappingURL=tools.d.ts.map
