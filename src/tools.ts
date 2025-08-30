@@ -160,12 +160,20 @@ async function launchStudio(projectName: string, port?: number): Promise<any> {
     
     // Launch studio with REAL error detection
     const command = `npx.cmd remotion studio --port ${targetPort}`;
-    const result = await execAsync(command, {
-      cwd: projectPath,
-      timeout: 30000
-    });
     
-    // Check for actual errors in stderr
+    let result;
+    try {
+      result = await execAsync(command, {
+        cwd: projectPath,
+        timeout: 30000
+      });
+    } catch (execError: any) {
+      // Capture the REAL error from execAsync
+      const stderr = execError.stderr || execError.message || String(execError);
+      throw new Error(`Remotion startup failed: ${stderr.trim()}`);
+    }
+    
+    // Check for actual errors in stderr (if command succeeded but had warnings)
     if (result.stderr) {
       if (result.stderr.includes('not available')) {
         throw new Error(`Port ${targetPort} is busy`);
