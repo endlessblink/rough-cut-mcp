@@ -490,6 +490,12 @@ export class StudioRegistry {
           forceNewPort
         });
         
+        // CRITICAL FIX: Stop existing studio on requested port first
+        if (requestedPort && this.instances.has(requestedPort)) {
+          this.logger.info('Stopping existing studio on requested port', { port: requestedPort });
+          await this.stopStudio(requestedPort);
+        }
+        
         // Launch new instance on requested port
         const newInstance = await this.launchStudioWithLifecycle(projectPath, projectName, requestedPort);
         return { ...newInstance, wasReused: false };
