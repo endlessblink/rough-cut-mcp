@@ -240,8 +240,14 @@ async function createVideo(name, jsx) {
         // Create proper Remotion project structure
         await fs.ensureDir(projectPath);
         await fs.ensureDir(path.join(projectPath, 'src'));
+        // Ensure JSX uses default export (required for React.lazy/Remotion)
+        let fixedJSX = jsx;
+        if (jsx.includes('export const VideoComposition')) {
+            // Convert named export to default export
+            fixedJSX = jsx.replace('export const VideoComposition', 'const VideoComposition') + '\n\nexport default VideoComposition;';
+        }
         // Write VideoComposition.tsx in src/
-        await fs.writeFile(path.join(projectPath, 'src', 'VideoComposition.tsx'), jsx);
+        await fs.writeFile(path.join(projectPath, 'src', 'VideoComposition.tsx'), fixedJSX);
         // Create complete package.json with all required dependencies
         const packageJson = {
             name: name,
@@ -278,7 +284,7 @@ registerRoot(Root);`;
         // Create src/Root.tsx  
         const rootContent = `import React from 'react';
 import { Composition } from 'remotion';
-import { VideoComposition } from './VideoComposition';
+import VideoComposition from './VideoComposition';
 
 export const Root: React.FC = () => {
   return (
