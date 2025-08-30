@@ -232,13 +232,25 @@ async function createVideo(name, jsx) {
         await fs.ensureDir(path.join(projectPath, 'src'));
         // Write VideoComposition.tsx in src/
         await fs.writeFile(path.join(projectPath, 'src', 'VideoComposition.tsx'), jsx);
-        // Create basic package.json
+        // Create complete package.json with all required dependencies
         const packageJson = {
             name: name,
             version: "1.0.0",
+            scripts: {
+                "start": "remotion studio",
+                "build": "remotion render src/index.ts",
+                "upgrade": "remotion upgrade"
+            },
             dependencies: {
                 "@remotion/cli": "4.0.340",
-                "remotion": "4.0.340"
+                "remotion": "4.0.340",
+                "react": "^18.2.0",
+                "react-dom": "^18.2.0"
+            },
+            devDependencies: {
+                "@types/react": "^18.2.0",
+                "@types/react-dom": "^18.2.0",
+                "typescript": "^5.0.0"
             }
         };
         await fs.writeFile(path.join(projectPath, 'package.json'), JSON.stringify(packageJson, null, 2));
@@ -273,6 +285,26 @@ export const Root: React.FC = () => {
   );
 };`;
         await fs.writeFile(path.join(projectPath, 'src', 'Root.tsx'), rootContent);
+        // Create tsconfig.json for TypeScript support
+        const tsconfigContent = {
+            "compilerOptions": {
+                "target": "ES2022",
+                "lib": ["DOM", "DOM.Iterable", "ES6"],
+                "allowJs": true,
+                "skipLibCheck": true,
+                "esModuleInterop": true,
+                "allowSyntheticDefaultImports": true,
+                "strict": true,
+                "forceConsistentCasingInFileNames": true,
+                "moduleResolution": "node",
+                "resolveJsonModule": true,
+                "isolatedModules": true,
+                "noEmit": true,
+                "jsx": "react-jsx"
+            },
+            "include": ["src"]
+        };
+        await fs.writeFile(path.join(projectPath, 'tsconfig.json'), JSON.stringify(tsconfigContent, null, 2));
         return {
             content: [{
                     type: 'text',
