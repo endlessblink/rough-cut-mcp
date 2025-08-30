@@ -74,7 +74,7 @@ export class RemotionService {
       await fs.ensureDir(compositionDir);
 
       // Generate composition code using simple compositions
-      const { generateBasicComposition, generateIndexFile, generatePackageJson } = await import('../templates/simple-compositions.js');
+      const { generateBasicComposition, generateIndexFile, generateCompletePackageJson } = await import('../templates/simple-compositions.js');
       
       const compositionCode = await generateBasicComposition({
         animationDesc: request.animationDesc,
@@ -90,7 +90,7 @@ export class RemotionService {
       await fs.writeFile(compositionFile, compositionCode);
 
       // Create package.json for the composition
-      const packageJsonContent = generatePackageJson();
+      const packageJsonContent = generateCompletePackageJson();
       await fs.writeFile(path.join(compositionDir, 'package.json'), packageJsonContent);
 
       // Create index file
@@ -263,8 +263,8 @@ registerRoot(RemotionVideo);`;
       await fs.writeFile(path.join(compositionDir, 'Composition.tsx'), textComposition);
 
       // Create package.json
-      const { generatePackageJson } = await import('../templates/simple-compositions.js');
-      const packageJsonContent = generatePackageJson();
+      const { generateCompletePackageJson } = await import('../templates/simple-compositions.js');
+      const packageJsonContent = generateCompletePackageJson();
       await fs.writeFile(path.join(compositionDir, 'package.json'), packageJsonContent);
 
       // Create Video.tsx

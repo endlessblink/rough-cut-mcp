@@ -42,10 +42,6 @@ export declare function generateIndexFile(duration: number, fps: number, dimensi
  */
 export declare function generateCompletePackageJson(): string;
 /**
- * Generate legacy package.json (deprecated - use generateCompletePackageJson)
- */
-export declare function generatePackageJson(): string;
-/**
  * Generate remotion.config.ts file
  */
 export declare function generateRemotionConfig(): string;

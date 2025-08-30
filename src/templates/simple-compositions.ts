@@ -178,12 +178,6 @@ export function generateCompletePackageJson(): string {
   }, null, 2);
 }
 
-/**
- * Generate legacy package.json (deprecated - use generateCompletePackageJson)
- */
-export function generatePackageJson(): string {
-  return generateCompletePackageJson();
-}
 
 /**
  * Generate remotion.config.ts file

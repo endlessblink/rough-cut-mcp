@@ -264,6 +264,19 @@ export class StudioLifecycle {
           logger.debug(`Studio process spawned with PID: ${studioProcess.pid}`);
         });
 
+        // Handle process errors
+        studioProcess.on('error', (error) => {
+          if (!resolved) {
+            resolved = true;
+            clearTimeout(timeoutHandle);
+            logger.error('Studio process spawn error:', error);
+            resolve({
+              success: false,
+              error: `Spawn failed: ${error.message}`
+            });
+          }
+        });
+
         // Collect stdout for debugging
         studioProcess.stdout?.on('data', (data: Buffer) => {
           stdoutData += data.toString();
@@ -278,10 +291,13 @@ export class StudioLifecycle {
               resolved = true;
               clearTimeout(timeoutHandle);
               logger.info('Studio process ready - detected success indicators in stdout');
-              resolve({
-                success: true,
-                process: studioProcess,
-                pid: studioProcess.pid!
+              // Get real PID synchronously to avoid async issues
+              getRealStudioPID(studioProcess.pid!).then(realPid => {
+                resolve({
+                  success: true,
+                  process: studioProcess,
+                  pid: realPid || studioProcess.pid!
+                });
               });
             }
           }
@@ -340,15 +356,17 @@ export class StudioLifecycle {
         // If we don't get explicit success/failure indicators from output,
         // fall back to checking if process is still alive after a delay
         setTimeout(() => {
-          if (!resolved && process.pid) {
-            // Process is still running, assume success
+          if (!resolved && studioProcess.pid) {
+            // Process is still running, get real PID and assume success
             resolved = true;
             clearTimeout(timeoutHandle);
-            logger.debug('Studio process still running, assuming success');
-            resolve({
-              success: true,
-              process: studioProcess,
-              pid: studioProcess.pid
+            logger.debug('Studio process still running, getting real PID');
+            getRealStudioPID(studioProcess.pid).then(realPid => {
+              resolve({
+                success: true,
+                process: studioProcess,
+                pid: realPid || studioProcess.pid!
+              });
             });
           }
         }, Math.min(timeout * 0.5, 10000)); // Wait up to 10 seconds or half timeout

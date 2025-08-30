@@ -4,7 +4,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.generateBasicComposition = generateBasicComposition;
 exports.generateIndexFile = generateIndexFile;
 exports.generateCompletePackageJson = generateCompletePackageJson;
-exports.generatePackageJson = generatePackageJson;
 exports.generateRemotionConfig = generateRemotionConfig;
 exports.generateTsConfig = generateTsConfig;
 /**
@@ -145,12 +144,6 @@ function generateCompletePackageJson() {
             "typescript": "5.0.4"
         }
     }, null, 2);
-}
-/**
- * Generate legacy package.json (deprecated - use generateCompletePackageJson)
- */
-function generatePackageJson() {
-    return generateCompletePackageJson();
 }
 /**
  * Generate remotion.config.ts file

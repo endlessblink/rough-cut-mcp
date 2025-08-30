@@ -59,7 +59,7 @@ class RemotionService {
             const compositionDir = path_1.default.join(tempDir, `composition_${(0, uuid_1.v4)()}`);
             await fs_extra_1.default.ensureDir(compositionDir);
             // Generate composition code using simple compositions
-            const { generateBasicComposition, generateIndexFile, generatePackageJson } = await import('../templates/simple-compositions.js');
+            const { generateBasicComposition, generateIndexFile, generateCompletePackageJson } = await import('../templates/simple-compositions.js');
             const compositionCode = await generateBasicComposition({
                 animationDesc: request.animationDesc,
                 assets,
@@ -72,7 +72,7 @@ class RemotionService {
             const compositionFile = path_1.default.join(compositionDir, 'Composition.tsx');
             await fs_extra_1.default.writeFile(compositionFile, compositionCode);
             // Create package.json for the composition
-            const packageJsonContent = generatePackageJson();
+            const packageJsonContent = generateCompletePackageJson();
             await fs_extra_1.default.writeFile(path_1.default.join(compositionDir, 'package.json'), packageJsonContent);
             // Create index file
             const indexCode = generateIndexFile(request.duration || 30, request.fps || 30, request.dimensions || { width: 1920, height: 1080 });
@@ -210,8 +210,8 @@ registerRoot(RemotionVideo);`;
             const textComposition = this.generateTextComposition(text, duration, options || {});
             await fs_extra_1.default.writeFile(path_1.default.join(compositionDir, 'Composition.tsx'), textComposition);
             // Create package.json
-            const { generatePackageJson } = await import('../templates/simple-compositions.js');
-            const packageJsonContent = generatePackageJson();
+            const { generateCompletePackageJson } = await import('../templates/simple-compositions.js');
+            const packageJsonContent = generateCompletePackageJson();
             await fs_extra_1.default.writeFile(path_1.default.join(compositionDir, 'package.json'), packageJsonContent);
             // Create Video.tsx
             const fps = 30;
