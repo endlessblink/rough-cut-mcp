@@ -30,6 +30,8 @@ const variations = ['endlessblink-matrix', 'matrix', 'john-project'];
 
 **ALWAYS use dynamic, pattern-based matching that works for ANY project name!**
 
+---
+
 ## 🔴 CRITICAL: THE #1 RULE TO REMEMBER 🔴
 ```
 WSL PATHS (/mnt/d/...) SHOULD NEVER EXIST IN THE FIRST PLACE!
@@ -449,6 +451,58 @@ Claude Desktop MUST support this exact flow:
 ---
 
 **THE MCP IS OPERATIONAL WITH WINDOWS-ONLY EXECUTION!**
+
+---
+
+## 🚨 CRITICAL ARCHITECTURE RULE: CLAUDE + MCP COLLABORATION (Aug 2025)
+
+### 🔴 NEVER BREAK THIS ARCHITECTURE AGAIN! 🔴
+
+**CORRECT ARCHITECTURE:**
+```
+Claude Desktop (AI) → Generates unlimited animation JSX code
+         ↓
+MCP (Transformer) → Transforms JSX into working Remotion projects  
+         ↓
+Remotion Studio → Visual editing and rendering
+```
+
+**WRONG ARCHITECTURE (CAUSES "undefined component" ERRORS):**
+```
+MCP tries to generate animations itself → Limited hardcoded patterns → Fails for unknown types → Empty VideoComposition.tsx → Undefined component error
+```
+
+### 🛡️ **PREVENTION SAFEGUARDS IMPLEMENTED:**
+
+1. **Triple-Layer Protection** in animation-generator.ts:
+   - Layer 1: Hardcoded patterns (for known types)
+   - Layer 2: Intelligent generation system (for unknown types)  
+   - Layer 3: Minimal working animation (if all else fails)
+
+2. **Export Standardization** in creation-tools.ts:
+   - `standardizeJSXExports()` function fixes any export/import mismatches
+   - Converts any React component to proper `VideoComposition` export
+   - Prevents import failures in Root.tsx
+
+3. **"ai-generated" Type** as default:
+   - Claude Desktop generates complete JSX code
+   - MCP just transforms it into proper project structure
+   - Unlimited flexibility without hardcoded limitations
+
+### 🚨 **DO NOT:**
+- ❌ Disconnect intelligent generation system from animation-generator.ts
+- ❌ Return empty strings from any animation generation function
+- ❌ Make MCP try to "be intelligent" - Claude Desktop is the AI
+- ❌ Remove export standardization safeguards
+- ❌ Break the transformation architecture
+
+### ✅ **DO:**
+- ✅ Keep MCP as a transformation service (JSX → Remotion project)
+- ✅ Let Claude Desktop handle all AI generation
+- ✅ Maintain multiple fallback layers
+- ✅ Always generate working JSX (never empty files)
+
+**If you see "undefined component" errors, check that export standardization and fallback layers are still connected!**
 
 ---
 

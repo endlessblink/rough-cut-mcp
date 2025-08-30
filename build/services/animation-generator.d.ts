@@ -9,7 +9,7 @@ export interface AnimationRequest {
     style?: string;
 }
 export interface AnimationType {
-    type: 'walk-cycle' | 'bounce' | 'text-animation' | 'rotation' | 'fade' | 'slide' | 'unknown';
+    type: 'walk-cycle' | 'bounce' | 'text-animation' | 'rotation' | 'fade' | 'slide' | 'airplane' | 'unknown';
     confidence: number;
     keywords: string[];
     elements?: string[];
@@ -22,6 +22,7 @@ export interface GenerationResult {
 }
 export declare class AnimationGeneratorService {
     private logger;
+    private intelligentGenerator;
     constructor();
     /**
      * Generate custom animation code based on description
@@ -59,5 +60,11 @@ export declare class AnimationGeneratorService {
      * Generate slide animation code
      */
     private generateSlideAnimation;
+    /**
+     * CRITICAL SAFEGUARD: Generate a minimal working animation that NEVER fails
+     * This ensures no animation request ever results in empty code
+     * DO NOT REMOVE OR DISABLE - This prevents the "undefined component" error
+     */
+    private generateMinimalWorkingAnimation;
 }
 //# sourceMappingURL=animation-generator.d.ts.map

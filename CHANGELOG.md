@@ -5,6 +5,30 @@ All notable changes to the RoughCut MCP Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.2] - 2025-08-30
+
+### Fixed
+- **ARCHITECTURE**: Restored proper Claude Desktop + MCP collaboration model
+- **CRITICAL**: Fixed export/import mismatch causing "undefined component" errors in AI-generated animations
+- Added JSX export standardization to ensure consistent VideoComposition exports
+- Enhanced create-video tool with "ai-generated" type for Claude Desktop code integration
+- Added comprehensive safeguards to prevent empty VideoComposition.tsx files
+
+### Added
+- New "ai-generated" animation type for unlimited flexibility with Claude Desktop code
+- JSX export standardization function to fix any export format inconsistencies  
+- Minimal working animation fallback to prevent complete failures
+- Intelligent generation system reconnected as proper fallback
+
+### Architecture  
+- **MCP Role**: Transform Claude-generated JSX into working Remotion projects (not generate animations itself)
+- **Claude Desktop Role**: Generate unlimited animation JSX using AI capabilities
+- **Result**: Unlimited animation flexibility without hardcoded limitations
+
+### Prevention
+- Added documentation and safeguards to prevent disconnection of intelligent system
+- Multiple fallback layers ensure animations always work regardless of code path
+
 ## [3.0.1] - 2025-08-29
 
 ### Fixed

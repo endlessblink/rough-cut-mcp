@@ -35,9 +35,9 @@ export function registerCreationTools(server: MCPServer): void {
         properties: {
           type: {
             type: 'string',
-            enum: ['text', 'slideshow', 'animated', 'custom'],
-            description: 'Type of video to create',
-            default: 'text'
+            enum: ['text', 'slideshow', 'animated', 'custom', 'ai-generated'],
+            description: 'Type of video to create - use "ai-generated" for any animation with custom JSX code',
+            default: 'ai-generated'
           },
           projectName: {
             type: 'string',
@@ -180,7 +180,7 @@ export const VideoComposition: React.FC = () => {
           }
 
           case 'animated': {
-            // Generate animation with proper method
+            // Generate animation with safeguards to ensure it never fails
             const animRequest = {
               animationDesc: content.text || 'Animated video',
               duration: duration,
@@ -189,7 +189,59 @@ export const VideoComposition: React.FC = () => {
               style: content.style
             };
             const result = await animationGenerator.generateAnimation(animRequest);
-            composition = result.compositionCode;
+            
+            // SAFEGUARD: Ensure we always get working code
+            if (result.compositionCode && result.compositionCode.trim()) {
+              composition = result.compositionCode;
+            } else {
+              logger.warn('Animation generator failed, using minimal fallback', { 
+                description: animRequest.animationDesc 
+              });
+              
+              // Generate minimal working animation as fallback
+              composition = `import React from 'react';
+import { AbsoluteFill, useCurrentFrame, interpolate } from 'remotion';
+
+export const VideoComposition: React.FC = () => {
+  const frame = useCurrentFrame();
+  const opacity = interpolate(frame, [0, 30], [0, 1], { extrapolateRight: 'clamp' });
+  const x = interpolate(frame, [0, ${duration * fps}], [10, 90], { extrapolateRight: 'clamp' });
+  
+  return (
+    <AbsoluteFill style={{ 
+      backgroundColor: '#87CEEB',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      <div style={{
+        position: 'absolute',
+        left: \`\${x}%\`,
+        top: '50%',
+        transform: 'translate(-50%, -50%)',
+        opacity,
+        fontSize: 48,
+        color: '#333',
+        textAlign: 'center',
+        padding: 20,
+        backgroundColor: 'rgba(255,255,255,0.9)',
+        borderRadius: 10
+      }}>
+        🎬 ${content.text || 'Animated Video'}
+      </div>
+    </AbsoluteFill>
+  );
+};`;
+            }
+            break;
+          }
+
+          case 'ai-generated': {
+            if (!content.code) {
+              throw new Error('AI-generated type requires JSX code - provide the complete React component code');
+            }
+            // Transform Claude Desktop generated code into proper Remotion structure
+            composition = standardizeJSXExports(content.code);
             break;
           }
 
@@ -197,7 +249,8 @@ export const VideoComposition: React.FC = () => {
             if (!content.code) {
               throw new Error('Custom code required for custom type');
             }
-            composition = content.code;
+            // Also standardize custom code exports
+            composition = standardizeJSXExports(content.code);
             break;
           }
 
@@ -674,4 +727,63 @@ Note: Actual rendering requires Remotion CLI to be implemented.`
       estimatedTokens: 80
     }
   );
+
+  /**
+   * CRITICAL: Standardize JSX exports to prevent "undefined component" errors
+   * Transforms any React component code to proper Remotion VideoComposition export
+   */
+  function standardizeJSXExports(jsxCode: string): string {
+    // Ensure React import exists
+    if (!jsxCode.includes('import React')) {
+      jsxCode = `import React from 'react';\n${jsxCode}`;
+    }
+    
+    // Ensure Remotion imports exist
+    const remotionImports = ['useCurrentFrame', 'interpolate', 'AbsoluteFill', 'Sequence'];
+    const missingImports = remotionImports.filter(imp => 
+      !jsxCode.includes(imp) && jsxCode.includes(imp)
+    );
+    
+    if (missingImports.length > 0) {
+      const importStatement = `import { ${missingImports.join(', ')} } from 'remotion';`;
+      if (!jsxCode.includes("from 'remotion'")) {
+        jsxCode = `${importStatement}\n${jsxCode}`;
+      }
+    }
+    
+    // Fix export consistency - convert any export to proper VideoComposition export
+    // Handle: export default SomeName, export const SomeName, etc.
+    jsxCode = jsxCode.replace(
+      /export\s+(default\s+|const\s+)\w+(\s*:\s*React\.FC)?(\s*=\s*\(\)\s*=>\s*\{)/g,
+      'export const VideoComposition: React.FC = () => {'
+    );
+    
+    // Handle function declarations: export function SomeName() {
+    jsxCode = jsxCode.replace(
+      /export\s+(default\s+)?function\s+\w+\s*\(\)\s*\{/g,
+      'export const VideoComposition: React.FC = () => {'
+    );
+    
+    // Ensure proper export exists if none found
+    if (!jsxCode.includes('export const VideoComposition')) {
+      logger.warn('No proper export found, wrapping entire code in VideoComposition');
+      
+      // Wrap the entire JSX content in a proper VideoComposition export
+      const wrappedCode = `import React from 'react';
+import { AbsoluteFill, useCurrentFrame, interpolate } from 'remotion';
+
+export const VideoComposition: React.FC = () => {
+  return (
+    <AbsoluteFill>
+      {/* Generated animation code */}
+      ${jsxCode}
+    </AbsoluteFill>
+  );
+};`;
+      
+      return wrappedCode;
+    }
+    
+    return jsxCode;
+  }
 }

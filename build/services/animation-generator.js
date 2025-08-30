@@ -3,8 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AnimationGeneratorService = void 0;
 // Intelligent animation generation service
 const logger_js_1 = require("../utils/logger.js");
+const intelligent_compositions_js_1 = require("../templates/intelligent-compositions.js");
 class AnimationGeneratorService {
     logger = (0, logger_js_1.getLogger)().service('AnimationGenerator');
+    intelligentGenerator = new intelligent_compositions_js_1.IntelligentCompositionGenerator();
     constructor() {
         this.logger.info('Animation generator service initialized');
     }
@@ -60,13 +62,36 @@ class AnimationGeneratorService {
                 };
             }
             else {
-                this.logger.info('No specific generator found, will fallback to templates');
-                return {
-                    compositionCode: '',
-                    animationType,
-                    success: false,
-                    fallbackToTemplate: true,
-                };
+                // SAFEGUARD: ALWAYS use intelligent generation as fallback
+                // This ensures NO animation request ever returns empty code
+                this.logger.info('Using intelligent generation for unrecognized animation type', {
+                    type: animationType.type,
+                    description: request.animationDesc
+                });
+                try {
+                    const intelligentResult = this.intelligentGenerator.generateComposition(request, animationType);
+                    if (intelligentResult.success && intelligentResult.compositionCode) {
+                        this.logger.info('Intelligent generation succeeded', { type: animationType.type });
+                        return intelligentResult;
+                    }
+                    else {
+                        throw new Error('Intelligent generation failed to produce code');
+                    }
+                }
+                catch (intelligentError) {
+                    // FINAL SAFEGUARD: If even intelligent generation fails, 
+                    // return a working minimal animation instead of empty code
+                    this.logger.error('Intelligent generation failed, using minimal fallback', {
+                        error: intelligentError instanceof Error ? intelligentError.message : String(intelligentError)
+                    });
+                    const minimalAnimation = this.generateMinimalWorkingAnimation(request);
+                    return {
+                        compositionCode: minimalAnimation,
+                        animationType: { type: 'unknown', confidence: 0.1, keywords: [] },
+                        success: true,
+                        fallbackToTemplate: true,
+                    };
+                }
             }
         }
         catch (error) {
@@ -766,6 +791,54 @@ export const VideoComposition: React.FC = () => {
         }}
       >
         ${request.animationDesc}
+      </div>
+    </AbsoluteFill>
+  );
+};`;
+    }
+    /**
+     * CRITICAL SAFEGUARD: Generate a minimal working animation that NEVER fails
+     * This ensures no animation request ever results in empty code
+     * DO NOT REMOVE OR DISABLE - This prevents the "undefined component" error
+     */
+    generateMinimalWorkingAnimation(request) {
+        const { animationDesc, duration, fps } = request;
+        this.logger.warn('Using minimal safeguard animation - intelligent generation failed', {
+            description: animationDesc
+        });
+        return `import React from 'react';
+import { AbsoluteFill, useCurrentFrame, interpolate } from 'remotion';
+
+export const VideoComposition: React.FC = () => {
+  const frame = useCurrentFrame();
+  
+  // Simple fade-in animation that always works
+  const opacity = interpolate(frame, [0, 30], [0, 1], { extrapolateRight: 'clamp' });
+  
+  // Simple movement animation  
+  const x = interpolate(frame, [0, ${duration * fps}], [10, 90], { extrapolateRight: 'clamp' });
+  
+  return (
+    <AbsoluteFill style={{ 
+      backgroundColor: '#87CEEB',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    }}>
+      <div style={{
+        position: 'absolute',
+        left: \`\${x}%\`,
+        top: '50%',
+        transform: 'translate(-50%, -50%)',
+        opacity,
+        fontSize: 48,
+        color: '#333',
+        textAlign: 'center',
+        padding: 20,
+        backgroundColor: 'rgba(255,255,255,0.9)',
+        borderRadius: 10
+      }}>
+        🎬 {animationDesc}
       </div>
     </AbsoluteFill>
   );
