@@ -35,7 +35,7 @@ export declare class StudioLifecycle {
      */
     private static startStudioProcess;
     /**
-     * Validates that the studio is fully functional
+     * Validates that the studio is fully functional and compositions are loaded
      */
     private static validateStudioFunctionality;
     /**
@@ -56,7 +56,7 @@ export declare class StudioLifecycle {
      */
     private static killProcess;
     /**
-     * Validates project path exists and has required files
+     * Validates project path exists and has required files for Remotion Studio
      */
     private static validateProjectPath;
     /**

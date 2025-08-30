@@ -61,7 +61,7 @@ function registerCreationTools(server) {
      */
     server.toolRegistry.registerTool({
         name: 'create-video',
-        description: 'Create any type of video animation',
+        description: 'Create any type of video animation - airplanes, bouncing balls, moving objects, custom animations using AI-generated JSX code or built-in templates',
         inputSchema: {
             type: 'object',
             properties: {
@@ -279,8 +279,19 @@ export const VideoComposition: React.FC = () => {
             }
             // Process composition code to fix any interpolation issues
             const safeComposition = (0, interpolation_validator_js_1.processVideoCode)(composition);
-            // Write files
-            await fs_extra_1.default.writeFile(path.join(projectPath, 'src', 'VideoComposition.tsx'), safeComposition);
+            // CRITICAL: Ensure src directory exists before writing files
+            const srcPath = path.join(projectPath, 'src');
+            await fs_extra_1.default.ensureDir(srcPath);
+            // Write VideoComposition.tsx with error handling
+            const compositionFile = path.join(srcPath, 'VideoComposition.tsx');
+            try {
+                await fs_extra_1.default.writeFile(compositionFile, safeComposition);
+                logger.info('VideoComposition.tsx created successfully', { file: compositionFile });
+            }
+            catch (error) {
+                logger.error('Failed to write VideoComposition.tsx', { error, file: compositionFile });
+                throw new Error(`Failed to create VideoComposition.tsx: ${error}`);
+            }
             // Get safe dependencies with proper versions to prevent conflicts
             let safeDeps;
             try {
@@ -332,7 +343,16 @@ export const Root: React.FC = () => {
   );
 };
 `;
-            await fs_extra_1.default.writeFile(path.join(projectPath, 'src', 'Root.tsx'), rootContent);
+            // Write Root.tsx with error handling
+            const rootFile = path.join(srcPath, 'Root.tsx');
+            try {
+                await fs_extra_1.default.writeFile(rootFile, rootContent);
+                logger.info('Root.tsx created successfully', { file: rootFile });
+            }
+            catch (error) {
+                logger.error('Failed to write Root.tsx', { error, file: rootFile });
+                throw new Error(`Failed to create Root.tsx: ${error}`);
+            }
             // Create package.json with dynamic version detection
             const packageJson = {
                 name: args.projectName,
@@ -345,14 +365,30 @@ export const Root: React.FC = () => {
                 },
                 ...safeDeps // Use dynamically detected safe dependencies
             };
-            await fs_extra_1.default.writeJson(path.join(projectPath, 'package.json'), packageJson, { spaces: 2 });
+            // Write package.json with error handling
+            const packageFile = path.join(projectPath, 'package.json');
+            try {
+                await fs_extra_1.default.writeJson(packageFile, packageJson, { spaces: 2 });
+                logger.info('package.json created successfully', { file: packageFile });
+            }
+            catch (error) {
+                logger.error('Failed to write package.json', { error, file: packageFile });
+                throw new Error(`Failed to create package.json: ${error}`);
+            }
             // Create .npmrc to force local resolution and prevent parent conflicts
             const npmrcContent = `prefer-offline=true
 prefer-local=true
 legacy-peer-deps=true
 `;
-            await fs_extra_1.default.writeFile(path.join(projectPath, '.npmrc'), npmrcContent, 'utf-8');
-            logger.info('Created .npmrc for local resolution priority', { projectName: args.projectName });
+            const npmrcFile = path.join(projectPath, '.npmrc');
+            try {
+                await fs_extra_1.default.writeFile(npmrcFile, npmrcContent, 'utf-8');
+                logger.info('.npmrc created successfully', { file: npmrcFile });
+            }
+            catch (error) {
+                logger.error('Failed to write .npmrc', { error, file: npmrcFile });
+                throw new Error(`Failed to create .npmrc: ${error}`);
+            }
             // Create src/index.ts entry point for Remotion Studio
             const indexContent = `import { registerRoot } from "remotion";
 import { Root } from "./Root";
@@ -364,6 +400,8 @@ registerRoot(Root);
             // Create remotion.config.ts (CRITICAL for Remotion to work)
             const remotionConfigContent = `import { Config } from '@remotion/cli/config';
 
+// Set entry point - CRITICAL to avoid white screen issues
+Config.setEntryPoint('./src/index.ts');
 Config.setVideoImageFormat('jpeg');
 Config.setOverwriteOutput(true);
 `;
@@ -421,6 +459,32 @@ Config.setOverwriteOutput(true);
                 });
                 // Continue but report the error to user
             }
+            // CRITICAL: Validate all essential files were created successfully
+            const essentialFiles = [
+                path.join(projectPath, 'package.json'),
+                path.join(projectPath, 'tsconfig.json'),
+                path.join(projectPath, 'remotion.config.ts'),
+                path.join(srcPath, 'VideoComposition.tsx'),
+                path.join(srcPath, 'Root.tsx'),
+                path.join(srcPath, 'index.ts')
+            ];
+            const missingFiles = [];
+            for (const file of essentialFiles) {
+                if (!await fs_extra_1.default.pathExists(file)) {
+                    missingFiles.push(file);
+                }
+            }
+            if (missingFiles.length > 0) {
+                logger.error('Project creation incomplete - missing essential files', {
+                    missingFiles,
+                    projectPath
+                });
+                throw new Error(`Project creation failed - missing files: ${missingFiles.join(', ')}`);
+            }
+            logger.info('Project creation validation passed - all essential files present', {
+                projectName: args.projectName,
+                fileCount: essentialFiles.length
+            });
             return {
                 content: [{
                         type: 'text',
@@ -454,8 +518,8 @@ Use "studio" tool with action:"start" and project:"${args.projectName}" to previ
         name: 'create-video',
         category: tool_categories_js_1.ToolCategory.VIDEO_CREATION,
         subCategory: 'basic',
-        tags: ['create', 'video', 'animation'],
-        loadByDefault: false,
+        tags: ['create', 'video', 'animation', 'airplane', 'bouncing', 'motion', 'animated'],
+        loadByDefault: true,
         priority: 1,
         estimatedTokens: 150
     });
@@ -703,38 +767,25 @@ Note: Actual rendering requires Remotion CLI to be implemented.`
     });
     /**
      * CRITICAL: Standardize JSX exports to prevent "undefined component" errors
-     * Transforms any React component code to proper Remotion VideoComposition export
+     * Fixes export names without corrupting the JSX structure
      */
     function standardizeJSXExports(jsxCode) {
-        // Ensure React import exists
-        if (!jsxCode.includes('import React')) {
-            jsxCode = `import React from 'react';\n${jsxCode}`;
-        }
-        // Ensure Remotion imports exist
-        const remotionImports = ['useCurrentFrame', 'interpolate', 'AbsoluteFill', 'Sequence'];
-        const missingImports = remotionImports.filter(imp => !jsxCode.includes(imp) && jsxCode.includes(imp));
-        if (missingImports.length > 0) {
-            const importStatement = `import { ${missingImports.join(', ')} } from 'remotion';`;
-            if (!jsxCode.includes("from 'remotion'")) {
-                jsxCode = `${importStatement}\n${jsxCode}`;
-            }
-        }
-        // Fix export consistency - convert any export to proper VideoComposition export
-        // Handle: export default SomeName, export const SomeName, etc.
-        jsxCode = jsxCode.replace(/export\s+(default\s+|const\s+)\w+(\s*:\s*React\.FC)?(\s*=\s*\(\)\s*=>\s*\{)/g, 'export const VideoComposition: React.FC = () => {');
-        // Handle function declarations: export function SomeName() {
-        jsxCode = jsxCode.replace(/export\s+(default\s+)?function\s+\w+\s*\(\)\s*\{/g, 'export const VideoComposition: React.FC = () => {');
-        // Ensure proper export exists if none found
-        if (!jsxCode.includes('export const VideoComposition')) {
-            logger.warn('No proper export found, wrapping entire code in VideoComposition');
-            // Wrap the entire JSX content in a proper VideoComposition export
+        // Only fix export names, don't wrap or modify the actual component code
+        // Handle: export default SomeName → export const VideoComposition
+        jsxCode = jsxCode.replace(/export\s+default\s+(\w+);?\s*$/gm, 'export const VideoComposition: React.FC = $1;');
+        // Handle: export const SomeName → export const VideoComposition
+        jsxCode = jsxCode.replace(/export\s+const\s+(\w+)(\s*:\s*React\.FC)?(\s*=)/g, 'export const VideoComposition: React.FC =');
+        // Handle: export function SomeName() → export const VideoComposition: React.FC = () =>
+        jsxCode = jsxCode.replace(/export\s+function\s+(\w+)\s*\(\)\s*\{/g, 'export const VideoComposition: React.FC = () => {');
+        // Only wrap if there's absolutely no export (not a complete component)
+        if (!jsxCode.includes('export') && !jsxCode.includes('import')) {
+            // This is just JSX fragments, wrap it properly
             const wrappedCode = `import React from 'react';
 import { AbsoluteFill, useCurrentFrame, interpolate } from 'remotion';
 
 export const VideoComposition: React.FC = () => {
   return (
     <AbsoluteFill>
-      {/* Generated animation code */}
       ${jsxCode}
     </AbsoluteFill>
   );

@@ -374,6 +374,62 @@ export const VideoComposition: React.FC = () => {
               await fs.writeFile(compositionPath, composition);
               fixes.push('Created VideoComposition.tsx');
             }
+
+            // CRITICAL: Check and fix remotion.config.ts entry point (prevents white screen)
+            const remotionConfigPath = path.join(projectPath, 'remotion.config.ts');
+            let needsEntryPointFix = false;
+            
+            if (!await fs.pathExists(remotionConfigPath)) {
+              // Create missing remotion.config.ts with entry point
+              const remotionConfigContent = `import { Config } from '@remotion/cli/config';
+
+// Set entry point - CRITICAL to avoid white screen issues
+Config.setEntryPoint('./src/index.ts');
+Config.setVideoImageFormat('jpeg');
+Config.setOverwriteOutput(true);
+`;
+              await fs.writeFile(remotionConfigPath, remotionConfigContent);
+              fixes.push('Created remotion.config.ts with entry point');
+            } else {
+              // Check if existing config has entry point
+              const configContent = await fs.readFile(remotionConfigPath, 'utf-8');
+              if (!configContent.includes('setEntryPoint')) {
+                // Add entry point to existing config
+                const lines = configContent.split('\n');
+                const importIndex = lines.findIndex(line => line.includes("import { Config }"));
+                if (importIndex !== -1) {
+                  lines.splice(importIndex + 2, 0, '// Set entry point - CRITICAL to avoid white screen issues', 'Config.setEntryPoint(\'./src/index.ts\');');
+                  await fs.writeFile(remotionConfigPath, lines.join('\n'));
+                  fixes.push('Added missing entry point to remotion.config.ts');
+                }
+              }
+            }
+
+            // CRITICAL: Check and fix src/index.ts entry point file
+            const indexPath = path.join(projectPath, 'src', 'index.ts');
+            if (!await fs.pathExists(indexPath)) {
+              const indexContent = `import { registerRoot } from "remotion";
+import { Root } from "./Root";
+
+registerRoot(Root);
+`;
+              await fs.writeFile(indexPath, indexContent);
+              fixes.push('Created src/index.ts entry point');
+            } else {
+              // Check if existing index.ts has registerRoot
+              const indexContent = await fs.readFile(indexPath, 'utf-8');
+              if (!indexContent.includes('registerRoot')) {
+                fixes.push('Warning: src/index.ts exists but missing registerRoot() - manual fix needed');
+              }
+            }
+
+            // CRITICAL: Clear webpack cache after repairs to prevent white screen
+            const webpackCachePath = path.join(projectPath, 'node_modules', '.cache');
+            if (await fs.pathExists(webpackCachePath)) {
+              await fs.remove(webpackCachePath);
+              fixes.push('Cleared webpack cache');
+              logger.info('Cleared webpack cache after project repair to prevent white screen issues');
+            }
             
             return {
               content: [{
@@ -424,6 +480,11 @@ export const VideoComposition: React.FC = () => {
           port: {
             type: 'number',
             description: 'Port number (default: auto-find)'
+          },
+          clearCache: {
+            type: 'boolean',
+            description: 'Clear webpack cache before launching (prevents white screen issues)',
+            default: false
           }
         },
         required: ['action']
@@ -441,6 +502,15 @@ export const VideoComposition: React.FC = () => {
               projectPath = path.join(server.config.assetsDir, 'projects', args.project);
               if (!await fs.pathExists(projectPath)) {
                 throw new Error(`Project "${args.project}" not found`);
+              }
+            }
+
+            // CRITICAL: Clear webpack cache if requested (prevents white screen issues)
+            if (args.clearCache) {
+              const webpackCachePath = path.join(projectPath, 'node_modules', '.cache');
+              if (await fs.pathExists(webpackCachePath)) {
+                logger.info('Clearing webpack cache before studio launch to prevent white screen issues');
+                await fs.remove(webpackCachePath);
               }
             }
             

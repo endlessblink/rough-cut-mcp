@@ -242,8 +242,12 @@ Newest file: ${stats.newestFile ? new Date(stats.newestFile).toLocaleDateString(
                 },
                 type: {
                     type: 'string',
-                    enum: ['all', 'build', 'temp', 'logs'],
+                    enum: ['all', 'build', 'temp', 'logs', 'webpack', 'remotion'],
                     default: 'all'
+                },
+                project: {
+                    type: 'string',
+                    description: 'Project name for project-specific cache clearing'
                 }
             },
             required: ['action']
@@ -279,6 +283,34 @@ Newest file: ${stats.newestFile ? new Date(stats.newestFile).toLocaleDateString(
                             freedSpace += stats.totalSize;
                             cleared += stats.totalFiles;
                             await fs_extra_1.default.emptyDir(logsDir);
+                        }
+                    }
+                    // CRITICAL: Webpack cache clearing (prevents white screen issues)
+                    if (args.type === 'all' || args.type === 'webpack') {
+                        const projectPath = args.project
+                            ? path.join(server.config.assetsDir, 'projects', args.project)
+                            : server.config.assetsDir;
+                        const webpackCachePath = path.join(projectPath, 'node_modules', '.cache');
+                        if (await fs_extra_1.default.pathExists(webpackCachePath)) {
+                            const stats = await getDirectoryStats(webpackCachePath);
+                            freedSpace += stats.totalSize;
+                            cleared += stats.totalFiles;
+                            await fs_extra_1.default.remove(webpackCachePath);
+                            logger.info('Cleared webpack cache to prevent white screen issues', { path: webpackCachePath });
+                        }
+                    }
+                    // Remotion cache clearing
+                    if (args.type === 'all' || args.type === 'remotion') {
+                        const projectPath = args.project
+                            ? path.join(server.config.assetsDir, 'projects', args.project)
+                            : server.config.assetsDir;
+                        const remotionCachePath = path.join(projectPath, '.remotion');
+                        if (await fs_extra_1.default.pathExists(remotionCachePath)) {
+                            const stats = await getDirectoryStats(remotionCachePath);
+                            freedSpace += stats.totalSize;
+                            cleared += stats.totalFiles;
+                            await fs_extra_1.default.remove(remotionCachePath);
+                            logger.info('Cleared Remotion cache', { path: remotionCachePath });
                         }
                     }
                     return {

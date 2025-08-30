@@ -62,7 +62,8 @@ class RemotionCreativeMCPServer {
         // Create MCP server
         this.server = new index_js_1.Server({
             name: 'rough-cut-mcp',
-            version: '1.0.0',
+            version: '3.0.3',
+            description: 'Video Animation Creation Server - Use for creating any type of animated video (airplanes, submarines, characters, motion graphics, etc.) with Remotion Studio',
         }, {
             capabilities: {
                 tools: {},
@@ -348,7 +349,8 @@ class RemotionCreativeMCPServer {
                 },
                 serverInfo: {
                     name: 'rough-cut-mcp',
-                    version: '2.0.3'
+                    version: '3.0.3',
+                    description: 'Video Animation Creation Server - Transforms AI-generated JSX into working Remotion Studio projects'
                 }
             };
         });

@@ -163,12 +163,14 @@ class StudioLifecycle {
                 process.stdout?.on('data', (data) => {
                     stdoutData += data.toString();
                     const output = data.toString().toLowerCase();
+                    // Enhanced logging - log all Remotion Studio output for debugging
+                    logger.debug('Remotion Studio stdout:', data.toString().trim());
                     // Look for success indicators
                     if (output.includes('ready') || output.includes('server running') || output.includes(`localhost:${port}`)) {
                         if (!resolved) {
                             resolved = true;
                             clearTimeout(timeoutHandle);
-                            logger.debug('Studio process appears ready based on stdout');
+                            logger.info('Studio process ready - detected success indicators in stdout');
                             resolve({
                                 success: true,
                                 process,
@@ -181,12 +183,14 @@ class StudioLifecycle {
                 process.stderr?.on('data', (data) => {
                     stderrData += data.toString();
                     const output = data.toString().toLowerCase();
+                    // Enhanced logging - log all Remotion Studio errors for debugging
+                    logger.warn('Remotion Studio stderr:', data.toString().trim());
                     // Look for fatal errors
                     if (output.includes('error') && (output.includes('fatal') || output.includes('cannot') || output.includes('failed'))) {
                         if (!resolved) {
                             resolved = true;
                             clearTimeout(timeoutHandle);
-                            logger.error('Studio process failed based on stderr:', output);
+                            logger.error('Studio process failed with fatal error:', data.toString().trim());
                             resolve({
                                 success: false,
                                 error: `Process error: ${data.toString().trim()}`
@@ -200,9 +204,11 @@ class StudioLifecycle {
                         resolved = true;
                         clearTimeout(timeoutHandle);
                         logger.error(`Studio process exited with code ${code}, signal ${signal}`);
+                        logger.error('Full stdout output:', stdoutData);
+                        logger.error('Full stderr output:', stderrData);
                         resolve({
                             success: false,
-                            error: `Process exited with code ${code}${signal ? `, signal ${signal}` : ''}`
+                            error: `Process exited with code ${code}${signal ? `, signal ${signal}` : ''}. Check logs for full output.`
                         });
                     }
                 });
@@ -244,13 +250,13 @@ class StudioLifecycle {
         });
     }
     /**
-     * Validates that the studio is fully functional
+     * Validates that the studio is fully functional and compositions are loaded
      */
     static async validateStudioFunctionality(port, projectPath, timeout) {
         const startTime = Date.now();
         while (Date.now() - startTime < timeout) {
             try {
-                // Test HTTP endpoint
+                // Test basic HTTP endpoint first
                 const controller = new AbortController();
                 const requestTimeout = setTimeout(() => controller.abort(), 5000);
                 const response = await fetch(`http://localhost:${port}`, {
@@ -262,10 +268,33 @@ class StudioLifecycle {
                 });
                 clearTimeout(requestTimeout);
                 if (response.ok || (response.status >= 200 && response.status < 500)) {
-                    // Additional validation: check if it's actually Remotion
+                    // CRITICAL: Check if compositions are loaded (prevents white screen)
+                    try {
+                        const compositionsResponse = await fetch(`http://localhost:${port}/api/compositions`, {
+                            method: 'GET',
+                            signal: controller.signal,
+                            headers: {
+                                'User-Agent': 'RoughCut-MCP-Validation'
+                            }
+                        });
+                        if (compositionsResponse.ok) {
+                            const compositions = await compositionsResponse.json();
+                            if (Array.isArray(compositions) && compositions.length > 0) {
+                                logger.info(`Studio on port ${port} validated - ${compositions.length} composition(s) loaded`);
+                                return { success: true };
+                            }
+                            else {
+                                logger.warn(`Studio on port ${port} responding but no compositions found - may show white screen`);
+                            }
+                        }
+                    }
+                    catch (compositionsError) {
+                        logger.debug('Could not check compositions endpoint, falling back to basic validation');
+                    }
+                    // Fallback: check if it's actually Remotion using process discovery
                     const discovery = await process_discovery_js_1.ProcessDiscovery.getStudioByPort(port);
                     if (discovery && discovery.isResponding) {
-                        logger.debug(`Studio on port ${port} validated successfully`);
+                        logger.debug(`Studio on port ${port} validated via process discovery`);
                         return { success: true };
                     }
                 }
@@ -278,7 +307,7 @@ class StudioLifecycle {
         }
         return {
             success: false,
-            error: `Studio failed validation after ${timeout}ms - not responding to HTTP requests`
+            error: `Studio failed validation after ${timeout}ms - not responding to HTTP requests or no compositions loaded`
         };
     }
     /**
@@ -391,7 +420,7 @@ class StudioLifecycle {
         }
     }
     /**
-     * Validates project path exists and has required files
+     * Validates project path exists and has required files for Remotion Studio
      */
     static async validateProjectPath(projectPath) {
         try {
@@ -409,6 +438,36 @@ class StudioLifecycle {
             }
             catch {
                 return { valid: false, error: 'No package.json found in project directory' };
+            }
+            // CRITICAL: Check for remotion.config.ts with entry point
+            const remotionConfigPath = (0, path_1.join)(windowsPath, 'remotion.config.ts');
+            try {
+                const configContent = await fs_1.promises.readFile(remotionConfigPath, 'utf-8');
+                if (!configContent.includes('setEntryPoint')) {
+                    logger.warn('remotion.config.ts missing setEntryPoint - this may cause white screen issues');
+                }
+            }
+            catch {
+                return { valid: false, error: 'No remotion.config.ts found - required for Remotion Studio' };
+            }
+            // CRITICAL: Check for entry point file (src/index.ts)
+            const entryPointPath = (0, path_1.join)(windowsPath, 'src', 'index.ts');
+            try {
+                const entryContent = await fs_1.promises.readFile(entryPointPath, 'utf-8');
+                if (!entryContent.includes('registerRoot')) {
+                    return { valid: false, error: 'Entry point (src/index.ts) missing registerRoot() call' };
+                }
+            }
+            catch {
+                return { valid: false, error: 'No entry point (src/index.ts) found - required for Remotion Studio' };
+            }
+            // Check for Root component
+            const rootComponentPath = (0, path_1.join)(windowsPath, 'src', 'Root.tsx');
+            try {
+                await fs_1.promises.access(rootComponentPath);
+            }
+            catch {
+                return { valid: false, error: 'No Root.tsx component found - required for Remotion Studio' };
             }
             return { valid: true };
         }

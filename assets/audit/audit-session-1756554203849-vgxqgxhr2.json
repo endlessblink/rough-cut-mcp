@@ -1,0 +1,313 @@
+{
+  "sessionId": "session-1756554203849-vgxqgxhr2",
+  "entries": [
+    {
+      "id": "evt-1756554203849-ggr912twv",
+      "timestamp": "2025-08-30T11:43:23.849Z",
+      "sessionId": "session-1756554203849-vgxqgxhr2",
+      "type": "session_started",
+      "severity": "info",
+      "entity": "system",
+      "action": "Session started",
+      "triggeredBy": "system",
+      "context": {
+        "sessionId": "session-1756554203849-vgxqgxhr2",
+        "timestamp": "2025-08-30T11:43:23.849Z"
+      }
+    },
+    {
+      "id": "evt-1756554203888-nubzga0rz",
+      "timestamp": "2025-08-30T11:43:23.888Z",
+      "sessionId": "session-1756554203849-vgxqgxhr2",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "discover",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "discovery",
+        "priority": 0
+      }
+    },
+    {
+      "id": "evt-1756554203888-3mpgt9hqr",
+      "timestamp": "2025-08-30T11:43:23.888Z",
+      "sessionId": "session-1756554203849-vgxqgxhr2",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "activate",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "discovery",
+        "priority": 0
+      }
+    },
+    {
+      "id": "evt-1756554203888-8t2x74yig",
+      "timestamp": "2025-08-30T11:43:23.888Z",
+      "sessionId": "session-1756554203849-vgxqgxhr2",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "search",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "discovery",
+        "priority": 0
+      }
+    },
+    {
+      "id": "evt-1756554203889-skbwxb1u0",
+      "timestamp": "2025-08-30T11:43:23.889Z",
+      "sessionId": "session-1756554203849-vgxqgxhr2",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "project",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "core-operations",
+        "priority": 1
+      }
+    },
+    {
+      "id": "evt-1756554203889-jp5twapv6",
+      "timestamp": "2025-08-30T11:43:23.889Z",
+      "sessionId": "session-1756554203849-vgxqgxhr2",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "studio",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "core-operations",
+        "priority": 2
+      }
+    },
+    {
+      "id": "evt-1756554203889-1bovrtj3o",
+      "timestamp": "2025-08-30T11:43:23.889Z",
+      "sessionId": "session-1756554203849-vgxqgxhr2",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "composition",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "video-creation",
+        "priority": 3
+      }
+    },
+    {
+      "id": "evt-1756554203889-jgyt8gpp7",
+      "timestamp": "2025-08-30T11:43:23.889Z",
+      "sessionId": "session-1756554203849-vgxqgxhr2",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "dependencies",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "maintenance",
+        "priority": 4
+      }
+    },
+    {
+      "id": "evt-1756554203890-aemvz0unv",
+      "timestamp": "2025-08-30T11:43:23.890Z",
+      "sessionId": "session-1756554203849-vgxqgxhr2",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "composition",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "video-creation",
+        "priority": 1
+      }
+    },
+    {
+      "id": "evt-1756554203890-6kcpo583o",
+      "timestamp": "2025-08-30T11:43:23.890Z",
+      "sessionId": "session-1756554203849-vgxqgxhr2",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "create-video",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "video-creation",
+        "priority": 1
+      }
+    },
+    {
+      "id": "evt-1756554203890-dxstwhpss",
+      "timestamp": "2025-08-30T11:43:23.890Z",
+      "sessionId": "session-1756554203849-vgxqgxhr2",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "generate-assets",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "asset-generation",
+        "priority": 2
+      }
+    },
+    {
+      "id": "evt-1756554203890-yyo66dovh",
+      "timestamp": "2025-08-30T11:43:23.890Z",
+      "sessionId": "session-1756554203849-vgxqgxhr2",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "analyze-video",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "video-creation",
+        "priority": 3
+      }
+    },
+    {
+      "id": "evt-1756554203890-i76y4v71r",
+      "timestamp": "2025-08-30T11:43:23.890Z",
+      "sessionId": "session-1756554203849-vgxqgxhr2",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "render",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "video-creation",
+        "priority": 4
+      }
+    },
+    {
+      "id": "evt-1756554203891-bwlnc14le",
+      "timestamp": "2025-08-30T11:43:23.891Z",
+      "sessionId": "session-1756554203849-vgxqgxhr2",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "assets",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "maintenance",
+        "priority": 5
+      }
+    },
+    {
+      "id": "evt-1756554203891-s01kwfvah",
+      "timestamp": "2025-08-30T11:43:23.891Z",
+      "sessionId": "session-1756554203849-vgxqgxhr2",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "cache",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "maintenance",
+        "priority": 6
+      }
+    },
+    {
+      "id": "evt-1756554203891-wzpelis4q",
+      "timestamp": "2025-08-30T11:43:23.891Z",
+      "sessionId": "session-1756554203849-vgxqgxhr2",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "voices",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "voice-generation",
+        "priority": 7
+      }
+    },
+    {
+      "id": "evt-1756554203891-ncsbidyly",
+      "timestamp": "2025-08-30T11:43:23.891Z",
+      "sessionId": "session-1756554203849-vgxqgxhr2",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "image-models",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "image-generation",
+        "priority": 8
+      }
+    },
+    {
+      "id": "evt-1756554203891-uvnuo04i8",
+      "timestamp": "2025-08-30T11:43:23.891Z",
+      "sessionId": "session-1756554203849-vgxqgxhr2",
+      "type": "configuration_changed",
+      "severity": "debug",
+      "entity": "sounds",
+      "action": "Tool registered",
+      "triggeredBy": "system",
+      "context": {
+        "category": "sound-effects",
+        "priority": 9
+      }
+    }
+  ],
+  "statistics": {
+    "totalEvents": 18,
+    "eventsByType": {},
+    "eventsBySeverity": {},
+    "topEntities": [
+      {
+        "entity": "composition",
+        "count": 2
+      },
+      {
+        "entity": "system",
+        "count": 1
+      },
+      {
+        "entity": "discover",
+        "count": 1
+      },
+      {
+        "entity": "activate",
+        "count": 1
+      },
+      {
+        "entity": "search",
+        "count": 1
+      },
+      {
+        "entity": "project",
+        "count": 1
+      },
+      {
+        "entity": "studio",
+        "count": 1
+      },
+      {
+        "entity": "dependencies",
+        "count": 1
+      },
+      {
+        "entity": "create-video",
+        "count": 1
+      },
+      {
+        "entity": "generate-assets",
+        "count": 1
+      }
+    ],
+    "errorRate": 0,
+    "averageDuration": 0,
+    "peakPeriods": [
+      {
+        "hour": 14,
+        "count": 18
+      }
+    ]
+  },
+  "patterns": []
+}

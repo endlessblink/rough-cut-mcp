@@ -43,9 +43,9 @@ exports.TOOL_CATEGORIES = {
     },
     [ToolCategory.VIDEO_CREATION]: {
         id: ToolCategory.VIDEO_CREATION,
-        name: 'Video Creation',
-        description: 'Tools for creating and editing video animations',
-        loadByDefault: false,
+        name: 'Video Creation & Animation',
+        description: 'Tools for creating any type of video animation - airplanes, submarines, running characters, motion graphics, etc.',
+        loadByDefault: true,
         estimatedTokens: 1200,
     },
     [ToolCategory.ASSET_GENERATION]: {
