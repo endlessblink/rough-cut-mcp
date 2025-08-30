@@ -258,13 +258,13 @@ async function createVideo(name: string, jsx: string): Promise<any> {
       dependencies: {
         "@remotion/cli": "4.0.340",
         "remotion": "4.0.340",
-        "react": "^18.2.0",
-        "react-dom": "^18.2.0"
+        "react": "18.2.0",
+        "react-dom": "18.2.0"
       },
       devDependencies: {
-        "@types/react": "^18.2.0",
-        "@types/react-dom": "^18.2.0",
-        "typescript": "^5.0.0"
+        "@types/react": "18.2.0",
+        "@types/react-dom": "18.2.0",
+        "typescript": "5.0.0"
       }
     };
     await fs.writeFile(path.join(projectPath, 'package.json'), JSON.stringify(packageJson, null, 2));
@@ -302,7 +302,7 @@ export const Root: React.FC = () => {
 };`;
     await fs.writeFile(path.join(projectPath, 'src', 'Root.tsx'), rootContent);
     
-    // Create tsconfig.json for TypeScript support
+    // Create tsconfig.json for TypeScript support (research-backed config)
     const tsconfigContent = {
       "compilerOptions": {
         "target": "ES2022",
@@ -313,7 +313,8 @@ export const Root: React.FC = () => {
         "allowSyntheticDefaultImports": true,
         "strict": true,
         "forceConsistentCasingInFileNames": true,
-        "moduleResolution": "node",
+        "moduleResolution": "bundler",
+        "module": "ESNext",
         "resolveJsonModule": true,
         "isolatedModules": true,
         "noEmit": true,
