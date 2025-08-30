@@ -13,6 +13,7 @@ import { processComponentStructure } from '../utils/component-validator.js';
 import { processEasingInCode } from '../utils/easing-validator.js';
 import { processImportsAndSyntax } from '../utils/import-validator.js';
 import { processJSXSyntax } from '../utils/jsx-syntax-validator.js';
+import { processDuplicateExports } from '../utils/duplicate-export-validator.js';
 import * as path from 'path';
 import fs from 'fs-extra';
 import { exec } from 'child_process';
@@ -272,6 +273,9 @@ export const VideoComposition: React.FC = () => {
         // BULLETPROOF: Apply ALL validation layers to generated code
         let bulletproofComposition = composition;
         
+        // Layer 0: Fix duplicate exports (CRITICAL - prevents ESBuild failures)
+        bulletproofComposition = processDuplicateExports(bulletproofComposition);
+        
         // Layer 1: Fix imports and JSX syntax issues (CRITICAL - catches missing braces)
         bulletproofComposition = processImportsAndSyntax(bulletproofComposition);
         
@@ -287,10 +291,10 @@ export const VideoComposition: React.FC = () => {
         // Layer 5: Final JSX syntax validation (catches any remaining issues)
         bulletproofComposition = processJSXSyntax(bulletproofComposition);
         
-        logger.info('Applied 5-layer bulletproof validation system', { 
+        logger.info('Applied 6-layer ultimate bulletproof validation system', { 
           originalLength: composition.length,
           processedLength: bulletproofComposition.length,
-          layers: ['imports+jsx', 'structure', 'easing', 'interpolation', 'final-jsx']
+          layers: ['duplicates', 'imports+jsx', 'structure', 'easing', 'interpolation', 'final-jsx']
         });
         
         // CRITICAL: Ensure src directory exists before writing files
