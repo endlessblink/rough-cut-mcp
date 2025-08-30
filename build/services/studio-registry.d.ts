@@ -84,7 +84,7 @@ export declare class StudioRegistry {
      * Enhanced smart studio launch with robust lifecycle management
      * This is the main method that solves the MCP reuse problem
      */
-    smartLaunchStudio(projectPath: string, projectName?: string, requestedPort?: number): Promise<StudioInstance & {
+    smartLaunchStudio(projectPath: string, projectName?: string, requestedPort?: number, forceNewPort?: boolean): Promise<StudioInstance & {
         wasReused: boolean;
     }>;
     /**

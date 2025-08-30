@@ -220,10 +220,13 @@ export function processImportsAndSyntax(code: string): string {
   const validation = validateImports(code);
   
   if (validation.correctedCode) {
-    // Also fix JSX syntax issues
+    // Also fix JSX syntax issues - import the function dynamically to avoid circular deps
+    const { processJSXSyntax } = require('./jsx-syntax-validator.js');
     return processJSXSyntax(validation.correctedCode);
   }
   
+  // Import the function dynamically to avoid circular deps
+  const { processJSXSyntax } = require('./jsx-syntax-validator.js');
   return processJSXSyntax(code);
 }
 

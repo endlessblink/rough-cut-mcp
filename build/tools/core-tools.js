@@ -494,7 +494,8 @@ registerRoot(Root);
                         }
                     }
                     // 🎯 ENHANCED: Use enhanced smart launch with robust lifecycle management
-                    const result = await studioRegistry.smartLaunchStudio(projectPath, projectName, args.port);
+                    // CRITICAL: Pass forceNewPort when user specifies a port
+                    const result = await studioRegistry.smartLaunchStudio(projectPath, projectName, args.port, !!args.port);
                     const statusIcon = result.wasReused ? '♻️' : '✅';
                     const statusText = result.wasReused ? 'Found and reused existing studio' : 'Started new studio';
                     return {

@@ -48,6 +48,8 @@ const version_detector_js_1 = require("../utils/version-detector.js");
 const composition_editor_js_1 = require("./composition-editor.js");
 const component_validator_js_1 = require("../utils/component-validator.js");
 const easing_validator_js_1 = require("../utils/easing-validator.js");
+const import_validator_js_1 = require("../utils/import-validator.js");
+const jsx_syntax_validator_js_1 = require("../utils/jsx-syntax-validator.js");
 const path = __importStar(require("path"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
 const child_process_1 = require("child_process");
@@ -288,15 +290,20 @@ export const VideoComposition: React.FC = () => {
             }
             // BULLETPROOF: Apply ALL validation layers to generated code
             let bulletproofComposition = composition;
-            // Layer 1: Fix component structure issues
+            // Layer 1: Fix imports and JSX syntax issues (CRITICAL - catches missing braces)
+            bulletproofComposition = (0, import_validator_js_1.processImportsAndSyntax)(bulletproofComposition);
+            // Layer 2: Fix component structure issues
             bulletproofComposition = (0, component_validator_js_1.processComponentStructure)(bulletproofComposition);
-            // Layer 2: Fix easing function errors  
+            // Layer 3: Fix easing function errors  
             bulletproofComposition = (0, easing_validator_js_1.processEasingInCode)(bulletproofComposition);
-            // Layer 3: Fix interpolation and color issues
+            // Layer 4: Fix interpolation and color issues
             bulletproofComposition = (0, interpolation_validator_js_1.processVideoCode)(bulletproofComposition);
-            logger.info('Applied comprehensive validation layers', {
+            // Layer 5: Final JSX syntax validation (catches any remaining issues)
+            bulletproofComposition = (0, jsx_syntax_validator_js_1.processJSXSyntax)(bulletproofComposition);
+            logger.info('Applied 5-layer bulletproof validation system', {
                 originalLength: composition.length,
-                processedLength: bulletproofComposition.length
+                processedLength: bulletproofComposition.length,
+                layers: ['imports+jsx', 'structure', 'easing', 'interpolation', 'final-jsx']
             });
             // CRITICAL: Ensure src directory exists before writing files
             const srcPath = path.join(projectPath, 'src');
