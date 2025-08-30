@@ -2,16 +2,49 @@
 /**
  * Interpolation Range Validator - Prevents Remotion crashes
  * Ensures all interpolation ranges are strictly monotonically increasing
+ * Detects and fixes color interpolation errors (use interpolateColors instead)
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SafeInterpolationPatterns = exports.TEST_CASES = exports.SAFE_INTERPOLATE_HELPER = exports.VALIDATION_HELPER_CODE = void 0;
+exports.detectColorValues = detectColorValues;
 exports.validateInterpolationRange = validateInterpolationRange;
 exports.validateInterpolationRangeLegacy = validateInterpolationRangeLegacy;
 exports.validateRangePair = validateRangePair;
 exports.generateSafeInterpolate = generateSafeInterpolate;
+exports.fixColorInterpolation = fixColorInterpolation;
 exports.processVideoCode = processVideoCode;
 exports.isValidRange = isValidRange;
 exports.runValidationTests = runValidationTests;
+/**
+ * Detects if an array contains color values (hex, rgb, named colors)
+ */
+function detectColorValues(values) {
+    const colorValues = [];
+    let hasColorValues = false;
+    for (const value of values) {
+        if (typeof value === 'string') {
+            // Detect hex colors
+            if (/^#[0-9a-fA-F]{3,8}$/.test(value)) {
+                colorValues.push(value);
+                hasColorValues = true;
+            }
+            // Detect rgb/rgba colors
+            else if (/^rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+/.test(value)) {
+                colorValues.push(value);
+                hasColorValues = true;
+            }
+            // Detect common CSS color names
+            else if (/^(red|blue|green|yellow|orange|purple|pink|black|white|gray|grey|brown|cyan|magenta)$/i.test(value)) {
+                colorValues.push(value);
+                hasColorValues = true;
+            }
+        }
+    }
+    const suggestion = hasColorValues
+        ? `Use interpolateColors() instead of interpolate() for color values: [${colorValues.join(', ')}]`
+        : '';
+    return { hasColorValues, colorValues, suggestion };
+}
 /**
  * Validates and corrects interpolation ranges to be monotonically increasing
  * @param range - Array of numbers that should be monotonically increasing
@@ -125,16 +158,60 @@ function safeInterpolate(frame, inputRange, outputRange, options) {
 }
 `;
 /**
+ * Fixes color interpolation by replacing interpolate() with interpolateColors()
+ * This is the CRITICAL function that prevents "outputRange must contain only numbers" errors
+ */
+function fixColorInterpolation(code) {
+    // Add interpolateColors import if not present
+    let processedCode = code;
+    if (!processedCode.includes('interpolateColors')) {
+        // Add interpolateColors to existing import
+        processedCode = processedCode.replace(/import\s*\{\s*([^}]*?)\s*\}\s*from\s*['"]remotion['"];/, (match, imports) => {
+            if (!imports.includes('interpolateColors')) {
+                const cleanImports = imports.trim();
+                const newImports = cleanImports
+                    ? `${cleanImports}, interpolateColors`
+                    : 'interpolateColors';
+                return match.replace(imports, newImports);
+            }
+            return match;
+        });
+    }
+    // Find interpolate() calls with color values and replace with interpolateColors()
+    const interpolateRegex = /interpolate\s*\(\s*([^,]+),\s*\[([^\]]+)\],\s*\[([^\]]+)\]([^)]*)\)/g;
+    processedCode = processedCode.replace(interpolateRegex, (match, frame, inputRange, outputRange, options) => {
+        // Parse output range to check for colors
+        try {
+            const outputValues = outputRange
+                .split(',')
+                .map(s => s.trim().replace(/['"]/g, ''));
+            const colorCheck = detectColorValues(outputValues);
+            if (colorCheck.hasColorValues) {
+                // Replace with interpolateColors
+                const quotedOutputRange = outputValues.map(val => colorCheck.colorValues.includes(val) ? `'${val}'` : val).join(', ');
+                return `interpolateColors(${frame.trim()}, [${inputRange}], [${quotedOutputRange}]${options.trim()})`;
+            }
+        }
+        catch (error) {
+            // If parsing fails, leave unchanged
+        }
+        return match;
+    });
+    return processedCode;
+}
+/**
  * Processes React component code to fix all interpolation ranges
  * @param code - React component code string
- * @returns Processed code with validated interpolation ranges
+ * @returns Processed code with validated interpolation ranges and color interpolation fixes
  */
 function processVideoCode(code) {
-    // Regex to find all interpolate() calls
+    // CRITICAL: Check for color interpolation errors first
+    let processedCode = fixColorInterpolation(code);
+    // Then fix numeric interpolation ranges
     const interpolateRegex = /interpolate\s*\(\s*([^,]+),\s*\[([^\]]+)\],\s*\[([^\]]+)\]([^)]*)\)/g;
     let hasChanges = false;
     const changes = [];
-    const processedCode = code.replace(interpolateRegex, (match, frame, inputStr, outputStr, options) => {
+    processedCode = processedCode.replace(interpolateRegex, (match, frame, inputStr, outputStr, options) => {
         try {
             // Parse the input range
             const inputRange = inputStr.split(',').map((s) => parseFloat(s.trim())).filter((n) => !isNaN(n));

@@ -222,13 +222,13 @@ export function fixColorInterpolation(code: string): string {
     try {
       const outputValues = outputRange
         .split(',')
-        .map(s => s.trim().replace(/['"]/g, ''));
+        .map((s: string) => s.trim().replace(/['"]/g, ''));
       
       const colorCheck = detectColorValues(outputValues);
       
       if (colorCheck.hasColorValues) {
         // Replace with interpolateColors
-        const quotedOutputRange = outputValues.map(val => 
+        const quotedOutputRange = outputValues.map((val: string) => 
           colorCheck.colorValues.includes(val) ? `'${val}'` : val
         ).join(', ');
         

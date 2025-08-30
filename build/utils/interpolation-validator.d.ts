@@ -1,7 +1,17 @@
 /**
  * Interpolation Range Validator - Prevents Remotion crashes
  * Ensures all interpolation ranges are strictly monotonically increasing
+ * Detects and fixes color interpolation errors (use interpolateColors instead)
  */
+export interface ColorInterpolationError {
+    hasColorValues: boolean;
+    colorValues: string[];
+    suggestion: string;
+}
+/**
+ * Detects if an array contains color values (hex, rgb, named colors)
+ */
+export declare function detectColorValues(values: any[]): ColorInterpolationError;
 export interface ValidationResult {
     valid: boolean;
     original: number[];
@@ -40,9 +50,14 @@ export declare function generateSafeInterpolate(variable: string, inputRange: nu
  */
 export declare const VALIDATION_HELPER_CODE = "\n// Helper to ensure interpolation ranges are valid (prevents Remotion errors)\nfunction validateRange(range) {\n  if (range.length <= 1) return range;\n  const valid = [...range];\n  for (let i = 1; i < valid.length; i++) {\n    if (valid[i] <= valid[i-1]) {\n      valid[i] = valid[i-1] + 1;\n    }\n  }\n  return valid;\n}\n\n// Safe interpolate wrapper\nfunction safeInterpolate(frame, inputRange, outputRange, options) {\n  const validInput = validateRange(inputRange);\n  return interpolate(frame, validInput, outputRange, options);\n}\n";
 /**
+ * Fixes color interpolation by replacing interpolate() with interpolateColors()
+ * This is the CRITICAL function that prevents "outputRange must contain only numbers" errors
+ */
+export declare function fixColorInterpolation(code: string): string;
+/**
  * Processes React component code to fix all interpolation ranges
  * @param code - React component code string
- * @returns Processed code with validated interpolation ranges
+ * @returns Processed code with validated interpolation ranges and color interpolation fixes
  */
 export declare function processVideoCode(code: string): string;
 /**
