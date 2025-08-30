@@ -128,6 +128,14 @@ function getTools() {
                 },
                 required: ['project']
             }
+        },
+        {
+            name: 'get-mcp-info',
+            description: 'Get MCP server version and architecture info (debug tool)',
+            inputSchema: {
+                type: 'object',
+                properties: {}
+            }
         }
     ];
 }
@@ -149,6 +157,8 @@ async function handleToolCall(name, args) {
             return await installDependencies(args.project);
         case 'delete-project':
             return await deleteProject(args.project);
+        case 'get-mcp-info':
+            return await getMCPInfo();
         default:
             throw new Error(`Unknown tool: ${name}`);
     }
@@ -491,6 +501,37 @@ async function deleteProject(projectName) {
             content: [{
                     type: 'text',
                     text: `❌ Failed to delete project: ${error instanceof Error ? error.message : String(error)}`
+                }]
+        };
+    }
+}
+async function getMCPInfo() {
+    try {
+        const buildDate = new Date().toISOString();
+        const toolCount = getTools().length;
+        return {
+            content: [{
+                    type: 'text',
+                    text: `🔍 MCP Server Debug Info:
+Version: 4.0.0 (Simple Architecture Rewrite)
+Architecture: Direct Tools (No Complex Abstractions)
+Total Tools: ${toolCount}
+Port Range: 6600-6620 (NOT 3000-3010!)
+Default Port: 6600 (NOT 3000!)
+Build Date: ${buildDate}
+Status: Simple System Active
+File: build/index.js (from simple src/index.ts)
+
+🚨 If you see port 3000 anywhere, Claude Desktop is using OLD cached MCP!
+🚨 If tool count > 10, you're running the OLD complex system!`
+                }]
+        };
+    }
+    catch (error) {
+        return {
+            content: [{
+                    type: 'text',
+                    text: `❌ Error getting MCP info: ${error instanceof Error ? error.message : String(error)}`
                 }]
         };
     }
