@@ -50,6 +50,7 @@ const component_validator_js_1 = require("../utils/component-validator.js");
 const easing_validator_js_1 = require("../utils/easing-validator.js");
 const import_validator_js_1 = require("../utils/import-validator.js");
 const jsx_syntax_validator_js_1 = require("../utils/jsx-syntax-validator.js");
+const duplicate_export_validator_js_1 = require("../utils/duplicate-export-validator.js");
 const path = __importStar(require("path"));
 const fs_extra_1 = __importDefault(require("fs-extra"));
 const child_process_1 = require("child_process");
@@ -290,6 +291,8 @@ export const VideoComposition: React.FC = () => {
             }
             // BULLETPROOF: Apply ALL validation layers to generated code
             let bulletproofComposition = composition;
+            // Layer 0: Fix duplicate exports (CRITICAL - prevents ESBuild failures)
+            bulletproofComposition = (0, duplicate_export_validator_js_1.processDuplicateExports)(bulletproofComposition);
             // Layer 1: Fix imports and JSX syntax issues (CRITICAL - catches missing braces)
             bulletproofComposition = (0, import_validator_js_1.processImportsAndSyntax)(bulletproofComposition);
             // Layer 2: Fix component structure issues
@@ -300,10 +303,10 @@ export const VideoComposition: React.FC = () => {
             bulletproofComposition = (0, interpolation_validator_js_1.processVideoCode)(bulletproofComposition);
             // Layer 5: Final JSX syntax validation (catches any remaining issues)
             bulletproofComposition = (0, jsx_syntax_validator_js_1.processJSXSyntax)(bulletproofComposition);
-            logger.info('Applied 5-layer bulletproof validation system', {
+            logger.info('Applied 6-layer ultimate bulletproof validation system', {
                 originalLength: composition.length,
                 processedLength: bulletproofComposition.length,
-                layers: ['imports+jsx', 'structure', 'easing', 'interpolation', 'final-jsx']
+                layers: ['duplicates', 'imports+jsx', 'structure', 'easing', 'interpolation', 'final-jsx']
             });
             // CRITICAL: Ensure src directory exists before writing files
             const srcPath = path.join(projectPath, 'src');

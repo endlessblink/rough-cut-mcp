@@ -107,9 +107,17 @@ export function validateDuplicateExports(code: string): DuplicateExportResult {
 }
 
 /**
- * Process code to remove duplicate exports
+ * Process code to remove duplicate exports with smart block handling
  */
 export function processDuplicateExports(code: string): string {
+  // First try advanced duplicate removal (handles complete blocks)
+  const advancedResult = validateAdvancedDuplicates(code);
+  
+  if (advancedResult.correctedCode) {
+    return advancedResult.correctedCode;
+  }
+  
+  // Fallback to basic validation
   const validation = validateDuplicateExports(code);
   
   if (validation.correctedCode) {
@@ -168,18 +176,8 @@ export function validateAdvancedDuplicates(code: string): {
   if (code.includes('export const VideoComposition') && 
       videoCompositionMatches && videoCompositionMatches.length > 1) {
     
-    // Keep only the last VideoComposition export
-    const videoCompositionRegex = /export\s+const\s+VideoComposition[^;]+;?/g;
-    const matches = [...code.matchAll(videoCompositionRegex)];
-    
-    if (matches.length > 1) {
-      // Remove all but the last match
-      for (let i = 0; i < matches.length - 1; i++) {
-        correctedCode = correctedCode.replace(matches[i][0], `// REMOVED DUPLICATE: ${matches[i][0]}`);
-      }
-      
-      errors.push(`Fixed: Removed ${matches.length - 1} duplicate VideoComposition exports`);
-    }
+    correctedCode = removeCompleteVideoCompositionBlocks(code);
+    errors.push(`Fixed: Removed duplicate VideoComposition blocks with complete code removal`);
   }
 
   return {
@@ -187,6 +185,90 @@ export function validateAdvancedDuplicates(code: string): {
     correctedCode: errors.length > 0 ? correctedCode : undefined,
     errors
   };
+}
+
+/**
+ * Remove complete VideoComposition blocks including all code between braces
+ * This prevents orphaned closing braces that cause ESBuild "Unexpected '}'" errors
+ */
+function removeCompleteVideoCompositionBlocks(code: string): string {
+  const lines = code.split('\n');
+  const toRemove: number[] = [];
+  
+  // Find all VideoComposition export declarations
+  const exportLines: Array<{ line: number; isFunction: boolean }> = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Check for function-style export
+    if (/export\s+const\s+VideoComposition.*=.*\(\)\s*=>\s*{/.test(line) || 
+        /export\s+const\s+VideoComposition.*=.*\(\)\s*{/.test(line)) {
+      exportLines.push({ line: i, isFunction: true });
+    }
+    // Check for assignment-style export  
+    else if (/export\s+const\s+VideoComposition.*=\s*\w+;?/.test(line)) {
+      exportLines.push({ line: i, isFunction: false });
+    }
+  }
+  
+  if (exportLines.length <= 1) {
+    return code; // No duplicates found
+  }
+  
+  // Remove all but the last export (keep the most complete one)
+  for (let i = 0; i < exportLines.length - 1; i++) {
+    const exportInfo = exportLines[i];
+    
+    if (exportInfo.isFunction) {
+      // Find the complete function block
+      const startLine = exportInfo.line;
+      let braceCount = 0;
+      let endLine = startLine;
+      let foundOpenBrace = false;
+      
+      // Count braces to find the end of the function
+      for (let j = startLine; j < lines.length; j++) {
+        const currentLine = lines[j];
+        
+        for (const char of currentLine) {
+          if (char === '{') {
+            braceCount++;
+            foundOpenBrace = true;
+          } else if (char === '}') {
+            braceCount--;
+          }
+        }
+        
+        // Found the end of the function block
+        if (foundOpenBrace && braceCount === 0) {
+          endLine = j;
+          break;
+        }
+      }
+      
+      // Mark all lines in this block for removal
+      for (let k = startLine; k <= endLine; k++) {
+        toRemove.push(k);
+      }
+    } else {
+      // Simple assignment - just remove this line
+      toRemove.push(exportInfo.line);
+    }
+  }
+  
+  // Remove marked lines by replacing with empty lines (preserve line numbers)
+  const result = lines.map((line, index) => {
+    if (toRemove.includes(index)) {
+      return ''; // Empty line instead of comment to clean up
+    }
+    return line;
+  });
+  
+  // Clean up multiple empty lines
+  const cleanedResult = result.join('\n').replace(/\n\s*\n\s*\n/g, '\n\n');
+  
+  return cleanedResult;
 }
 
 const exportMap = new Map<string, Array<{ line: number; fullExport: string }>>();
