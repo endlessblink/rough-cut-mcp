@@ -620,7 +620,7 @@ export function registerCompositionTools(server: MCPServer): void {
       category: ToolCategory.VIDEO_CREATION,
       subCategory: 'editing',
       tags: ['composition', 'element', 'edit', 'add', 'remove'],
-      loadByDefault: false,
+      loadByDefault: true,
       priority: 1,
       estimatedTokens: 200
     }

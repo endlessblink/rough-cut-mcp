@@ -861,16 +861,28 @@ export const VideoComposition: React.FC = () => {
     });
     
     return `import React from 'react';
-import { AbsoluteFill, useCurrentFrame, interpolate } from 'remotion';
+import { AbsoluteFill, useCurrentFrame, useVideoConfig, interpolate } from 'remotion';
+
+// Safe interpolate wrapper - ensures all values are numbers
+function safeInterpolate(frame: number, inputRange: number[], outputRange: number[], options?: any): number {
+  const safeOutput = outputRange.map(v => (typeof v === 'number' && !isNaN(v)) ? v : 0);
+  return interpolate(frame, inputRange, safeOutput, options);
+}
 
 export const VideoComposition: React.FC = () => {
   const frame = useCurrentFrame();
+  const { width, height, durationInFrames } = useVideoConfig();
+  
+  // Ensure dimensions are always valid numbers
+  const videoWidth = width || 1920;
+  const videoHeight = height || 1080;
+  const totalFrames = durationInFrames || ${duration * fps};
   
   // Simple fade-in animation that always works
-  const opacity = interpolate(frame, [0, 30], [0, 1], { extrapolateRight: 'clamp' });
+  const opacity = safeInterpolate(frame, [0, 30], [0, 1], { extrapolateRight: 'clamp' });
   
   // Simple movement animation  
-  const x = interpolate(frame, [0, ${duration * fps}], [10, 90], { extrapolateRight: 'clamp' });
+  const x = safeInterpolate(frame, [0, totalFrames], [10, 90], { extrapolateRight: 'clamp' });
   
   return (
     <AbsoluteFill style={{ 

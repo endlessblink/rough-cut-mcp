@@ -86,7 +86,7 @@ export function registerCreationTools(server: MCPServer): void {
         switch (args.type || 'text') {
           case 'text': {
             composition = `import React from 'react';
-import { Sequence, AbsoluteFill, interpolate, useCurrentFrame } from 'remotion';
+import { Sequence, AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 
 // Helper to ensure interpolation ranges are valid (prevents Remotion errors)
 function validateRange(range: number[]): number[] {
@@ -100,14 +100,21 @@ function validateRange(range: number[]): number[] {
   return valid;
 }
 
-// Safe interpolate wrapper
+// Safe interpolate wrapper - ensures all values are numbers
 function safeInterpolate(frame: number, inputRange: number[], outputRange: number[], options?: any): number {
   const validInput = validateRange(inputRange);
-  return interpolate(frame, validInput, outputRange, options);
+  const safeOutput = outputRange.map(v => (typeof v === 'number' && !isNaN(v)) ? v : 0);
+  return interpolate(frame, validInput, safeOutput, options);
 }
 
 export const VideoComposition: React.FC = () => {
   const frame = useCurrentFrame();
+  const { width, height, durationInFrames } = useVideoConfig();
+  
+  // Ensure dimensions are always valid numbers
+  const videoWidth = width || 1920;
+  const videoHeight = height || 1080;
+  const totalFrames = durationInFrames || ${duration * fps};
   
   // Example fade-in using safe interpolation
   const opacity = safeInterpolate(frame, [0, 30], [0, 1], { extrapolateRight: 'clamp' });
