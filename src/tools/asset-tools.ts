@@ -5,6 +5,7 @@
 
 import { MCPServer } from '../index.js';
 import { ToolCategory } from '../types/tool-categories.js';
+import { forceDeleteProject, safeDeleteProject } from '../utils/force-delete.js';
 import * as path from 'path';
 import fs from 'fs-extra';
 
@@ -23,7 +24,7 @@ export function registerAssetTools(server: MCPServer): void {
         properties: {
           action: {
             type: 'string',
-            enum: ['list', 'organize', 'delete', 'stats'],
+            enum: ['list', 'organize', 'delete', 'stats', 'force-delete-project'],
             description: 'Asset action'
           },
           type: {
@@ -38,6 +39,15 @@ export function registerAssetTools(server: MCPServer): void {
           olderThan: {
             type: 'number',
             description: 'Delete files older than X days'
+          },
+          projectName: {
+            type: 'string', 
+            description: 'Project name (required for force-delete-project action)'
+          },
+          forceKill: {
+            type: 'boolean',
+            description: 'Kill related processes before deletion (for force-delete-project)',
+            default: true
           }
         },
         required: ['action']
@@ -188,6 +198,63 @@ Videos: ${stats.videoCount} (${(stats.videoSize / (1024 * 1024)).toFixed(2)} MB)
 Audio: ${stats.audioCount} (${(stats.audioSize / (1024 * 1024)).toFixed(2)} MB)
 Oldest file: ${stats.oldestFile ? new Date(stats.oldestFile).toLocaleDateString() : 'N/A'}
 Newest file: ${stats.newestFile ? new Date(stats.newestFile).toLocaleDateString() : 'N/A'}`
+              }]
+            };
+          }
+
+          case 'force-delete-project': {
+            if (!args.projectName) {
+              throw new Error('projectName required for force-delete-project action');
+            }
+            
+            const projectPath = path.join(server.config.assetsDir, 'projects', args.projectName);
+            
+            if (!await fs.pathExists(projectPath)) {
+              return {
+                content: [{
+                  type: 'text',
+                  text: `❌ Project "${args.projectName}" not found`
+                }]
+              };
+            }
+            
+            logger.info('Force deleting project', { projectName: args.projectName, projectPath });
+            
+            const deleteResult = await forceDeleteProject({
+              projectPath,
+              projectName: args.projectName,
+              killProcesses: args.forceKill !== false,
+              removeNodeModules: true,
+              timeout: 60000
+            });
+            
+            let statusText = '';
+            if (deleteResult.success) {
+              statusText = `✅ Successfully force-deleted project "${args.projectName}"`;
+              
+              if (deleteResult.processesKilled.length > 0) {
+                statusText += `\n🔄 Killed ${deleteResult.processesKilled.length} related processes`;
+              }
+              
+              if (deleteResult.filesRemoved.length > 0) {
+                statusText += `\n📁 Removed ${deleteResult.filesRemoved.length} files/directories`;
+              }
+              
+              if (deleteResult.warnings.length > 0) {
+                statusText += `\n⚠️ Warnings: ${deleteResult.warnings.join(', ')}`;
+              }
+            } else {
+              statusText = `❌ Failed to delete project "${args.projectName}"`;
+              
+              if (deleteResult.errors.length > 0) {
+                statusText += `\nErrors: ${deleteResult.errors.join(', ')}`;
+              }
+            }
+            
+            return {
+              content: [{
+                type: 'text',
+                text: statusText
               }]
             };
           }

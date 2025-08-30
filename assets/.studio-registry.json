@@ -1,14 +1,4 @@
 {
-  "lastUpdated": "2025-08-30T13:31:15.744Z",
-  "instances": [
-    {
-      "pid": 3572,
-      "port": 3000,
-      "projectPath": "D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\my-builds\\Video + Motion\\RoughCut\\assets\\projects\\airplane-animation",
-      "projectName": "airplane-animation",
-      "startTime": 1756560675744,
-      "status": "running",
-      "url": "http://localhost:3000"
-    }
-  ]
+  "lastUpdated": "2025-08-30T13:35:29.882Z",
+  "instances": []
 }

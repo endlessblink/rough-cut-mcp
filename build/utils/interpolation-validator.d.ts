@@ -55,9 +55,14 @@ export declare const VALIDATION_HELPER_CODE = "\n// Helper to ensure interpolati
  */
 export declare function fixColorInterpolation(code: string): string;
 /**
+ * Fixes easing function errors by correcting invalid easing names
+ * This prevents "easing is not a function" errors
+ */
+export declare function fixEasingErrors(code: string): string;
+/**
  * Processes React component code to fix all interpolation ranges
  * @param code - React component code string
- * @returns Processed code with validated interpolation ranges and color interpolation fixes
+ * @returns Processed code with validated interpolation ranges, color interpolation fixes, and easing validation
  */
 export declare function processVideoCode(code: string): string;
 /**

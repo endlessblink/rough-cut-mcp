@@ -9,6 +9,8 @@ import { AnimationGeneratorService } from '../services/animation-generator.js';
 import { processVideoCode } from '../utils/interpolation-validator.js';
 import { generateSafeDependencies } from '../utils/version-detector.js';
 import { registerCompositionTools } from './composition-editor.js';
+import { processComponentStructure } from '../utils/component-validator.js';
+import { processEasingInCode } from '../utils/easing-validator.js';
 import * as path from 'path';
 import fs from 'fs-extra';
 import { exec } from 'child_process';
@@ -265,17 +267,31 @@ export const VideoComposition: React.FC = () => {
             throw new Error(`Unknown video type: ${args.type}`);
         }
 
-        // Process composition code to fix any interpolation issues
-        const safeComposition = processVideoCode(composition);
+        // BULLETPROOF: Apply ALL validation layers to generated code
+        let bulletproofComposition = composition;
+        
+        // Layer 1: Fix component structure issues
+        bulletproofComposition = processComponentStructure(bulletproofComposition);
+        
+        // Layer 2: Fix easing function errors  
+        bulletproofComposition = processEasingInCode(bulletproofComposition);
+        
+        // Layer 3: Fix interpolation and color issues
+        bulletproofComposition = processVideoCode(bulletproofComposition);
+        
+        logger.info('Applied comprehensive validation layers', { 
+          originalLength: composition.length,
+          processedLength: bulletproofComposition.length
+        });
         
         // CRITICAL: Ensure src directory exists before writing files
         const srcPath = path.join(projectPath, 'src');
         await fs.ensureDir(srcPath);
         
-        // Write VideoComposition.tsx with error handling
+        // Write VideoComposition.tsx with bulletproof code
         const compositionFile = path.join(srcPath, 'VideoComposition.tsx');
         try {
-          await fs.writeFile(compositionFile, safeComposition);
+          await fs.writeFile(compositionFile, bulletproofComposition);
           logger.info('VideoComposition.tsx created successfully', { file: compositionFile });
         } catch (error) {
           logger.error('Failed to write VideoComposition.tsx', { error, file: compositionFile });

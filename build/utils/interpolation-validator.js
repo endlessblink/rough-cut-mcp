@@ -12,6 +12,7 @@ exports.validateInterpolationRangeLegacy = validateInterpolationRangeLegacy;
 exports.validateRangePair = validateRangePair;
 exports.generateSafeInterpolate = generateSafeInterpolate;
 exports.fixColorInterpolation = fixColorInterpolation;
+exports.fixEasingErrors = fixEasingErrors;
 exports.processVideoCode = processVideoCode;
 exports.isValidRange = isValidRange;
 exports.runValidationTests = runValidationTests;
@@ -200,13 +201,43 @@ function fixColorInterpolation(code) {
     return processedCode;
 }
 /**
+ * Fixes easing function errors by correcting invalid easing names
+ * This prevents "easing is not a function" errors
+ */
+function fixEasingErrors(code) {
+    // Import easing validator
+    const { processEasingInCode } = require('./easing-validator.js');
+    try {
+        return processEasingInCode(code);
+    }
+    catch (error) {
+        // Fallback: manually fix common easing errors
+        let fixedCode = code;
+        // Common fixes
+        const easingFixes = new Map([
+            ['Easing.sine', 'Easing.sin'],
+            ['Easing.cosine', 'Easing.sin'],
+            ['Easing.quadratic', 'Easing.quad'],
+            ['Easing.easeInOut', 'Easing.inOut'],
+            ['Easing.easeIn', 'Easing.in'],
+            ['Easing.easeOut', 'Easing.out']
+        ]);
+        for (const [incorrect, correct] of easingFixes) {
+            fixedCode = fixedCode.replace(new RegExp(incorrect.replace('.', '\\.'), 'g'), correct);
+        }
+        return fixedCode;
+    }
+}
+/**
  * Processes React component code to fix all interpolation ranges
  * @param code - React component code string
- * @returns Processed code with validated interpolation ranges and color interpolation fixes
+ * @returns Processed code with validated interpolation ranges, color interpolation fixes, and easing validation
  */
 function processVideoCode(code) {
     // CRITICAL: Check for color interpolation errors first
     let processedCode = fixColorInterpolation(code);
+    // CRITICAL: Check for easing function errors
+    processedCode = fixEasingErrors(processedCode);
     // Then fix numeric interpolation ranges
     const interpolateRegex = /interpolate\s*\(\s*([^,]+),\s*\[([^\]]+)\],\s*\[([^\]]+)\]([^)]*)\)/g;
     let hasChanges = false;
