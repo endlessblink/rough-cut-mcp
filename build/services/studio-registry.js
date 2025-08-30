@@ -19,6 +19,39 @@ const port_manager_js_1 = require("./port-manager.js");
 const process_discovery_js_1 = require("./process-discovery.js");
 const studio_lifecycle_js_1 = require("./studio-lifecycle.js");
 const axios_1 = __importDefault(require("axios"));
+/**
+ * Get real Remotion Studio child process PID
+ * Fixes the "PID: 0" issue by finding actual child process
+ */
+async function getRealStudioPID(parentPid) {
+    try {
+        const { exec } = require('child_process');
+        return new Promise((resolve) => {
+            // Use modern tasklist instead of deprecated WMIC  
+            exec('tasklist /fo csv | findstr /i "remotion"', (error, stdout) => {
+                if (error) {
+                    resolve(parentPid); // Fallback to parent PID
+                    return;
+                }
+                // Parse CSV to find Remotion process PID
+                const lines = stdout.split('\n').filter((line) => line.includes('node.exe') && line.includes('remotion'));
+                if (lines.length > 0) {
+                    // Extract PID: "node.exe","1234","Console"...
+                    const match = lines[0].match(/"[^"]*","(\d+)"/);
+                    if (match) {
+                        const realPid = parseInt(match[1], 10);
+                        resolve(realPid);
+                        return;
+                    }
+                }
+                resolve(parentPid); // Fallback
+            });
+        });
+    }
+    catch (error) {
+        return parentPid;
+    }
+}
 class StudioRegistry {
     instances;
     registryFile;
@@ -517,10 +550,11 @@ class StudioRegistry {
     async launchStudioWithLifecycle(projectPath, projectName, requestedPort) {
         try {
             // Use the new StudioLifecycle service for robust startup
+            // CRITICAL: Force new instance when user specifies port
             const launchResult = await studio_lifecycle_js_1.StudioLifecycle.launchStudio({
                 projectPath,
                 preferredPort: requestedPort,
-                forceNewInstance: false,
+                forceNewInstance: !!requestedPort, // Force new when port requested
                 timeout: 60000,
                 validate: true
             });
@@ -571,22 +605,27 @@ class StudioRegistry {
             if (!await fs_extra_1.default.pathExists(packageJsonPath)) {
                 throw new Error(`No package.json found in project: ${projectPath}`);
             }
-            // Find available port
-            const port = requestedPort && !this.instances.has(requestedPort)
-                ? requestedPort
-                : await this.findAvailablePort();
-            // Launch Remotion Studio
-            const studioProcess = (0, child_process_1.spawn)('npx', ['remotion', 'studio', '--port', String(port)], {
+            // CRITICAL FIX: Always honor user-requested port, don't check instances
+            const port = requestedPort || await this.findAvailablePort();
+            // Launch Remotion Studio with Windows-compatible command (research-backed fix)
+            const command = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+            const studioProcess = (0, child_process_1.spawn)(command, ['remotion', 'studio', '--port', String(port)], {
                 cwd: projectPath,
                 shell: true,
                 detached: process.platform !== 'win32',
-                stdio: 'ignore'
+                stdio: 'ignore',
+                env: {
+                    ...process.env,
+                    PATH: process.env.PATH + ';C:\\Program Files\\nodejs' // Ensure Node.js in PATH
+                }
             });
             // Build network URLs for remote access
             const networkUrls = (0, network_utils_js_1.buildNetworkUrls)(port);
+            // Get real child process PID (fixes PID: 0 issue)
+            const realPid = await getRealStudioPID(studioProcess.pid || 0);
             // Create instance record
             const instance = {
-                pid: studioProcess.pid || 0,
+                pid: realPid,
                 port,
                 projectPath,
                 projectName: projectName || path_1.default.basename(projectPath),

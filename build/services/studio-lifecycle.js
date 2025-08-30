@@ -10,6 +10,54 @@ const process_discovery_js_1 = require("./process-discovery.js");
 const config_js_1 = require("../utils/config.js");
 const paths_js_1 = require("../config/paths.js");
 const logger = (0, logger_js_1.getLogger)().service('StudioLifecycle');
+/**
+ * Get real child process PID for Remotion Studio
+ * Research: Windows spawn returns parent shell PID, need child PID
+ */
+async function getRealStudioPID(parentPid) {
+    try {
+        // Use tree-kill to find child processes
+        return new Promise((resolve) => {
+            const { exec } = require('child_process');
+            // Use tasklist instead of deprecated WMIC for Windows 11 compatibility
+            exec(`tasklist /fi "PID eq ${parentPid}" /fo csv`, (error, stdout) => {
+                if (error) {
+                    resolve(null);
+                    return;
+                }
+                // Parse CSV output to verify parent exists
+                const lines = stdout.split('\n').filter((line) => line.trim());
+                if (lines.length > 1) {
+                    // Parent exists, now find Remotion child process
+                    exec('tasklist /fo csv | findstr /i "node.exe.*remotion"', (childError, childStdout) => {
+                        if (childError) {
+                            resolve(parentPid); // Fallback to parent PID
+                            return;
+                        }
+                        // Parse to find actual Remotion process
+                        const childLines = childStdout.split('\n').filter((line) => line.includes('node.exe'));
+                        if (childLines.length > 0) {
+                            // Extract PID from CSV: "node.exe","1234",...
+                            const match = childLines[0].match(/"node\.exe","(\d+)"/);
+                            if (match) {
+                                resolve(parseInt(match[1], 10));
+                                return;
+                            }
+                        }
+                        resolve(parentPid); // Fallback to parent PID
+                    });
+                }
+                else {
+                    resolve(null);
+                }
+            });
+        });
+    }
+    catch (error) {
+        logger.warn('Failed to get real studio PID', { error });
+        return parentPid; // Fallback to parent PID
+    }
+}
 class StudioLifecycle {
     static DEFAULT_TIMEOUT = 60000; // 60 seconds
     static HEALTH_CHECK_INTERVAL = 5000; // 5 seconds
@@ -133,12 +181,13 @@ class StudioLifecycle {
                 // Ensure we're using Windows paths for the spawn
                 const windowsProjectPath = paths_js_1.paths.getWindowsPath(projectPath);
                 logger.debug(`Starting Remotion Studio process for ${windowsProjectPath} on port ${port}`);
-                // Spawn the remotion studio process
-                const process = (0, child_process_1.spawn)('npx', ['remotion', 'studio', '--port', port.toString()], {
+                // Spawn the remotion studio process with Windows compatibility
+                const command = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+                const studioProcess = (0, child_process_1.spawn)(command, ['remotion', 'studio', '--port', port.toString()], {
                     cwd: windowsProjectPath,
                     stdio: ['ignore', 'pipe', 'pipe'],
                     shell: true,
-                    windowsHide: true
+                    windowsHide: process.platform === 'win32'
                 });
                 let resolved = false;
                 let stdoutData = '';
@@ -148,7 +197,7 @@ class StudioLifecycle {
                     if (!resolved) {
                         resolved = true;
                         logger.error(`Studio startup timeout after ${timeout}ms`);
-                        process.kill('SIGKILL');
+                        studioProcess.kill('SIGKILL');
                         resolve({
                             success: false,
                             error: `Startup timeout after ${timeout}ms`
@@ -156,11 +205,11 @@ class StudioLifecycle {
                     }
                 }, timeout);
                 // Handle process startup
-                process.on('spawn', () => {
-                    logger.debug(`Studio process spawned with PID: ${process.pid}`);
+                studioProcess.on('spawn', () => {
+                    logger.debug(`Studio process spawned with PID: ${studioProcess.pid}`);
                 });
                 // Collect stdout for debugging
-                process.stdout?.on('data', (data) => {
+                studioProcess.stdout?.on('data', (data) => {
                     stdoutData += data.toString();
                     const output = data.toString().toLowerCase();
                     // Enhanced logging - log all Remotion Studio output for debugging
@@ -173,14 +222,14 @@ class StudioLifecycle {
                             logger.info('Studio process ready - detected success indicators in stdout');
                             resolve({
                                 success: true,
-                                process,
-                                pid: process.pid
+                                process: studioProcess,
+                                pid: studioProcess.pid
                             });
                         }
                     }
                 });
                 // Collect stderr for debugging
-                process.stderr?.on('data', (data) => {
+                studioProcess.stderr?.on('data', (data) => {
                     stderrData += data.toString();
                     const output = data.toString().toLowerCase();
                     // Enhanced logging - log all Remotion Studio errors for debugging
@@ -199,7 +248,7 @@ class StudioLifecycle {
                     }
                 });
                 // Handle process exit
-                process.on('exit', (code, signal) => {
+                studioProcess.on('exit', (code, signal) => {
                     if (!resolved) {
                         resolved = true;
                         clearTimeout(timeoutHandle);
@@ -213,7 +262,7 @@ class StudioLifecycle {
                     }
                 });
                 // Handle process errors
-                process.on('error', (error) => {
+                studioProcess.on('error', (error) => {
                     if (!resolved) {
                         resolved = true;
                         clearTimeout(timeoutHandle);
@@ -234,8 +283,8 @@ class StudioLifecycle {
                         logger.debug('Studio process still running, assuming success');
                         resolve({
                             success: true,
-                            process,
-                            pid: process.pid
+                            process: studioProcess,
+                            pid: studioProcess.pid
                         });
                     }
                 }, Math.min(timeout * 0.5, 10000)); // Wait up to 10 seconds or half timeout

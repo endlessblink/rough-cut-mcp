@@ -17,7 +17,7 @@ export interface DuplicateExportResult {
  */
 export declare function validateDuplicateExports(code: string): DuplicateExportResult;
 /**
- * Process code to remove duplicate exports
+ * Process code to remove duplicate exports with smart block handling
  */
 export declare function processDuplicateExports(code: string): string;
 /**

@@ -6,6 +6,7 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { spawn, ChildProcess } from 'child_process';
+import * as treeKill from 'tree-kill';
 import { getLogger } from '../utils/logger.js';
 import { MCPConfig } from '../types/index.js';
 import { buildNetworkUrls, formatStudioUrls, NetworkUrls } from '../utils/network-utils.js';
@@ -16,6 +17,40 @@ import { PortManager } from './port-manager.js';
 import { ProcessDiscovery, StudioProcess } from './process-discovery.js';
 import { StudioLifecycle } from './studio-lifecycle.js';
 import axios from 'axios';
+
+/**
+ * Get real Remotion Studio child process PID
+ * Fixes the "PID: 0" issue by finding actual child process
+ */
+async function getRealStudioPID(parentPid: number): Promise<number> {
+  try {
+    const { exec } = require('child_process');
+    return new Promise<number>((resolve) => {
+      // Use modern tasklist instead of deprecated WMIC  
+      exec('tasklist /fo csv | findstr /i "remotion"', (error: any, stdout: any) => {
+        if (error) {
+          resolve(parentPid); // Fallback to parent PID
+          return;
+        }
+        
+        // Parse CSV to find Remotion process PID
+        const lines = stdout.split('\n').filter((line: any) => line.includes('node.exe') && line.includes('remotion'));
+        if (lines.length > 0) {
+          // Extract PID: "node.exe","1234","Console"...
+          const match = lines[0].match(/"[^"]*","(\d+)"/);
+          if (match) {
+            const realPid = parseInt(match[1], 10);
+            resolve(realPid);
+            return;
+          }
+        }
+        resolve(parentPid); // Fallback
+      });
+    });
+  } catch (error) {
+    return parentPid;
+  }
+}
 
 export interface StudioInstance {
   pid: number;
@@ -588,10 +623,11 @@ export class StudioRegistry {
   async launchStudioWithLifecycle(projectPath: string, projectName?: string, requestedPort?: number): Promise<StudioInstance> {
     try {
       // Use the new StudioLifecycle service for robust startup
+      // CRITICAL: Force new instance when user specifies port
       const launchResult = await StudioLifecycle.launchStudio({
         projectPath,
         preferredPort: requestedPort,
-        forceNewInstance: false,
+        forceNewInstance: !!requestedPort, // Force new when port requested
         timeout: 60000,
         validate: true
       });
@@ -651,25 +687,31 @@ export class StudioRegistry {
         throw new Error(`No package.json found in project: ${projectPath}`);
       }
 
-      // Find available port
-      const port = requestedPort && !this.instances.has(requestedPort) 
-        ? requestedPort 
-        : await this.findAvailablePort();
+      // CRITICAL FIX: Always honor user-requested port, don't check instances
+      const port = requestedPort || await this.findAvailablePort();
 
-      // Launch Remotion Studio
-      const studioProcess = spawn('npx', ['remotion', 'studio', '--port', String(port)], {
+      // Launch Remotion Studio with Windows-compatible command (research-backed fix)
+      const command = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+      const studioProcess = spawn(command, ['remotion', 'studio', '--port', String(port)], {
         cwd: projectPath,
         shell: true,
         detached: process.platform !== 'win32',
-        stdio: 'ignore'
+        stdio: 'ignore',
+        env: { 
+          ...process.env,
+          PATH: process.env.PATH + ';C:\\Program Files\\nodejs' // Ensure Node.js in PATH
+        }
       });
 
       // Build network URLs for remote access
       const networkUrls = buildNetworkUrls(port);
       
+      // Get real child process PID (fixes PID: 0 issue)
+      const realPid = await getRealStudioPID(studioProcess.pid || 0);
+      
       // Create instance record
       const instance: StudioInstance = {
-        pid: studioProcess.pid || 0,
+        pid: realPid,
         port,
         projectPath,
         projectName: projectName || path.basename(projectPath),

@@ -43,8 +43,7 @@ function safeInterpolate(input, inputRange, outputRange, options) {
         return interpolate(safeInput, safeInputRange, safeOutputRange, options);
     }
     catch (error) {
-        console.error('Interpolation error:', error);
-        // Return the first output value as fallback
+        // Return the first output value as fallback (no console output for MCP)
         return safeOutputRange[0] || 0;
     }
 }

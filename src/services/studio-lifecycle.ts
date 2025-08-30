@@ -1,6 +1,7 @@
 import { spawn, ChildProcess } from 'child_process';
 import { join, resolve } from 'path';
 import { promises as fs } from 'fs';
+import * as treeKill from 'tree-kill';
 import { getLogger } from '../utils/logger.js';
 import { PortManager, PortAllocationResult } from './port-manager.js';
 import { ProcessDiscovery, StudioProcess } from './process-discovery.js';
@@ -8,6 +9,55 @@ import { loadConfig } from '../utils/config.js';
 import { paths } from '../config/paths.js';
 
 const logger = getLogger().service('StudioLifecycle');
+
+/**
+ * Get real child process PID for Remotion Studio
+ * Research: Windows spawn returns parent shell PID, need child PID
+ */
+async function getRealStudioPID(parentPid: number): Promise<number | null> {
+  try {
+    // Use tree-kill to find child processes
+    return new Promise((resolve) => {
+      const { exec } = require('child_process');
+      // Use tasklist instead of deprecated WMIC for Windows 11 compatibility
+      exec(`tasklist /fi "PID eq ${parentPid}" /fo csv`, (error: any, stdout: any) => {
+        if (error) {
+          resolve(null);
+          return;
+        }
+        
+        // Parse CSV output to verify parent exists
+        const lines = stdout.split('\n').filter((line: any) => line.trim());
+        if (lines.length > 1) {
+          // Parent exists, now find Remotion child process
+          exec('tasklist /fo csv | findstr /i "node.exe.*remotion"', (childError: any, childStdout: any) => {
+            if (childError) {
+              resolve(parentPid); // Fallback to parent PID
+              return;
+            }
+            
+            // Parse to find actual Remotion process
+            const childLines = childStdout.split('\n').filter((line: any) => line.includes('node.exe'));
+            if (childLines.length > 0) {
+              // Extract PID from CSV: "node.exe","1234",...
+              const match = childLines[0].match(/"node\.exe","(\d+)"/);
+              if (match) {
+                resolve(parseInt(match[1], 10));
+                return;
+              }
+            }
+            resolve(parentPid); // Fallback to parent PID
+          });
+        } else {
+          resolve(null);
+        }
+      });
+    });
+  } catch (error) {
+    logger.warn('Failed to get real studio PID', { error });
+    return parentPid; // Fallback to parent PID
+  }
+}
 
 export interface StudioLaunchOptions {
   projectPath: string;
@@ -183,12 +233,13 @@ export class StudioLifecycle {
         
         logger.debug(`Starting Remotion Studio process for ${windowsProjectPath} on port ${port}`);
         
-        // Spawn the remotion studio process
-        const process = spawn('npx', ['remotion', 'studio', '--port', port.toString()], {
+        // Spawn the remotion studio process with Windows compatibility
+        const command = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+        const studioProcess = spawn(command, ['remotion', 'studio', '--port', port.toString()], {
           cwd: windowsProjectPath,
           stdio: ['ignore', 'pipe', 'pipe'],
           shell: true,
-          windowsHide: true
+          windowsHide: process.platform === 'win32'
         });
 
         let resolved = false;
@@ -200,7 +251,7 @@ export class StudioLifecycle {
           if (!resolved) {
             resolved = true;
             logger.error(`Studio startup timeout after ${timeout}ms`);
-            process.kill('SIGKILL');
+            studioProcess.kill('SIGKILL');
             resolve({
               success: false,
               error: `Startup timeout after ${timeout}ms`
@@ -209,12 +260,12 @@ export class StudioLifecycle {
         }, timeout);
 
         // Handle process startup
-        process.on('spawn', () => {
-          logger.debug(`Studio process spawned with PID: ${process.pid}`);
+        studioProcess.on('spawn', () => {
+          logger.debug(`Studio process spawned with PID: ${studioProcess.pid}`);
         });
 
         // Collect stdout for debugging
-        process.stdout?.on('data', (data: Buffer) => {
+        studioProcess.stdout?.on('data', (data: Buffer) => {
           stdoutData += data.toString();
           const output = data.toString().toLowerCase();
           
@@ -229,15 +280,15 @@ export class StudioLifecycle {
               logger.info('Studio process ready - detected success indicators in stdout');
               resolve({
                 success: true,
-                process,
-                pid: process.pid!
+                process: studioProcess,
+                pid: studioProcess.pid!
               });
             }
           }
         });
 
         // Collect stderr for debugging
-        process.stderr?.on('data', (data: Buffer) => {
+        studioProcess.stderr?.on('data', (data: Buffer) => {
           stderrData += data.toString();
           const output = data.toString().toLowerCase();
           
@@ -259,7 +310,7 @@ export class StudioLifecycle {
         });
 
         // Handle process exit
-        process.on('exit', (code, signal) => {
+        studioProcess.on('exit', (code, signal) => {
           if (!resolved) {
             resolved = true;
             clearTimeout(timeoutHandle);
@@ -274,7 +325,7 @@ export class StudioLifecycle {
         });
 
         // Handle process errors
-        process.on('error', (error) => {
+        studioProcess.on('error', (error) => {
           if (!resolved) {
             resolved = true;
             clearTimeout(timeoutHandle);
@@ -296,8 +347,8 @@ export class StudioLifecycle {
             logger.debug('Studio process still running, assuming success');
             resolve({
               success: true,
-              process,
-              pid: process.pid
+              process: studioProcess,
+              pid: studioProcess.pid
             });
           }
         }, Math.min(timeout * 0.5, 10000)); // Wait up to 10 seconds or half timeout
