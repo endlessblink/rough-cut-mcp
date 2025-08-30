@@ -39,6 +39,7 @@ exports.findProcessOnPort = findProcessOnPort;
 exports.killProcessOnPort = killProcessOnPort;
 exports.validateRemotionAvailable = validateRemotionAvailable;
 exports.getSystemStatus = getSystemStatus;
+exports.findStudioPort = findStudioPort;
 // Windows Utility Functions - Simple and Direct
 const child_process_1 = require("child_process");
 const util_1 = require("util");
@@ -142,5 +143,18 @@ async function getSystemStatus() {
     }
     const remotionAvailable = await validateRemotionAvailable();
     return { ports, remotionAvailable };
+}
+/**
+ * Find which port a studio is running on (if any)
+ */
+async function findStudioPort() {
+    // Check 6600-6620 studio port range
+    for (const port of [6600, 6601, 6602, 6603, 6604, 6605, 6606, 6607, 6608, 6609, 6610]) {
+        const pid = await findProcessOnPort(port);
+        if (pid) {
+            return port; // Return first found port
+        }
+    }
+    return null;
 }
 //# sourceMappingURL=utils.js.map

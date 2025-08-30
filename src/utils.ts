@@ -119,3 +119,17 @@ export async function getSystemStatus(): Promise<{ports: Array<{port: number, pi
   
   return { ports, remotionAvailable };
 }
+
+/**
+ * Find which port a studio is running on (if any)
+ */
+export async function findStudioPort(): Promise<number | null> {
+  // Check 6600-6620 studio port range
+  for (const port of [6600, 6601, 6602, 6603, 6604, 6605, 6606, 6607, 6608, 6609, 6610]) {
+    const pid = await findProcessOnPort(port);
+    if (pid) {
+      return port; // Return first found port
+    }
+  }
+  return null;
+}

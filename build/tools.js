@@ -356,22 +356,40 @@ async function editVideoJSX(projectName, jsx) {
         }
         // Write new JSX (Claude's unlimited editing power!)
         await fs.writeFile(compositionFile, jsx);
-        // Check if studio is actually running for this project
-        const runningPorts = [];
-        for (const port of [6600, 6601, 6602, 6603, 6604, 6605, 6606, 6607, 6608, 6609, 6610]) {
-            const pid = await (0, utils_js_1.findProcessOnPort)(port);
-            if (pid)
-                runningPorts.push(port);
+        // Auto-restart studio if running (eliminates manual relaunch need)
+        const runningPort = await (0, utils_js_1.findStudioPort)();
+        if (runningPort) {
+            // Restart studio on same port to show changes
+            await (0, utils_js_1.killProcessOnPort)(runningPort);
+            // Wait for port cleanup
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            // Restart studio with updated files
+            try {
+                const restartResult = await launchStudio(projectName, runningPort);
+                return {
+                    content: [{
+                            type: 'text',
+                            text: `✅ Updated ${projectName} and auto-restarted studio\nFile: src/VideoComposition.tsx\nStudio: http://localhost:${runningPort}\n\n${restartResult.content[0].text}`
+                        }]
+                };
+            }
+            catch (error) {
+                return {
+                    content: [{
+                            type: 'text',
+                            text: `✅ Updated ${projectName} JSX\n⚠️ Studio restart failed: ${error instanceof Error ? error.message : String(error)}\nPlease manually launch studio to see changes`
+                        }]
+                };
+            }
         }
-        const statusMsg = runningPorts.length > 0
-            ? `Studio running on ports: ${runningPorts.join(', ')} - will hot-reload`
-            : 'No studio running - use launch-studio to start one';
-        return {
-            content: [{
-                    type: 'text',
-                    text: `✅ Updated ${projectName} with new JSX\nFile: src/VideoComposition.tsx\n${statusMsg}`
-                }]
-        };
+        else {
+            return {
+                content: [{
+                        type: 'text',
+                        text: `✅ Updated ${projectName} with new JSX\nFile: src/VideoComposition.tsx\nNo studio running - use launch-studio to see changes`
+                    }]
+            };
+        }
     }
     catch (error) {
         return {

@@ -30,4 +30,8 @@ export declare function getSystemStatus(): Promise<{
     }>;
     remotionAvailable: boolean;
 }>;
+/**
+ * Find which port a studio is running on (if any)
+ */
+export declare function findStudioPort(): Promise<number | null>;
 //# sourceMappingURL=utils.d.ts.map
