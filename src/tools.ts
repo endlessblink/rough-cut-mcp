@@ -95,6 +95,25 @@ export function getTools() {
       }
     },
     {
+      name: 'enhance-animation-prompt',
+      description: 'Transform basic animation ideas into professional, detailed prompts for better quality results',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          basicPrompt: { 
+            type: 'string', 
+            description: 'Simple animation description (e.g. "bouncing ball", "text reveal", "logo animation")' 
+          },
+          style: {
+            type: 'string',
+            enum: ['professional', 'creative', 'elegant', 'energetic'],
+            description: 'Enhancement style to apply (default: professional)'
+          }
+        },
+        required: ['basicPrompt']
+      }
+    },
+    {
       name: 'get-mcp-info',
       description: 'Get MCP server version and architecture info (debug tool)',
       inputSchema: {
@@ -130,6 +149,9 @@ export async function handleToolCall(name: string, args: any) {
     
     case 'delete-project':
       return await deleteProject(args.project);
+    
+    case 'enhance-animation-prompt':
+      return await enhanceAnimationPrompt(args.basicPrompt, args.style);
     
     case 'get-mcp-info':
       return await getMCPInfo();
@@ -553,6 +575,87 @@ async function deleteProject(projectName: string): Promise<any> {
   }
 }
 
+async function enhanceAnimationPrompt(basicPrompt: string, style: string = 'professional'): Promise<any> {
+  try {
+    // Professional enhancement templates - easy to customize and expand
+    const enhancements = {
+      professional: {
+        physics: 'with realistic physics and smooth easing curves',
+        colors: 'using professional color harmony principles and proper contrast', 
+        typography: 'with clean typography, proper scale and spacing',
+        effects: 'including subtle shadows and depth for visual polish',
+        performance: 'optimized for smooth 60fps animation performance',
+        timing: 'with natural timing and cubic-bezier easing functions'
+      },
+      creative: {
+        physics: 'with dynamic, expressive motion and bouncy animations',
+        colors: 'using bold, vibrant colors and creative gradients',
+        typography: 'with artistic typography and creative text treatments',
+        effects: 'including dramatic effects, particles, and visual flair',
+        performance: 'with smooth performance while maintaining creative complexity',
+        timing: 'with playful timing and spring-based animations'
+      },
+      elegant: {
+        physics: 'with graceful, refined motion and subtle transitions',
+        colors: 'using sophisticated color palettes and subtle gradients',
+        typography: 'with elegant typography, refined spacing and hierarchy',
+        effects: 'including refined lighting, gentle shadows and tasteful depth',
+        performance: 'optimized for silky smooth, premium-feeling animation',
+        timing: 'with measured, sophisticated timing and gentle easing'
+      },
+      energetic: {
+        physics: 'with dynamic, high-energy motion and snappy animations',
+        colors: 'using vibrant, energetic colors that grab attention',
+        typography: 'with bold typography and impactful text treatments',
+        effects: 'including dynamic effects, motion blur and high-impact visuals',
+        performance: 'maintaining smooth performance despite high energy',
+        timing: 'with quick, responsive timing and bouncy spring animations'
+      }
+    };
+
+    const selectedStyle = enhancements[style as keyof typeof enhancements] || enhancements.professional;
+    
+    // Smart prompt enhancement based on animation type
+    let enhancedPrompt = `Create a ${style} ${basicPrompt} animation `;
+    
+    // Add specific enhancements based on animation type
+    if (basicPrompt.toLowerCase().includes('ball') || basicPrompt.toLowerCase().includes('bounce')) {
+      enhancedPrompt += `${selectedStyle.physics}, gradual energy loss with each bounce, subtle compression when hitting the ground, natural arc trajectory, dynamic shadow that changes with ball position, `;
+    } else if (basicPrompt.toLowerCase().includes('text')) {
+      enhancedPrompt += `where each word or letter reveals with subtle movement, ${selectedStyle.typography}, proper letter spacing and hierarchy, `;
+    } else if (basicPrompt.toLowerCase().includes('logo')) {
+      enhancedPrompt += `with professional brand presentation, elegant reveal sequence, ${selectedStyle.effects}, `;
+    } else {
+      // Generic enhancement for any animation type
+      enhancedPrompt += `with smooth, natural motion and professional visual treatment, `;
+    }
+    
+    // Add universal quality elements
+    enhancedPrompt += `${selectedStyle.colors}, ${selectedStyle.effects}, ${selectedStyle.performance}, ${selectedStyle.timing}, and ensuring accessibility with reduced motion support where appropriate`;
+
+    return {
+      content: [{
+        type: 'text',
+        text: `🎨 Enhanced Animation Prompt (${style} style):
+
+"${enhancedPrompt}"
+
+✅ Ready to use with create-video tool for professional quality results!
+
+💡 Tip: Copy this enhanced prompt and use it with the create-video tool to generate your animation with professional quality standards automatically applied.`
+      }]
+    };
+    
+  } catch (error) {
+    return {
+      content: [{
+        type: 'text',
+        text: `❌ Failed to enhance prompt: ${error instanceof Error ? error.message : String(error)}`
+      }]
+    };
+  }
+}
+
 async function getMCPInfo(): Promise<any> {
   try {
     const buildDate = new Date().toISOString();
@@ -562,9 +665,9 @@ async function getMCPInfo(): Promise<any> {
       content: [{
         type: 'text',
         text: `🔍 MCP Server Debug Info:
-Version: 4.4.0 (Correct Endpoint Fix)
-Architecture: Direct Tools (No Complex Abstractions)
-Total Tools: ${toolCount}
+Version: 4.4.0 (Animation Quality Enhancement)
+Architecture: Direct Tools (No Complex Abstractions)  
+Total Tools: ${toolCount} (including new enhance-animation-prompt tool)
 Port Range: 6600-6620 (NOT 3000-3010!)
 Default Port: 6600 (NOT 3000!)
 Build Date: ${buildDate}
