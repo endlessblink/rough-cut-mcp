@@ -1,5 +1,45 @@
 # 🦾 ROUGHCUT MCP - END-TO-END WINDOWS EXECUTION GUIDE
 
+## 🌍 UNIVERSAL COMPATIBILITY RULE #1 🌍
+```
+🚨 EVERYTHING MUST BE UNIVERSALLY COMPATIBLE 🚨
+
+❌ NEVER hardcode specific user names, project names, or system paths
+❌ NEVER assume specific installations, operating systems, or environments  
+❌ NEVER create code that only works on one person's setup
+❌ NEVER use absolute paths, user-specific directories, or local-only resources
+
+✅ ALWAYS use dynamic, pattern-based matching for ANY project name
+✅ ALWAYS use web-safe fonts, colors, and CSS that work everywhere
+✅ ALWAYS create code that works on ANY Windows installation
+✅ ALWAYS use relative paths and universal configurations
+✅ ALWAYS test with generic project names and standard setups
+
+THE MCP MUST WORK FOR EVERYONE, NOT JUST THE ORIGINAL DEVELOPER
+```
+
+## 🚨 CRITICAL RULE: NEVER RESTRICT WITH TEMPLATES! 🚨
+```
+❌ NEVER ADD HARDCODED TEMPLATES THAT LIMIT FLEXIBILITY:
+- Hardcoded animation patterns like "bounce ball template", "logo reveal template" 
+- User limited to only those specific types
+- If you want something new, you're stuck
+- This IS restrictive and defeats the purpose
+
+❌ NEVER ADD COMPLEX AUTOMATIC GENERATION TOOLS:
+- Generate animations automatically using templates
+- Add complexity and potential breaking changes  
+- Over-engineer what already works
+
+✅ ALWAYS ENHANCE CLAUDE DESKTOP'S NATURAL GENERATION:
+- Provide design guidelines and system prompts
+- Teach better animation principles through documentation
+- Keep the simple create-video and edit-video-jsx workflow
+- Maintain unlimited flexibility while improving quality
+
+THE SYSTEM MUST REMAIN INFINITELY FLEXIBLE - ANY ANIMATION TYPE, ANY CREATIVE IDEA
+```
+
 ## 🚨 CRITICAL MCP RULE: ALWAYS FIX THE MCP, NOT SPECIFIC ANIMATIONS! 🚨
 ```
 ❌ NEVER fix VideoComposition.tsx files to solve GENERATION ERRORS from the MCP!
