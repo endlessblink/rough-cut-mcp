@@ -120,6 +120,19 @@ export function getTools() {
         type: 'object',
         properties: {}
       }
+    },
+    {
+      name: 'create-and-launch-complete',
+      description: 'Create Remotion project with dependencies and launch studio in single operation (prevents tool orchestration loops)',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Project name' },
+          jsx: { type: 'string', description: 'Complete VideoComposition JSX code' },
+          port: { type: 'number', description: 'Port number (6600-6620)', default: 6600 }
+        },
+        required: ['name', 'jsx']
+      }
     }
   ];
 }
@@ -155,6 +168,9 @@ export async function handleToolCall(name: string, args: any) {
     
     case 'get-mcp-info':
       return await getMCPInfo();
+    
+    case 'create-and-launch-complete':
+      return await createAndLaunchComplete(args.name, args.jsx, args.port);
     
     default:
       throw new Error(`Unknown tool: ${name}`);
@@ -817,7 +833,7 @@ async function getMCPInfo(): Promise<any> {
       content: [{
         type: 'text',
         text: `🔍 MCP Server Debug Info:
-Version: 4.6.0 (Root Endpoint Fix)
+Version: 4.7.0 (Unified Tool - Conservative Test)
 Architecture: Direct Tools (No Complex Abstractions)  
 Total Tools: ${toolCount} (including new enhance-animation-prompt tool)
 Port Range: 6600-6620 (NOT 3000-3010!)
@@ -836,6 +852,39 @@ File: build/index.js (from simple src/index.ts)
       content: [{
         type: 'text',
         text: `❌ Error getting MCP info: ${error instanceof Error ? error.message : String(error)}`
+      }]
+    };
+  }
+}
+
+async function createAndLaunchComplete(name: string, jsx: string, port?: number): Promise<any> {
+  try {
+    const targetPort = port || 6600;
+    
+    // Step 1: Create video project (includes dependency installation)
+    const createResult = await createVideo(name, jsx);
+    
+    // Step 2: Launch studio immediately after creation
+    const launchResult = await launchStudio(name, targetPort);
+    
+    return {
+      content: [{
+        type: 'text',
+        text: `✅ Complete project creation and launch successful!
+
+${createResult.content[0].text}
+
+${launchResult.content[0].text}
+
+🎯 Single operation completed - no tool orchestration needed!`
+      }]
+    };
+    
+  } catch (error) {
+    return {
+      content: [{
+        type: 'text',
+        text: `❌ Unified operation failed: ${error instanceof Error ? error.message : String(error)}`
       }]
     };
   }

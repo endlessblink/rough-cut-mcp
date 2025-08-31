@@ -11,6 +11,7 @@ export declare function getTools(): ({
             port: {
                 type: string;
                 description: string;
+                default?: undefined;
             };
             name?: undefined;
             jsx?: undefined;
@@ -28,6 +29,7 @@ export declare function getTools(): ({
             port: {
                 type: string;
                 description: string;
+                default?: undefined;
             };
             project?: undefined;
             name?: undefined;
@@ -131,6 +133,31 @@ export declare function getTools(): ({
             port?: undefined;
             name?: undefined;
             jsx?: undefined;
+        };
+        required: string[];
+    };
+} | {
+    name: string;
+    description: string;
+    inputSchema: {
+        type: string;
+        properties: {
+            name: {
+                type: string;
+                description: string;
+            };
+            jsx: {
+                type: string;
+                description: string;
+            };
+            port: {
+                type: string;
+                description: string;
+                default: number;
+            };
+            project?: undefined;
+            basicPrompt?: undefined;
+            style?: undefined;
         };
         required: string[];
     };
