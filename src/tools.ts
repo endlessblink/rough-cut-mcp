@@ -365,32 +365,15 @@ async function editVideoJSX(projectName: string, jsx: string): Promise<any> {
     // Write new JSX (Claude's unlimited editing power!)
     await fs.writeFile(compositionFile, jsx);
     
-    // Auto-restart studio if running (eliminates manual relaunch need)
+    // Check if studio is running and inform user (no auto-restart to prevent double-launch)
     const runningPort = await findStudioPort();
     if (runningPort) {
-      // Restart studio on same port to show changes
-      await killProcessOnPort(runningPort);
-      
-      // Wait for port cleanup
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Restart studio with updated files
-      try {
-        const restartResult = await launchStudio(projectName, runningPort);
-        return {
-          content: [{
-            type: 'text',
-            text: `✅ Updated ${projectName} and auto-restarted studio\nFile: src/VideoComposition.tsx\nStudio: http://localhost:${runningPort}\n\n${restartResult.content[0].text}`
-          }]
-        };
-      } catch (error) {
-        return {
-          content: [{
-            type: 'text',
-            text: `✅ Updated ${projectName} JSX\n⚠️ Studio restart failed: ${error instanceof Error ? error.message : String(error)}\nPlease manually launch studio to see changes`
-          }]
-        };
-      }
+      return {
+        content: [{
+          type: 'text',
+          text: `✅ Updated ${projectName} with new JSX\nFile: src/VideoComposition.tsx\nStudio running on port ${runningPort} - refresh browser to see changes\nURL: http://localhost:${runningPort}`
+        }]
+      };
     } else {
       return {
         content: [{
