@@ -261,19 +261,23 @@ async function createVideo(name: string, jsx: string): Promise<any> {
     await fs.ensureDir(projectPath);
     await fs.ensureDir(path.join(projectPath, 'src'));
     
-    // Ensure JSX uses default export (required for Remotion components)
+    // TEMPORARILY DISABLE VALIDATION to test if it's causing infinite loops
+    // TODO: Replace with smart validation that doesn't block complex animations
     let fixedJSX = jsx;
     
+    // Validation disabled - no backup needed
+    
+    // Ensure JSX uses default export (required for Remotion components)
     // Check if JSX has named export and convert to default export
-    if (jsx.includes('export const VideoComposition')) {
+    if (fixedJSX.includes('export const VideoComposition')) {
       // Remove the export keyword, add default export at end
-      fixedJSX = jsx.replace('export const VideoComposition', 'const VideoComposition');
+      fixedJSX = fixedJSX.replace('export const VideoComposition', 'const VideoComposition');
       
       // Add default export at the very end if not already present
       if (!fixedJSX.includes('export default VideoComposition')) {
         fixedJSX += '\n\nexport default VideoComposition;';
       }
-    } else if (!jsx.includes('export default') && jsx.includes('VideoComposition')) {
+    } else if (!fixedJSX.includes('export default') && fixedJSX.includes('VideoComposition')) {
       // If no export at all, add default export
       fixedJSX += '\n\nexport default VideoComposition;';
     }
@@ -387,6 +391,7 @@ async function editVideoJSX(projectName: string, jsx: string): Promise<any> {
       throw new Error(`Project '${projectName}' not found`);
     }
     
+    // TEMPORARILY DISABLE VALIDATION to test if it's causing infinite loops
     // Write new JSX (Claude's unlimited editing power!)
     await fs.writeFile(compositionFile, jsx);
     
@@ -665,7 +670,7 @@ async function getMCPInfo(): Promise<any> {
       content: [{
         type: 'text',
         text: `🔍 MCP Server Debug Info:
-Version: 4.4.0 (Animation Quality Enhancement)
+Version: 4.5.0 (Validation Disabled - No More Loops)
 Architecture: Direct Tools (No Complex Abstractions)  
 Total Tools: ${toolCount} (including new enhance-animation-prompt tool)
 Port Range: 6600-6620 (NOT 3000-3010!)

@@ -14,6 +14,8 @@ export declare function getTools(): ({
             };
             name?: undefined;
             jsx?: undefined;
+            basicPrompt?: undefined;
+            style?: undefined;
         };
         required: string[];
     };
@@ -30,6 +32,8 @@ export declare function getTools(): ({
             project?: undefined;
             name?: undefined;
             jsx?: undefined;
+            basicPrompt?: undefined;
+            style?: undefined;
         };
         required: string[];
     };
@@ -49,6 +53,8 @@ export declare function getTools(): ({
             };
             project?: undefined;
             port?: undefined;
+            basicPrompt?: undefined;
+            style?: undefined;
         };
         required: string[];
     };
@@ -68,6 +74,8 @@ export declare function getTools(): ({
             };
             port?: undefined;
             name?: undefined;
+            basicPrompt?: undefined;
+            style?: undefined;
         };
         required: string[];
     };
@@ -81,6 +89,8 @@ export declare function getTools(): ({
             port?: undefined;
             name?: undefined;
             jsx?: undefined;
+            basicPrompt?: undefined;
+            style?: undefined;
         };
         required?: undefined;
     };
@@ -94,6 +104,30 @@ export declare function getTools(): ({
                 type: string;
                 description: string;
             };
+            port?: undefined;
+            name?: undefined;
+            jsx?: undefined;
+            basicPrompt?: undefined;
+            style?: undefined;
+        };
+        required: string[];
+    };
+} | {
+    name: string;
+    description: string;
+    inputSchema: {
+        type: string;
+        properties: {
+            basicPrompt: {
+                type: string;
+                description: string;
+            };
+            style: {
+                type: string;
+                enum: string[];
+                description: string;
+            };
+            project?: undefined;
             port?: undefined;
             name?: undefined;
             jsx?: undefined;
