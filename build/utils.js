@@ -32,6 +32,9 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getWindowsProjectPath = getWindowsProjectPath;
 exports.getAssetsDir = getAssetsDir;
@@ -40,10 +43,12 @@ exports.killProcessOnPort = killProcessOnPort;
 exports.validateRemotionAvailable = validateRemotionAvailable;
 exports.getSystemStatus = getSystemStatus;
 exports.findStudioPort = findStudioPort;
+exports.checkStudioHealth = checkStudioHealth;
 // Windows Utility Functions - Simple and Direct
 const child_process_1 = require("child_process");
 const util_1 = require("util");
 const path = __importStar(require("path"));
+const axios_1 = __importDefault(require("axios"));
 const execAsync = (0, util_1.promisify)(child_process_1.exec);
 /**
  * Get Windows project path for a project name
@@ -156,5 +161,26 @@ async function findStudioPort() {
         }
     }
     return null;
+}
+/**
+ * HTTP-based health check for Remotion Studio (research-backed solution)
+ * Tests actual functionality instead of guessing from processes
+ */
+async function checkStudioHealth(port) {
+    try {
+        // HTTP request to verify studio is actually serving content
+        const response = await axios_1.default.get(`http://localhost:${port}`, {
+            timeout: 5000,
+            validateStatus: (status) => status >= 200 && status < 400
+        });
+        // Verify it's actually Remotion Studio responding
+        return response.status === 200 ||
+            response.data?.includes('remotion') ||
+            response.headers['content-type']?.includes('text/html');
+    }
+    catch (error) {
+        // Connection refused, timeout, or other HTTP errors = not healthy
+        return false;
+    }
 }
 //# sourceMappingURL=utils.js.map

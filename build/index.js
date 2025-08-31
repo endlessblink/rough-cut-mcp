@@ -14,7 +14,7 @@ class SimpleMCPServer {
     constructor() {
         this.server = new index_js_1.Server({
             name: 'rough-cut-mcp',
-            version: '4.2.0',
+            version: '4.3.0',
             description: 'Simple & Reliable Video Creation MCP - Actually Works!'
         }, {
             capabilities: { tools: {} }
@@ -29,7 +29,7 @@ class SimpleMCPServer {
                 capabilities: { tools: {} },
                 serverInfo: {
                     name: 'rough-cut-mcp',
-                    version: '4.2.0',
+                    version: '4.3.0',
                     description: 'Simple & Reliable Video Creation MCP'
                 }
             };

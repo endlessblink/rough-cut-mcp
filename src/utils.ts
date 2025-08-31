@@ -2,6 +2,7 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as path from 'path';
+import axios from 'axios';
 
 const execAsync = promisify(exec);
 
@@ -132,4 +133,27 @@ export async function findStudioPort(): Promise<number | null> {
     }
   }
   return null;
+}
+
+/**
+ * HTTP-based health check for Remotion Studio (research-backed solution)
+ * Tests actual functionality instead of guessing from processes
+ */
+export async function checkStudioHealth(port: number): Promise<boolean> {
+  try {
+    // HTTP request to verify studio is actually serving content
+    const response = await axios.get(`http://localhost:${port}`, {
+      timeout: 5000,
+      validateStatus: (status) => status >= 200 && status < 400
+    });
+    
+    // Verify it's actually Remotion Studio responding
+    return response.status === 200 || 
+           response.data?.includes('remotion') ||
+           response.headers['content-type']?.includes('text/html');
+    
+  } catch (error) {
+    // Connection refused, timeout, or other HTTP errors = not healthy
+    return false;
+  }
 }

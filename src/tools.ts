@@ -3,7 +3,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import * as fs from 'fs-extra';
 import * as path from 'path';
-import { getWindowsProjectPath, killProcessOnPort, findProcessOnPort, getAssetsDir, getSystemStatus, findStudioPort } from './utils.js';
+import { getWindowsProjectPath, killProcessOnPort, findProcessOnPort, getAssetsDir, getSystemStatus, findStudioPort, checkStudioHealth } from './utils.js';
 
 const execAsync = promisify(exec);
 
@@ -183,18 +183,21 @@ async function launchStudio(projectName: string, port?: number): Promise<any> {
       }
     }
     
-    // Verify studio actually started
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    const actualPid = await findProcessOnPort(targetPort);
+    // HTTP health check - verify studio actually works (research-backed)
+    await new Promise(resolve => setTimeout(resolve, 5000)); // Wait for startup
     
-    if (!actualPid) {
-      throw new Error('Studio failed to start - no process found on port');
+    const isHealthy = await checkStudioHealth(targetPort);
+    if (!isHealthy) {
+      throw new Error('Studio failed to respond to HTTP requests - not functional');
     }
+    
+    // Get PID for informational purposes (but don't rely on it for success)
+    const actualPid = await findProcessOnPort(targetPort) || 'Unknown';
     
     return {
       content: [{
         type: 'text',
-        text: `✅ Studio launched successfully!\nProject: ${projectName}\nPort: ${targetPort}\nURL: http://localhost:${targetPort}\nReal PID: ${actualPid}`
+        text: `✅ Studio launched and verified healthy!\nProject: ${projectName}\nPort: ${targetPort}\nURL: http://localhost:${targetPort}\nPID: ${actualPid}\nStatus: HTTP health check passed`
       }]
     };
     
@@ -559,7 +562,7 @@ async function getMCPInfo(): Promise<any> {
       content: [{
         type: 'text',
         text: `🔍 MCP Server Debug Info:
-Version: 4.2.0 (Missing Export Fix + Auto-Restart)
+Version: 4.3.0 (HTTP Health Check Fix)
 Architecture: Direct Tools (No Complex Abstractions)
 Total Tools: ${toolCount}
 Port Range: 6600-6620 (NOT 3000-3010!)

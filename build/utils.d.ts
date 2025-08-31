@@ -34,4 +34,9 @@ export declare function getSystemStatus(): Promise<{
  * Find which port a studio is running on (if any)
  */
 export declare function findStudioPort(): Promise<number | null>;
+/**
+ * HTTP-based health check for Remotion Studio (research-backed solution)
+ * Tests actual functionality instead of guessing from processes
+ */
+export declare function checkStudioHealth(port: number): Promise<boolean>;
 //# sourceMappingURL=utils.d.ts.map

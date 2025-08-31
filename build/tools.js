@@ -201,16 +201,18 @@ async function launchStudio(projectName, port) {
                 throw new Error(`Remotion error: ${result.stderr.trim()}`);
             }
         }
-        // Verify studio actually started
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        const actualPid = await (0, utils_js_1.findProcessOnPort)(targetPort);
-        if (!actualPid) {
-            throw new Error('Studio failed to start - no process found on port');
+        // HTTP health check - verify studio actually works (research-backed)
+        await new Promise(resolve => setTimeout(resolve, 5000)); // Wait for startup
+        const isHealthy = await (0, utils_js_1.checkStudioHealth)(targetPort);
+        if (!isHealthy) {
+            throw new Error('Studio failed to respond to HTTP requests - not functional');
         }
+        // Get PID for informational purposes (but don't rely on it for success)
+        const actualPid = await (0, utils_js_1.findProcessOnPort)(targetPort) || 'Unknown';
         return {
             content: [{
                     type: 'text',
-                    text: `✅ Studio launched successfully!\nProject: ${projectName}\nPort: ${targetPort}\nURL: http://localhost:${targetPort}\nReal PID: ${actualPid}`
+                    text: `✅ Studio launched and verified healthy!\nProject: ${projectName}\nPort: ${targetPort}\nURL: http://localhost:${targetPort}\nPID: ${actualPid}\nStatus: HTTP health check passed`
                 }]
         };
     }
@@ -539,7 +541,7 @@ async function getMCPInfo() {
             content: [{
                     type: 'text',
                     text: `🔍 MCP Server Debug Info:
-Version: 4.2.0 (Missing Export Fix + Auto-Restart)
+Version: 4.3.0 (HTTP Health Check Fix)
 Architecture: Direct Tools (No Complex Abstractions)
 Total Tools: ${toolCount}
 Port Range: 6600-6620 (NOT 3000-3010!)
