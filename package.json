@@ -1,6 +1,6 @@
 {
   "name": "rough-cut-mcp",
-  "version": "4.3.0",
+  "version": "4.4.0",
   "description": "Simple & Reliable Video Creation MCP - Direct Tools That Actually Work. Windows-optimized with honest error reporting.",
   "main": "build/index.js",
   "scripts": {

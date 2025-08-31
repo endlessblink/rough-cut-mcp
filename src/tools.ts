@@ -562,7 +562,7 @@ async function getMCPInfo(): Promise<any> {
       content: [{
         type: 'text',
         text: `🔍 MCP Server Debug Info:
-Version: 4.3.0 (HTTP Health Check Fix)
+Version: 4.4.0 (Correct Endpoint Fix)
 Architecture: Direct Tools (No Complex Abstractions)
 Total Tools: ${toolCount}
 Port Range: 6600-6620 (NOT 3000-3010!)
