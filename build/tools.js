@@ -644,7 +644,7 @@ async function getMCPInfo() {
             content: [{
                     type: 'text',
                     text: `🔍 MCP Server Debug Info:
-Version: 4.5.0 (Validation Disabled - No More Loops)
+Version: 4.6.0 (Root Endpoint Fix)
 Architecture: Direct Tools (No Complex Abstractions)  
 Total Tools: ${toolCount} (including new enhance-animation-prompt tool)
 Port Range: 6600-6620 (NOT 3000-3010!)

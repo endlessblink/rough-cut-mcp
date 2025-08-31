@@ -141,8 +141,8 @@ export async function findStudioPort(): Promise<number | null> {
  */
 export async function checkStudioHealth(port: number): Promise<boolean> {
   try {
-    // Test the ACTUAL Remotion Studio endpoint (research finding: /Main)
-    const response = await axios.get(`http://localhost:${port}/Main`, {
+    // Test the ACTUAL Remotion Studio endpoint (research finding: root /)
+    const response = await axios.get(`http://localhost:${port}`, {
       timeout: 5000,
       validateStatus: (status) => status >= 200 && status < 400
     });
