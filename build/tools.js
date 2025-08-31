@@ -290,18 +290,30 @@ async function createVideo(name, jsx) {
         // TODO: Replace with smart validation that doesn't block complex animations
         let fixedJSX = jsx;
         // Validation disabled - no backup needed
-        // Ensure JSX uses default export (required for Remotion components)
-        // Check if JSX has named export and convert to default export
+        // RESEARCH-BACKED: Standardize component naming to prevent import/export mismatches
+        // Force ALL components to use "VideoComposition" name for consistent template system
+        // Find any component export (GitHubProfileAnimation, EndlessBlinkAnimation, etc.)
+        const componentNameRegex = /export\s+(const|function|default)?\s*(\w*Animation|\w*Component|\w+)\s*[=:]/g;
+        const matches = [...fixedJSX.matchAll(componentNameRegex)];
+        if (matches.length > 0) {
+            // Replace ANY component name with standardized "VideoComposition"
+            matches.forEach(match => {
+                const fullMatch = match[0];
+                const componentName = match[2];
+                if (componentName && componentName !== 'VideoComposition') {
+                    // Replace component name throughout file
+                    fixedJSX = fixedJSX.replace(new RegExp(componentName, 'g'), 'VideoComposition');
+                }
+            });
+        }
+        // Ensure proper default export format
         if (fixedJSX.includes('export const VideoComposition')) {
-            // Remove the export keyword, add default export at end
             fixedJSX = fixedJSX.replace('export const VideoComposition', 'const VideoComposition');
-            // Add default export at the very end if not already present
             if (!fixedJSX.includes('export default VideoComposition')) {
                 fixedJSX += '\n\nexport default VideoComposition;';
             }
         }
         else if (!fixedJSX.includes('export default') && fixedJSX.includes('VideoComposition')) {
-            // If no export at all, add default export
             fixedJSX += '\n\nexport default VideoComposition;';
         }
         // Write VideoComposition.tsx in src/
@@ -578,11 +590,6 @@ async function enhanceAnimationPrompt(basicPrompt, style = 'professional') {
         // RESEARCH-BACKED: Specific visual instructions (76% improvement vs generic descriptors)
         const prompt = basicPrompt.toLowerCase();
         let enhancedPrompt = '';
-        // DYNAMIC DURATION EXTRACTION - Works for any requested duration
-        const durationMatch = prompt.match(/(\d+)\s*seconds?/);
-        const duration = durationMatch ? parseInt(durationMatch[1]) : 10; // Default 10s if not specified
-        const frames = duration * 30; // Calculate frames dynamically (30fps)
-        const fps = 30; // Standard frame rate
         // SPECIFIC ANIMATION TYPE DETECTION with exact visual specifications
         if (prompt.includes('github') || prompt.includes('profile')) {
             // GitHub profile animation - specific layout and brand colors
@@ -802,7 +809,7 @@ async function getMCPInfo() {
             content: [{
                     type: 'text',
                     text: `🔍 MCP Server Debug Info:
-Version: 4.7.0 (Unified Tool - Conservative Test)
+Version: 4.8.0 (Component Name Standardization)
 Architecture: Direct Tools (No Complex Abstractions)  
 Total Tools: ${toolCount} (including new enhance-animation-prompt tool)
 Port Range: 6600-6620 (NOT 3000-3010!)
