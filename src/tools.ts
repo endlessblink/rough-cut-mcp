@@ -586,16 +586,27 @@ async function enhanceAnimationPrompt(basicPrompt: string, style: string = 'prof
     const prompt = basicPrompt.toLowerCase();
     let enhancedPrompt = '';
 
+    // DYNAMIC DURATION EXTRACTION - Works for any requested duration
+    const durationMatch = prompt.match(/(\d+)\s*seconds?/);
+    const duration = durationMatch ? parseInt(durationMatch[1]) : 10; // Default 10s if not specified
+    const frames = duration * 30; // Calculate frames dynamically (30fps)
+    const fps = 30; // Standard frame rate
+
     // SPECIFIC ANIMATION TYPE DETECTION with exact visual specifications
     if (prompt.includes('github') || prompt.includes('profile')) {
       // GitHub profile animation - specific layout and brand colors
       const username = prompt.match(/for (\w+)/)?.[1] || 'username';
       enhancedPrompt = `Create a GitHub profile showcase animation for ${username} with these specific elements:
 
+COMPOSITION SETTINGS (CRITICAL - Update Root.tsx):
+- Duration: ${duration} seconds (durationInFrames={${frames}} at fps={${fps}})
+- Dimensions: 1920x1080 for professional quality
+- Component: VideoComposition (ensure proper export)
+
 LAYOUT SPECIFICATIONS:
 - Profile card: 320px width, positioned top-left, contains 80px round avatar, username in 24px GitHub font, bio text 16px gray
 - Repository grid: 3x2 layout, each card 280px x 120px with 16px gaps, repo name 18px bold, description 14px, language dot 12px
-- Contribution graph: 728px x 104px, 13x53 grid of 10px squares with 2px gaps, fills left-to-right over 3 seconds
+- Contribution graph: 728px x 104px, 13x53 grid of 10px squares with 2px gaps
 
 EXACT COLORS (GitHub Brand):
 - Background: #0d1117 (GitHub dark)
@@ -605,11 +616,17 @@ EXACT COLORS (GitHub Brand):
 - Links/accents: #58a6ff  
 - Contributions: #39d353
 
-ANIMATION SEQUENCE:
-- Profile card slides in from left over 0.5s with cubic-bezier(0.25, 0.46, 0.45, 0.94)
-- Repository cards fade in with 0.2s stagger starting at 1s mark
-- Contribution squares fill row-by-row from left, 0.05s per square
-- Subtle hover effects: cards lift 4px with box-shadow 0 8px 16px rgba(0,0,0,0.4)
+ANIMATION TIMELINE (${duration} seconds = ${frames} frames):
+- Sequence 1 (0-${Math.round(frames * 0.15)} frames): Profile card slides in from left with cubic-bezier(0.25, 0.46, 0.45, 0.94)
+- Sequence 2 (${Math.round(frames * 0.15)}-${Math.round(frames * 0.6)} frames): Repository cards fade in with staggered timing (each card 0.2s after previous)
+- Sequence 3 (${Math.round(frames * 0.4)}-${Math.round(frames * 0.8)} frames): Contribution squares fill row-by-row from left, 0.05s per square
+- Sequence 4 (${Math.round(frames * 0.7)}-${frames} frames): Subtle hover effects and final polish animations
+
+REMOTION IMPLEMENTATION:
+- Use <Sequence from={frameStart} durationInFrames={frameLength}> for timeline control
+- Calculate frame positions based on ${frames} total frames
+- Use useCurrentFrame() for smooth interpolation within sequences
+- Apply staggered timing with calculated delays for ${duration}-second duration
 
 TYPOGRAPHY:
 - Font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
@@ -619,16 +636,24 @@ TYPOGRAPHY:
 
     } else if (prompt.includes('ball') || prompt.includes('bounce')) {
       // Bouncing ball - physics-based specifications
+      const totalBounces = Math.max(3, Math.min(8, Math.floor(duration / 3))); // Dynamic bounce count based on duration
+      
       enhancedPrompt = `Create a realistic bouncing ball animation with precise physics:
+
+COMPOSITION SETTINGS (CRITICAL - Update Root.tsx):
+- Duration: ${duration} seconds (durationInFrames={${frames}} at fps={${fps}})
+- Timeline: Plan ${totalBounces} bounces across ${duration} seconds
+- Dimensions: 1920x1080 for professional quality
 
 BALL SPECIFICATIONS:
 - Size: 60px diameter with radial gradient from #ff6b6b (top-left) to #c44569 (bottom-right)
 - Compression: Scale Y to 0.8 when within 5px of ground contact
 - Shadow: 40px width ellipse, opacity varies 0.3 (high) to 0.8 (ground contact)
 
-PHYSICS CALCULATIONS:
+PHYSICS CALCULATIONS (Dynamic for ${duration}s):
 - Initial height: 80% of canvas height
 - Energy loss: Each bounce 25% lower (multiply by 0.75)
+- Bounce timing: ${Math.round(frames / totalBounces)} frames per bounce cycle
 - Arc trajectory: Follow parabolic path y = -4.9t² + v₀t + y₀
 - Ground contact detection: ball bottom ≤ ground level + 5px
 
@@ -637,14 +662,23 @@ VISUAL ENVIRONMENT:
 - Ground: 20px height bar with gradient rgba(255,255,255,0.2) to rgba(255,255,255,0.4)
 - Ground shadow: 0 -5px 20px rgba(0,0,0,0.3)
 
-TIMING:
-- Total bounces: 4-5 with decreasing intervals
-- Each bounce cycle: 60-80 frames at 30fps
+ANIMATION TIMELINE (${duration} seconds = ${frames} frames):
+- Calculate bounce cycles to fill ${duration} seconds evenly
+- Each bounce: ${Math.round(frames / totalBounces)} frames duration
+- Use frame-based timing: const bounceProgress = (frame % ${Math.round(frames / totalBounces)}) / ${Math.round(frames / totalBounces)}
 - Easing: Ease-out-quad for natural deceleration`;
 
     } else if (prompt.includes('text') || prompt.includes('reveal')) {
-      // Text animation - typography and timing specifications  
+      // Text animation - typography and timing specifications
+      const words = basicPrompt.split(' ').length;
+      const revealTime = Math.min(duration * 0.5, words * 0.2); // Half duration or 0.2s per word, whichever is shorter
+      
       enhancedPrompt = `Create a professional text reveal animation with precise typography:
+
+COMPOSITION SETTINGS (CRITICAL - Update Root.tsx):
+- Duration: ${duration} seconds (durationInFrames={${frames}} at fps={${fps}})
+- Timeline: Plan text reveal across ${revealTime.toFixed(1)} seconds, hold for remaining time
+- Dimensions: 1920x1080 for professional quality
 
 TEXT SPECIFICATIONS:
 - Font stack: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif
@@ -653,12 +687,18 @@ TEXT SPECIFICATIONS:
 - Letter spacing: 0.02em for readability
 - Line height: 1.2 for tight, modern look
 
+ANIMATION TIMELINE (${duration} seconds = ${frames} frames):
+- Word reveal phase: 0-${Math.round(frames * (revealTime / duration))} frames (${revealTime.toFixed(1)}s)
+- Hold phase: ${Math.round(frames * (revealTime / duration))}-${frames} frames (remaining ${(duration - revealTime).toFixed(1)}s)
+- Stagger timing: Each word appears ${Math.round(frames * 0.15 / duration)} frames (0.15s) after previous
+- Word entrance: 12-frame slide-up animation (0.4s) per word
+
 ANIMATION SEQUENCE:
-- Split text into individual words
-- Stagger reveal: Each word starts 0.15s after previous  
-- Word entrance: Slide up 25px with opacity 0→1 over 0.4s
+- Split text into individual words (${words} words detected)
+- Calculate stagger: ${Math.round(revealTime * fps / words)} frames between words  
+- Word entrance: Slide up 25px with opacity 0→1 over 12 frames
 - Easing: cubic-bezier(0.25, 0.46, 0.45, 0.94) for smooth natural motion
-- Optional cursor: Blinking pipe character for 0.8s after each word
+- Optional cursor: Blinking pipe character for 24 frames after each word
 
 VISUAL TREATMENT:
 - Text shadow: 0 4px 12px rgba(0,0,0,0.3) for depth
@@ -672,17 +712,31 @@ RESPONSIVE DESIGN:
 
     } else if (prompt.includes('logo')) {
       // Logo animation - brand presentation specifications
+      const revealDuration = Math.min(3, duration * 0.3); // Logo reveal takes max 3s or 30% of total
+      const holdDuration = duration - revealDuration;
+      
       enhancedPrompt = `Create a professional logo reveal animation with brand presentation focus:
+
+COMPOSITION SETTINGS (CRITICAL - Update Root.tsx):
+- Duration: ${duration} seconds (durationInFrames={${frames}} at fps={${fps}})
+- Timeline: ${revealDuration}s reveal + ${holdDuration}s presentation hold
+- Dimensions: 1920x1080 for professional quality
 
 LOGO SPECIFICATIONS:
 - Logo container: Center screen, max 300px width/height
-- Scale entrance: Start 0.3x, animate to 1.0x over 0.8s
+- Scale entrance: Start 0.3x, animate to 1.0x over ${revealDuration}s
 - Entrance easing: cubic-bezier(0.34, 1.56, 0.64, 1) for professional bounce
+
+ANIMATION TIMELINE (${duration} seconds = ${frames} frames):
+- Preparation phase: 0-${Math.round(frames * 0.1)} frames (anticipation)
+- Reveal phase: ${Math.round(frames * 0.1)}-${Math.round(frames * (revealDuration / duration))} frames (logo entrance)
+- Hold phase: ${Math.round(frames * (revealDuration / duration))}-${frames} frames (stable presentation)
+- Frame calculations: Use interpolate(frame, [${Math.round(frames * 0.1)}, ${Math.round(frames * (revealDuration / duration))}], [0.3, 1.0])
 
 REVEAL SEQUENCE:
 - Background preparation: Subtle gradient or brand-appropriate solid
 - Logo entrance: Scale + fade (opacity 0→1) simultaneously
-- Completion hold: Logo stable for minimum 1.5s
+- Completion hold: Logo stable for ${holdDuration.toFixed(1)} seconds  
 - Optional glow: Subtle shadow 0 0 20px brand-color at 20% opacity
 
 BRAND CONSIDERATIONS:
@@ -694,12 +748,17 @@ BRAND CONSIDERATIONS:
 PROFESSIONAL POLISH:
 - Smooth 60fps animation using transform properties
 - Hardware acceleration with translateZ(0)
-- Subtle anticipation (0.1s pause before main animation)
+- Subtle anticipation (${Math.round(frames * 0.1)} frame pause before main animation)
 - Clean, minimal design supporting the logo as hero element`;
 
     } else {
       // Generic animation with specific measurements
       enhancedPrompt = `Create a ${style} ${basicPrompt} animation with specific technical requirements:
+
+COMPOSITION SETTINGS (CRITICAL - Update Root.tsx):
+- Duration: ${duration} seconds (durationInFrames={${frames}} at fps={${fps}})
+- Timeline: Plan animation sequence across full ${duration} seconds
+- Dimensions: 1920x1080 for professional quality
 
 VISUAL SPECIFICATIONS:
 - Container: Full viewport with proper aspect ratio handling
@@ -707,9 +766,14 @@ VISUAL SPECIFICATIONS:
 - Color scheme: High contrast with accessibility compliance (4.5:1 ratio minimum)
 - Typography: System font stack with proper scale (16px base, 1.25 ratio for headings)
 
+ANIMATION TIMELINE (${duration} seconds = ${frames} frames):
+- Entrance phase: 0-${Math.round(frames * 0.2)} frames (${(duration * 0.2).toFixed(1)}s)
+- Main animation: ${Math.round(frames * 0.2)}-${Math.round(frames * 0.8)} frames (${(duration * 0.6).toFixed(1)}s)
+- Exit/hold phase: ${Math.round(frames * 0.8)}-${frames} frames (${(duration * 0.2).toFixed(1)}s)
+
 ANIMATION TECHNICAL SPECS:
-- Frame rate: Target 60fps with transform-based animations
-- Timing: 0.3s for micro-interactions, 0.6s for major transitions
+- Frame rate: ${fps}fps with transform-based animations
+- Timing: Calculate based on ${frames} total frames for smooth progression
 - Easing: cubic-bezier(0.25, 0.46, 0.45, 0.94) for natural motion
 - Performance: Use transform and opacity properties only for smooth animation
 
