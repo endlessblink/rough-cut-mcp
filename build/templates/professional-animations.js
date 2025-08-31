@@ -1,17 +1,11 @@
+"use strict";
 // Professional Animation Templates - UNIVERSAL COMPATIBILITY
 // Works on ANY system, ANY user, ANY installation
-
-import { AnimationRequest, AnimationType } from '../services/animation-generator.js';
-import { UniversalDesignUtils } from '../config/design-system.js';
-
-export interface ProfessionalAnimationTemplate {
-  name: string;
-  description: string;
-  keywords: string[];
-  difficulty: 'basic' | 'intermediate' | 'advanced';
-  generateCode: (request: AnimationRequest, animationType: AnimationType) => string;
-}
-
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.PROFESSIONAL_ANIMATION_TEMPLATES = void 0;
+exports.findProfessionalTemplate = findProfessionalTemplate;
+exports.generateProfessionalAnimation = generateProfessionalAnimation;
+const design_system_js_1 = require("../config/design-system.js");
 // 🎨 UNIVERSAL SAFE HELPERS - Work on any system
 const generateSafeInterpolation = () => `
 // Universal safe interpolation - works on all systems
@@ -34,7 +28,6 @@ function oscillate(frame: number, frequency: number, amplitude: number): number 
   return Math.sin(frame * frequency * Math.PI / 180) * amplitude;
 }
 `;
-
 const generateUniversalImports = () => `
 import React from 'react';
 import {
@@ -45,21 +38,18 @@ import {
   Easing
 } from 'remotion';
 `;
-
 // 🚀 PROFESSIONAL ANIMATION TEMPLATES
-export const PROFESSIONAL_ANIMATION_TEMPLATES: ProfessionalAnimationTemplate[] = [
-  
-  // 1. SOPHISTICATED LOGO REVEAL
-  {
-    name: 'logo-reveal',
-    description: 'Professional logo reveal with particles and light effects',
-    keywords: ['logo', 'reveal', 'brand', 'company', 'professional', 'corporate'],
-    difficulty: 'advanced',
-    generateCode: (request, animationType) => {
-      const palette = UniversalDesignUtils.getColorPalette('professional');
-      const fontFamily = UniversalDesignUtils.getFontFamily('primary');
-      
-      return `${generateUniversalImports()}
+exports.PROFESSIONAL_ANIMATION_TEMPLATES = [
+    // 1. SOPHISTICATED LOGO REVEAL
+    {
+        name: 'logo-reveal',
+        description: 'Professional logo reveal with particles and light effects',
+        keywords: ['logo', 'reveal', 'brand', 'company', 'professional', 'corporate'],
+        difficulty: 'advanced',
+        generateCode: (request, animationType) => {
+            const palette = design_system_js_1.UniversalDesignUtils.getColorPalette('professional');
+            const fontFamily = design_system_js_1.UniversalDesignUtils.getFontFamily('primary');
+            return `${generateUniversalImports()}
 ${generateSafeInterpolation()}
 
 export const VideoComposition: React.FC = () => {
@@ -174,20 +164,18 @@ export const VideoComposition: React.FC = () => {
     </AbsoluteFill>
   );
 };`;
-    }
-  },
-
-  // 2. DATA VISUALIZATION ANIMATION
-  {
-    name: 'data-visualization',
-    description: 'Professional animated charts and data displays',
-    keywords: ['chart', 'data', 'graph', 'statistics', 'analytics', 'business'],
-    difficulty: 'intermediate',
-    generateCode: (request, animationType) => {
-      const palette = UniversalDesignUtils.getColorPalette('modern');
-      const fontFamily = UniversalDesignUtils.getFontFamily('primary');
-      
-      return `${generateUniversalImports()}
+        }
+    },
+    // 2. DATA VISUALIZATION ANIMATION
+    {
+        name: 'data-visualization',
+        description: 'Professional animated charts and data displays',
+        keywords: ['chart', 'data', 'graph', 'statistics', 'analytics', 'business'],
+        difficulty: 'intermediate',
+        generateCode: (request, animationType) => {
+            const palette = design_system_js_1.UniversalDesignUtils.getColorPalette('modern');
+            const fontFamily = design_system_js_1.UniversalDesignUtils.getFontFamily('primary');
+            return `${generateUniversalImports()}
 ${generateSafeInterpolation()}
 
 export const VideoComposition: React.FC = () => {
@@ -305,20 +293,18 @@ export const VideoComposition: React.FC = () => {
     </AbsoluteFill>
   );
 };`;
-    }
-  },
-
-  // 3. ELEGANT TEXT REVEAL
-  {
-    name: 'text-reveal',
-    description: 'Sophisticated text animation with elegant typography',
-    keywords: ['text', 'title', 'typography', 'elegant', 'reveal', 'words'],
-    difficulty: 'basic',
-    generateCode: (request, animationType) => {
-      const palette = UniversalDesignUtils.getColorPalette('elegant');
-      const fontFamily = UniversalDesignUtils.getFontFamily('primary');
-      
-      return `${generateUniversalImports()}
+        }
+    },
+    // 3. ELEGANT TEXT REVEAL
+    {
+        name: 'text-reveal',
+        description: 'Sophisticated text animation with elegant typography',
+        keywords: ['text', 'title', 'typography', 'elegant', 'reveal', 'words'],
+        difficulty: 'basic',
+        generateCode: (request, animationType) => {
+            const palette = design_system_js_1.UniversalDesignUtils.getColorPalette('elegant');
+            const fontFamily = design_system_js_1.UniversalDesignUtils.getFontFamily('primary');
+            return `${generateUniversalImports()}
 ${generateSafeInterpolation()}
 
 export const VideoComposition: React.FC = () => {
@@ -396,19 +382,17 @@ export const VideoComposition: React.FC = () => {
     </AbsoluteFill>
   );
 };`;
-    }
-  },
-
-  // 4. MODERN PARTICLE SYSTEM
-  {
-    name: 'particle-system',
-    description: 'Advanced particle effects and motion graphics',
-    keywords: ['particles', 'effects', 'modern', 'dynamic', 'motion', 'abstract'],
-    difficulty: 'advanced',
-    generateCode: (request, animationType) => {
-      const palette = UniversalDesignUtils.getColorPalette('creative');
-      
-      return `${generateUniversalImports()}
+        }
+    },
+    // 4. MODERN PARTICLE SYSTEM
+    {
+        name: 'particle-system',
+        description: 'Advanced particle effects and motion graphics',
+        keywords: ['particles', 'effects', 'modern', 'dynamic', 'motion', 'abstract'],
+        difficulty: 'advanced',
+        generateCode: (request, animationType) => {
+            const palette = design_system_js_1.UniversalDesignUtils.getColorPalette('creative');
+            return `${generateUniversalImports()}
 ${generateSafeInterpolation()}
 
 export const VideoComposition: React.FC = () => {
@@ -519,58 +503,46 @@ export const VideoComposition: React.FC = () => {
     </AbsoluteFill>
   );
 };`;
+        }
     }
-  }
 ];
-
 /**
  * Find best matching professional template
  * UNIVERSAL COMPATIBILITY - Works with any project name or description
  */
-export function findProfessionalTemplate(animationType: AnimationType): ProfessionalAnimationTemplate | null {
-  let bestMatch: ProfessionalAnimationTemplate | null = null;
-  let highestScore = 0;
-
-  for (const template of PROFESSIONAL_ANIMATION_TEMPLATES) {
-    let score = 0;
-    
-    // Check keywords in animation type
-    for (const keyword of template.keywords) {
-      if (animationType.keywords?.some(k => k.toLowerCase().includes(keyword.toLowerCase()))) {
-        score += 2;
-      }
+function findProfessionalTemplate(animationType) {
+    let bestMatch = null;
+    let highestScore = 0;
+    for (const template of exports.PROFESSIONAL_ANIMATION_TEMPLATES) {
+        let score = 0;
+        // Check keywords in animation type
+        for (const keyword of template.keywords) {
+            if (animationType.keywords?.some(k => k.toLowerCase().includes(keyword.toLowerCase()))) {
+                score += 2;
+            }
+        }
+        // Check animation type name
+        if (template.name.includes(animationType.type) || animationType.type.includes(template.name.replace('-', ''))) {
+            score += 3;
+        }
+        if (score > highestScore) {
+            highestScore = score;
+            bestMatch = template;
+        }
     }
-    
-    // Check animation type name
-    if (template.name.includes(animationType.type) || animationType.type.includes(template.name.replace('-', ''))) {
-      score += 3;
-    }
-
-    if (score > highestScore) {
-      highestScore = score;
-      bestMatch = template;
-    }
-  }
-
-  return bestMatch;
+    return bestMatch;
 }
-
 /**
  * Generate professional animation with universal compatibility
  */
-export function generateProfessionalAnimation(
-  request: AnimationRequest, 
-  animationType: AnimationType
-): string {
-  const template = findProfessionalTemplate(animationType);
-  
-  if (template) {
-    return template.generateCode(request, animationType);
-  }
-  
-  // Fallback to elegant text reveal (works for any content)
-  const textTemplate = PROFESSIONAL_ANIMATION_TEMPLATES.find(t => t.name === 'text-reveal');
-  return textTemplate?.generateCode(request, animationType) || '';
+function generateProfessionalAnimation(request, animationType) {
+    const template = findProfessionalTemplate(animationType);
+    if (template) {
+        return template.generateCode(request, animationType);
+    }
+    // Fallback to elegant text reveal (works for any content)
+    const textTemplate = exports.PROFESSIONAL_ANIMATION_TEMPLATES.find(t => t.name === 'text-reveal');
+    return textTemplate?.generateCode(request, animationType) || '';
 }
-
-export default PROFESSIONAL_ANIMATION_TEMPLATES;
+exports.default = exports.PROFESSIONAL_ANIMATION_TEMPLATES;
+//# sourceMappingURL=professional-animations.js.map

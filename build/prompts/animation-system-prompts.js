@@ -1,15 +1,9 @@
+"use strict";
 // Professional Animation Generation System Prompts
 // These prompts guide AI to create high-quality, professional animations
-
-export interface AnimationStyleGuide {
-  colorPalettes: Record<string, string[]>;
-  typography: Record<string, any>;
-  spacing: Record<string, number>;
-  timing: Record<string, number>;
-  easing: Record<string, string>;
-}
-
-export const PROFESSIONAL_ANIMATION_SYSTEM_PROMPT = `
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.VISUAL_EFFECTS_LIBRARY = exports.ANIMATION_TYPE_SPECIFIC_PROMPTS = exports.PROFESSIONAL_ANIMATION_SYSTEM_PROMPT = void 0;
+exports.PROFESSIONAL_ANIMATION_SYSTEM_PROMPT = `
 # 🎬 PROFESSIONAL ANIMATION GENERATION SYSTEM
 
 You are an expert motion graphics designer creating professional-quality animations using Remotion.js and React. Your goal is to generate sophisticated, visually appealing animations that match industry standards.
@@ -207,9 +201,8 @@ const bounce = (t: number) => {
 **EVERY ANIMATION SHOULD FEEL POLISHED AND INTENTIONAL**
 **USE THESE GUIDELINES AS YOUR FOUNDATION FOR ALL CREATIONS**
 `;
-
-export const ANIMATION_TYPE_SPECIFIC_PROMPTS = {
-  'logo-reveal': `
+exports.ANIMATION_TYPE_SPECIFIC_PROMPTS = {
+    'logo-reveal': `
 Create a sophisticated logo reveal animation:
 - Start with elegant build-up (particles, light rays, or geometric shapes)
 - Smooth logo entrance with professional easing
@@ -218,8 +211,7 @@ Create a sophisticated logo reveal animation:
 - End with confident, stable logo presentation
 - Use appropriate corporate color palette
   `,
-  
-  'data-visualization': `
+    'data-visualization': `
 Create a professional data visualization animation:
 - Use clean, modern chart styles (bars, lines, pie charts)
 - Animate data points entering with staggered timing
@@ -228,8 +220,7 @@ Create a professional data visualization animation:
 - Use professional color coding and legends
 - Ensure accessibility with proper contrast
   `,
-  
-  'product-showcase': `
+    'product-showcase': `
 Create an elegant product showcase animation:
 - Use cinematic camera movements (orbit, zoom, reveal)
 - Implement professional lighting and shadows
@@ -238,8 +229,7 @@ Create an elegant product showcase animation:
 - Include smooth transitions between features
 - Use luxury/premium visual styling
   `,
-  
-  'explainer-graphic': `
+    'explainer-graphic': `
 Create a clear, engaging explainer animation:
 - Use simple, recognizable icons and illustrations
 - Implement smooth step-by-step reveals
@@ -248,8 +238,7 @@ Create a clear, engaging explainer animation:
 - Include text labels with proper typography
 - Maintain visual hierarchy and clear progression
   `,
-  
-  'social-media': `
+    'social-media': `
 Create an eye-catching social media animation:
 - Use bold, vibrant colors that pop on feeds
 - Keep timing snappy and engaging (3-15 seconds)
@@ -259,9 +248,8 @@ Create an eye-catching social media animation:
 - Include space for overlay text or branding
   `
 };
-
-export const VISUAL_EFFECTS_LIBRARY = {
-  particles: `
+exports.VISUAL_EFFECTS_LIBRARY = {
+    particles: `
 // Professional particle system
 const createParticleSystem = (frame, count, behavior) => {
   return Array.from({ length: count }, (_, i) => {
@@ -287,8 +275,7 @@ const createParticleSystem = (frame, count, behavior) => {
   });
 };
   `,
-  
-  lighting: `
+    lighting: `
 // Professional lighting effects
 const createLightingEffect = (intensity, color, angle) => ({
   background: \`
@@ -305,8 +292,7 @@ const createLightingEffect = (intensity, color, angle) => ({
   \`
 });
   `,
-  
-  morphing: `
+    morphing: `
 // Smooth shape morphing
 const morphShape = (frame, shapes, duration) => {
   const progress = (frame % duration) / duration;
@@ -318,3 +304,4 @@ const morphShape = (frame, shapes, duration) => {
 };
   `
 };
+//# sourceMappingURL=animation-system-prompts.js.map

@@ -30,6 +30,8 @@
     "test:vm-windows11": "vagrant up win11-nvm",
     "validate:pre-publish": "node scripts/pre-publish-validate.js",
     "validate:full": "npm run validate:pre-publish && npm run test:integration && npm run test:verdaccio",
+    "validate:mcp-setup": "node scripts/validate-mcp-setup.js",
+    "setup:mcp": "npm run validate:mcp-setup",
     "prepublishOnly": "npm run validate:pre-publish",
     "postinstall": "node scripts/postinstall.js"
   },
