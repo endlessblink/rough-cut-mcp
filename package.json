@@ -1,0 +1,31 @@
+{
+  "name": "remotion-mcp-server",
+  "version": "5.0.0",
+  "description": "Minimal MCP server for Remotion video creation",
+  "main": "build/index.js",
+  "scripts": {
+    "prebuild": "node -e \"if(process.platform==='linux'&&process.env.WSL_DISTRO_NAME){console.error('Build on Windows only!');process.exit(1)}\"",
+    "build": "tsc",
+    "build:windows": "powershell -File build-windows.ps1",
+    "start": "node build/index.js",
+    "start:win": "cmd /c \"bash -c 'source ~/.nvm/nvm.sh && node build/index.js'\"",
+    "start:wsl": "bash -lc \"source ~/.nvm/nvm.sh && node build/index.js\"",
+    "setup": "powershell -ExecutionPolicy Bypass -File setup-windows.ps1",
+    "dev": "tsc && node build/index.js",
+    "test:env": "bash -c \"source ~/.nvm/nvm.sh && node --version && npm --version && npx --version\""
+  },
+  "keywords": ["mcp", "remotion", "video"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "fs-extra": "^11.2.0",
+    "cross-env": "^7.0.3",
+    "slash": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}

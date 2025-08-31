@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>endlessblink - AI Development Tools</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --dark-bg: #0a0a0a;
+            --accent-blue: #00d4ff;
+            --accent-purple: #9333ea;
+            --accent-green: #10b981;
+            --white: #ffffff;
+            --gray: #6b7280;
+            --dark-card: #111111;
+            --code-bg: #1a1a1a;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: var(--dark-bg);
+            color: var(--white);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* Floating Particles Background */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: var(--accent-blue);
+            border-radius: 50%;
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) translateX(0); opacity: 0; }
+            10% { opacity: 0.1; }
+            90% { opacity: 0.1; }
+            100% { transform: translateY(-100vh) translateX(100px); opacity: 0; }
+        }
+
+        /* Glitch Title Effect */
+        .glitch-title {
+            position: relative;
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: bold;
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .glitch-title::before,
+        .glitch-title::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .glitch-title::before {
+            color: var(--accent-blue);
+            animation: glitch-1 2s infinite;
+            z-index: -1;
+        }
+
+        .glitch-title::after {
+            color: var(--accent-purple);
+            animation: glitch-2 2s infinite;
+            z-index: -2;
+        }
+
+        @keyframes glitch-1 {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-2px); }
+            40% { transform: translateX(2px); }
+            60% { transform: translateX(-1px); }
+            80% { transform: translateX(1px); }
+        }
+
+        @keyframes glitch-2 {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(2px); }
+            45% { transform: translateX(-2px); }
+            65% { transform: translateX(1px); }
+            85% { transform: translateX(-1px); }
+        }
+
+        /* Section Styling */
+        .section {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 4rem 2rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero {
+            text-align: center;
+        }
+
+        .hero h1 {
+            text-shadow: 0 0 20px var(--accent-blue);
+            margin-bottom: 1rem;
+        }
+
+        .hero .subtitle {
+            font-size: clamp(1.2rem, 3vw, 1.5rem);
+            color: var(--accent-blue);
+            opacity: 0;
+            animation: fadeInUp 1s ease-out 0.5s forwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Project Cards */
+        .projects-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            width: 100%;
+            margin: 2rem 0;
+        }
+
+        .project-card {
+            background: var(--dark-card);
+            border: 2px solid transparent;
+            border-radius: 16px;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+            transform: translateY(50px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .project-card.animate {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .project-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent, var(--accent-blue), transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
+        }
+
+        .project-card:hover::before {
+            opacity: 0.1;
+        }
+
+        .project-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0, 212, 255, 0.3);
+        }
+
+        .project-card.purple {
+            border-color: var(--accent-purple);
+        }
+
+        .project-card.purple::before {
+            background: linear-gradient(45deg, transparent, var(--accent-purple), transparent);
+        }
+
+        .project-card.purple:hover {
+            box-shadow: 0 20px 40px rgba(147, 51, 234, 0.3);
+        }
+
+        .project-card.green {
+            border-color: var(--accent-green);
+        }
+
+        .project-card.green::before {
+            background: linear-gradient(45deg, transparent, var(--accent-green), transparent);
+        }
+
+        .project-card.green:hover {
+            box-shadow: 0 20px 40px rgba(16, 185, 129, 0.3);
+        }
+
+        .project-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        .project-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: var(--white);
+        }
+
+        .project-description {
+            color: var(--gray);
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .code-block {
+            background: var(--code-bg);
+            border: 1px solid var(--accent-blue);
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: var(--accent-green);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+            margin-top: 1rem;
+        }
+
+        .code-line {
+            margin: 0.5rem 0;
+        }
+
+        .code-comment {
+            color: var(--gray);
+            font-size: 0.8rem;
+        }
+
+        /* Features Section */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            max-width: 800px;
+            width: 100%;
+            margin: 2rem 0;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            padding: 1.5rem;
+            background: var(--code-bg);
+            border-radius: 12px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            transform: scale(0.8);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .feature-item.animate {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-right: 1rem;
+        }
+
+        .feature-text {
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+
+        /* Call to Action */
+        .cta-section {
+            text-align: center;
+            max-width: 800px;
+        }
+
+        .cta-title {
+            font-size: clamp(2.5rem, 6vw, 3.5rem);
+            font-weight: bold;
+            margin-bottom: 2rem;
+            text-shadow: 0 0 30px var(--accent-blue);
+            opacity: 0;
+            animation: fadeInUp 1s ease-out 0.2s forwards;
+        }
+
+        .cta-subtitle {
+            font-size: 1.8rem;
+            color: var(--accent-blue);
+            margin-bottom: 2rem;
+            opacity: 0;
+            animation: fadeInUp 1s ease-out 0.4s forwards;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            opacity: 0;
+            animation: fadeInUp 1s ease-out 0.6s forwards;
+        }
+
+        .cta-button {
+            padding: 1rem 2rem;
+            background: var(--accent-purple);
+            color: var(--white);
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(147, 51, 234, 0.4);
+        }
+
+        .cta-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(147, 51, 234, 0.6);
+        }
+
+        /* Scroll Indicator */
+        .scroll-indicator {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounce 2s infinite;
+            z-index: 10;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
+            40% { transform: translateX(-50%) translateY(-10px); }
+            60% { transform: translateX(-50%) translateY(-5px); }
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .projects-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+
+        /* Smooth Scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Gradient Overlay */
+        .gradient-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 50% 50%, transparent 0%, rgba(10, 10, 10, 0.2) 100%);
+            pointer-events: none;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating Particles -->
+    <div class="particles" id="particles"></div>
+    <div class="gradient-overlay"></div>
+
+    <!-- Hero Section -->
+    <section class="section hero" id="hero">
+        <h1 class="glitch-title" data-text="endlessblink">endlessblink</h1>
+        <p class="subtitle">Innovating AI Development Tools</p>
+        <div class="scroll-indicator">⬇️</div>
+    </section>
+
+    <!-- Projects Section -->
+    <section class="section" id="projects">
+        <h2 style="font-size: 3rem; margin-bottom: 3rem; text-align: center; text-shadow: 0 0 20px var(--accent-purple);">Featured Projects</h2>
+        
+        <div class="projects-grid">
+            <!-- Like-I-Said v2 -->
+            <div class="project-card purple" data-animate>
+                <span class="project-icon">🧠</span>
+                <h3 class="project-title">Like-I-Said v2</h3>
+                <p class="project-description">
+                    Advanced MCP Memory & Task Management for LLMs with AI Enhancement and React Dashboard
+                </p>
+                <div class="code-block">
+                    <div class="code-line">npx @endlessblink/like-i-said-v2@latest like-i-said-v2 install</div>
+                    <div class="code-comment">✨ Automatic Memory-Task Linking</div>
+                    <div class="code-comment">🔄 Cross-Session Continuity</div>
+                    <div class="code-comment">📊 React Dashboard Interface</div>
+                </div>
+            </div>
+
+            <!-- Comfy-Guru -->
+            <div class="project-card green" data-animate>
+                <span class="project-icon">🛠️</span>
+                <h3 class="project-title">Comfy-Guru</h3>
+                <p class="project-description">
+                    MCP that connects Claude Desktop to ComfyUI logs - squash those errors peacefully!
+                </p>
+                <div class="code-block">
+                    <div class="code-line">python easy_install.py</div>
+                    <div class="code-comment">🔍 Auto-discover ComfyUI installations</div>
+                    <div class="code-comment">🐛 Intelligent error categorization</div>
+                    <div class="code-comment">💬 Claude Desktop integration</div>
+                </div>
+            </div>
+
+            <!-- Zero to Conda ComfyUI -->
+            <div class="project-card" data-animate>
+                <span class="project-icon">⚡</span>
+                <h3 class="project-title">Zero to Conda ComfyUI</h3>
+                <p class="project-description">
+                    Windows batch script that takes you from zero to fully configured ComfyUI environment
+                </p>
+                <div class="code-block">
+                    <div class="code-line">@echo off</div>
+                    <div class="code-line">REM Zero to ComfyUI in one script!</div>
+                    <div class="code-comment">🚀 No manual setup required</div>
+                    <div class="code-comment">🔧 Conda environment ready</div>
+                    <div class="code-comment">🎯 One-click installation</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="section" id="features">
+        <h2 style="font-size: 3rem; margin-bottom: 3rem; text-align: center; text-shadow: 0 0 20px var(--accent-purple);">Key Features</h2>
+        
+        <div class="features-grid">
+            <div class="feature-item" data-animate>
+                <span class="feature-icon">🔌</span>
+                <span class="feature-text">MCP Integration</span>
+            </div>
+            <div class="feature-item" data-animate>
+                <span class="feature-icon">🤖</span>
+                <span class="feature-text">AI Enhancement</span>
+            </div>
+            <div class="feature-item" data-animate>
+                <span class="feature-icon">📊</span>
+                <span class="feature-text">Visual Dashboards</span>
+            </div>
+            <div class="feature-item" data-animate>
+                <span class="feature-icon">⚡</span>
+                <span class="feature-text">Easy Installation</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action Section -->
+    <section class="section cta-section" id="cta">
+        <h2 class="cta-title">Ready to Enhance Your AI Workflow?</h2>
+        <p class="cta-subtitle">github.com/endlessblink</p>
+        
+        <div class="cta-buttons">
+            <a href="https://github.com/endlessblink" class="cta-button" target="_blank">⭐ Star</a>
+            <a href="https://github.com/endlessblink" class="cta-button" target="_blank">🍴 Fork</a>
+            <a href="https://github.com/endlessblink" class="cta-button" target="_blank">💻 Contribute</a>
+        </div>
+    </section>
+
+    <script>
+        // Create floating particles
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 30;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 20 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        // Intersection Observer for scroll animations
+        function setupScrollAnimations() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('animate');
+                    }
+                });
+            }, {
+                threshold: 0.1,
+                rootMargin: '0px 0px -100px 0px'
+            });
+
+            // Observe all animatable elements
+            document.querySelectorAll('[data-animate]').forEach(el => {
+                observer.observe(el);
+            });
+        }
+
+        // Enhanced glitch effect
+        function enhanceGlitchEffect() {
+            const glitchTitle = document.querySelector('.glitch-title');
+            if (glitchTitle) {
+                setInterval(() => {
+                    glitchTitle.style.textShadow = `
+                        ${Math.random() * 4 - 2}px ${Math.random() * 4 - 2}px 0 var(--accent-blue),
+                        ${Math.random() * 4 - 2}px ${Math.random() * 4 - 2}px 0 var(--accent-purple),
+                        0 0 20px var(--accent-blue)
+                    `;
+                }, 100);
+            }
+        }
+
+        // Smooth scroll for navigation
+        function setupSmoothScroll() {
+            document.addEventListener('click', (e) => {
+                if (e.target.tagName === 'A' && e.target.getAttribute('href').startsWith('#')) {
+                    e.preventDefault();
+                    const targetId = e.target.getAttribute('href').substring(1);
+                    const targetElement = document.getElementById(targetId);
+                    if (targetElement) {
+                        targetElement.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                }
+            });
+        }
+
+        // Add typing effect to code blocks
+        function addTypingEffect() {
+            const codeBlocks = document.querySelectorAll('.code-block .code-line');
+            
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting && !entry.target.classList.contains('typed')) {
+                        entry.target.classList.add('typed');
+                        typeText(entry.target);
+                    }
+                });
+            });
+
+            codeBlocks.forEach(block => observer.observe(block));
+        }
+
+        function typeText(element) {
+            const text = element.textContent;
+            element.textContent = '';
+            element.style.borderRight = '2px solid var(--accent-green)';
+            
+            let i = 0;
+            const typeInterval = setInterval(() => {
+                element.textContent += text[i];
+                i++;
+                
+                if (i >= text.length) {
+                    clearInterval(typeInterval);
+                    setTimeout(() => {
+                        element.style.borderRight = 'none';
+                    }, 500);
+                }
+            }, 50);
+        }
+
+        // Initialize everything when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            createParticles();
+            setupScrollAnimations();
+            enhanceGlitchEffect();
+            setupSmoothScroll();
+            addTypingEffect();
+            
+            // Hide scroll indicator after first scroll
+            window.addEventListener('scroll', () => {
+                const scrollIndicator = document.querySelector('.scroll-indicator');
+                if (window.scrollY > 100 && scrollIndicator) {
+                    scrollIndicator.style.opacity = '0';
+                }
+            });
+        });
+
+        // Add performance optimization
+        let ticking = false;
+        
+        function updateParallax() {
+            const scrolled = window.pageYOffset;
+            const parallaxElements = document.querySelectorAll('.project-card, .feature-item');
+            
+            parallaxElements.forEach((element, index) => {
+                const speed = 0.1 + (index * 0.05);
+                const yPos = -(scrolled * speed);
+                element.style.transform += ` translateY(${yPos}px)`;
+            });
+            
+            ticking = false;
+        }
+
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                requestAnimationFrame(updateParallax);
+                ticking = true;
+            }
+        });
+    </script>
+</body>
+</html>
