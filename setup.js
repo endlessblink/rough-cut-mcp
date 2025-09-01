@@ -122,6 +122,64 @@ async function testNodeVersion(nodePath) {
   });
 }
 
+/**
+ * Get platform-specific Claude Desktop config directory and file path
+ */
+function getClaudeConfigPaths() {
+  const platform = detectPlatform();
+  
+  let configDir, configFile;
+  
+  if (platform.isWindows) {
+    configDir = path.join(process.env.APPDATA || os.homedir(), 'Claude');
+  } else if (platform.isMacOS) {
+    configDir = path.join(os.homedir(), 'Library', 'Application Support', 'Claude');
+  } else {
+    configDir = path.join(os.homedir(), '.config', 'claude');
+  }
+  
+  configFile = path.join(configDir, 'claude_desktop_config.json');
+  
+  return { configDir, configFile };
+}
+
+/**
+ * Safely read existing Claude Desktop configuration
+ */
+async function readExistingClaudeConfig(configFile) {
+  try {
+    if (await fs.pathExists(configFile)) {
+      const content = await fs.readFile(configFile, 'utf8');
+      return JSON.parse(content);
+    }
+  } catch (error) {
+    log('yellow', `⚠️  Could not read existing config: ${error.message}`);
+  }
+  
+  return { mcpServers: {} };
+}
+
+/**
+ * Safely write Claude Desktop configuration with backup
+ */
+async function writeClaudeConfig(configFile, config) {
+  const configDir = path.dirname(configFile);
+  
+  // Ensure config directory exists
+  await fs.ensureDir(configDir);
+  
+  // Create backup of existing config if it exists
+  if (await fs.pathExists(configFile)) {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const backupFile = path.join(configDir, `claude_desktop_config.backup.${timestamp}.json`);
+    await fs.copy(configFile, backupFile);
+    log('blue', `📋 Backed up existing config to: ${path.basename(backupFile)}`);
+  }
+  
+  // Write new config
+  await fs.writeFile(configFile, JSON.stringify(config, null, 2));
+}
+
 function runCommand(command, args, options = {}) {
   return new Promise((resolve, reject) => {
     log('blue', `Running: ${command} ${args.join(' ')}`);
@@ -254,29 +312,45 @@ async function main() {
       });
     });
     
-    // Generate platform-specific Claude Desktop config
-    log('cyan', '📋 Claude Desktop Configuration:');
+    // Automatically configure Claude Desktop
+    log('cyan', '🔧 Configuring Claude Desktop automatically...');
     
-    const fullBuildPath = path.resolve(buildPath);
-    const config = {
-      mcpServers: {
-        remotion: {
-          command: nodePath,
-          args: [fullBuildPath]
+    const { configDir, configFile } = getClaudeConfigPaths();
+    
+    try {
+      // Read existing configuration
+      const existingConfig = await readExistingClaudeConfig(configFile);
+      
+      // Add our MCP server configuration
+      const fullBuildPath = path.resolve(buildPath);
+      existingConfig.mcpServers = existingConfig.mcpServers || {};
+      existingConfig.mcpServers.remotion = {
+        command: nodePath,
+        args: [fullBuildPath]
+      };
+      
+      // Write updated configuration
+      await writeClaudeConfig(configFile, existingConfig);
+      
+      log('green', '✅ Claude Desktop configuration updated successfully!');
+      log('blue', `📁 Config file: ${configFile}`);
+      log('green', '✅ MCP server "remotion" added to Claude Desktop');
+      
+    } catch (error) {
+      log('red', `❌ Failed to update Claude Desktop config: ${error.message}`);
+      log('yellow', '📋 Manual Configuration Required:');
+      
+      const manualConfig = {
+        mcpServers: {
+          remotion: {
+            command: nodePath,
+            args: [path.resolve(buildPath)]
+          }
         }
-      }
-    };
-    
-    console.log(JSON.stringify(config, null, 2));
-    
-    // Platform-specific config location info
-    log('yellow', '📍 Config file locations:');
-    if (platform.isWindows) {
-      log('white', `Windows: %APPDATA%\\Claude\\claude_desktop_config.json`);
-    } else if (platform.isMacOS) {
-      log('white', `macOS: ~/Library/Application Support/Claude/claude_desktop_config.json`);
-    } else {
-      log('white', `Linux: ~/.config/claude/claude_desktop_config.json`);
+      };
+      
+      console.log(JSON.stringify(manualConfig, null, 2));
+      log('yellow', `📍 Add to: ${configFile}`);
     }
     
     log('green', '\\n🎯 Setup Complete!');
@@ -289,9 +363,10 @@ async function main() {
     }
     
     log('yellow', 'Next Steps:');
-    log('white', '1. Add the config above to your Claude Desktop configuration');
-    log('white', '2. Restart Claude Desktop completely');
-    log('white', "3. Test with: 'Create a Remotion project called test with bouncing ball'");
+    log('white', '1. ✅ Claude Desktop configuration automatically updated');
+    log('white', '2. 🔄 Restart Claude Desktop completely (important!)');
+    log('white', "3. 🎬 Test with: 'Create a Remotion project called test with bouncing ball'");
+    log('white', '4. 🎵 Optional: Configure audio with your ElevenLabs API key');
     
     log('yellow', '\\n🛠️ Troubleshooting:');
     log('white', '- Check Claude Desktop logs for MCP server errors');

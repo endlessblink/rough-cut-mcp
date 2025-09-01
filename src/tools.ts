@@ -15,6 +15,7 @@ import {
   getAudioConfig,
   setAudioConfig,
   isAudioEnabled,
+  getBaseDirectory,
   StudioProcess
 } from './utils.js';
 
@@ -431,8 +432,9 @@ async function stopStudio(port: number) {
 }
 
 async function listProjects() {
-  // Use same path as getProjectPath() for consistency  
-  const projectsDir = path.resolve(process.cwd(), 'assets', 'projects');
+  // Use smart detection to find existing projects (same logic as getProjectPath)
+  const baseDir = getBaseDirectory();
+  const projectsDir = path.resolve(baseDir, 'assets', 'projects');
   
   if (!(await fs.pathExists(projectsDir))) {
     return {

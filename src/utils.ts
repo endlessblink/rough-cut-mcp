@@ -1,6 +1,7 @@
 import { spawn, ChildProcess, exec } from 'child_process';
 import * as fs from 'fs-extra';
 import * as path from 'path';
+import * as os from 'os';
 
 export interface StudioProcess {
   pid: number;
@@ -173,10 +174,60 @@ export function isAudioEnabled(): boolean {
   return process.env.AUDIO_ENABLED === 'true';
 }
 
+// Smart cross-platform base directory detection (research-based MCP pattern)
+export function getBaseDirectory(): string {
+  const serverDir = path.dirname(__dirname); // From build/ to project root
+  
+  // Priority order for finding projects (research-proven approach)
+  const candidates = [
+    // 1. User-specified directory via environment variable
+    process.env.REMOTION_PROJECTS_DIR,
+    
+    // 2. Your existing Windows projects directory (backward compatibility)
+    'D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\my-builds\\Video + Motion\\rough-cut_2',
+    
+    // 3. MCP server project directory (where server is installed)
+    serverDir,
+    
+    // 4. User home directory (cross-platform standard)
+    path.join(os.homedir(), 'remotion-projects'),
+    
+    // 5. Current working directory (fallback)
+    process.cwd()
+  ];
+  
+  // Find first directory that has assets/projects or can be used
+  for (const candidate of candidates) {
+    if (candidate) {
+      const assetsPath = path.join(candidate, 'assets', 'projects');
+      
+      // If assets/projects exists, use this directory
+      if (fs.existsSync(assetsPath)) {
+        console.error(`[BASE-DIR] Found existing projects at: ${candidate}`);
+        return candidate;
+      }
+      
+      // If directory exists and we can create assets in it, use it
+      try {
+        if (fs.existsSync(candidate)) {
+          console.error(`[BASE-DIR] Using writable directory: ${candidate}`);
+          return candidate;
+        }
+      } catch (error) {
+        // Continue to next candidate
+      }
+    }
+  }
+  
+  // Final fallback
+  console.error(`[BASE-DIR] Using fallback: ${process.cwd()}`);
+  return process.cwd();
+}
+
 export function getProjectPath(name: string): string {
-  // Use current working directory for cross-platform compatibility
-  // When installed globally, projects will be created where user runs commands
-  return path.resolve(process.cwd(), 'assets', 'projects', name);
+  // Use smart detection to find projects (backward compatible + cross-platform)
+  const baseDir = getBaseDirectory();
+  return path.resolve(baseDir, 'assets', 'projects', name);
 }
 
 export async function createRemotionProject(projectPath: string, jsx: string): Promise<void> {
@@ -185,16 +236,48 @@ export async function createRemotionProject(projectPath: string, jsx: string): P
   await fs.ensureDir(path.join(projectPath, 'public'));
   await fs.ensureDir(path.join(projectPath, 'public', 'audio'));
   
-  // Ensure Claude's JSX has proper export pattern for Remotion 4.0.340
+  // Ensure Claude's JSX uses FUNCTION DECLARATION + default export (Perplexity research solution)
   const ensureProperExport = (jsxContent: string): string => {
-    if (jsxContent.includes('export const VideoComposition')) {
-      return jsxContent; // Already has proper named export
+    // Add comprehensive debug logging
+    const withLogging = (content: string): string => {
+      const imports = content.split('\n').filter(line => line.startsWith('import')).join('\n');
+      const rest = content.split('\n').filter(line => !line.startsWith('import')).join('\n');
+      
+      return imports + '\n\n' + 
+        '// Debug logging for component resolution\n' +
+        'console.log(\'VideoComposition module loading...\');\n\n' +
+        rest + 
+        '\n\nconsole.log(\'VideoComposition function defined:\', VideoComposition);\n';
+    };
+    
+    if (jsxContent.includes('function VideoComposition()') && jsxContent.includes('export default VideoComposition')) {
+      return withLogging(jsxContent); // Already correct pattern
+    } else if (jsxContent.includes('export const VideoComposition')) {
+      // Convert named arrow function to function declaration
+      const converted = jsxContent
+        .replace('export const VideoComposition = () => {', 'function VideoComposition() {')
+        + '\n\nexport default VideoComposition;';
+      return withLogging(converted);
     } else if (jsxContent.includes('const VideoComposition')) {
-      // Convert const to export const
-      return jsxContent.replace('const VideoComposition', 'export const VideoComposition');
+      // Convert const arrow function to function declaration
+      const converted = jsxContent
+        .replace('const VideoComposition = () => {', 'function VideoComposition() {')
+        + '\n\nexport default VideoComposition;';
+      return withLogging(converted);
     } else {
-      // Wrap the JSX in proper export
-      return jsxContent + '\n\n// Ensure proper named export for Remotion\nexport { VideoComposition };';
+      // Create complete function declaration wrapper
+      return withLogging(`import React from 'react';
+import { AbsoluteFill } from 'remotion';
+
+function VideoComposition() {
+  return (
+    <AbsoluteFill>
+      ${jsxContent}
+    </AbsoluteFill>
+  );
+}
+
+export default VideoComposition;`);
     }
   };
   
@@ -205,15 +288,21 @@ export async function createRemotionProject(projectPath: string, jsx: string): P
     videoCompositionContent
   );
   
-  // Create minimal Root.tsx that imports VideoComposition with Remotion 4.0 requirements
+  // Create Root.tsx with DEFAULT import and comprehensive debug logging (Perplexity solution)
   const rootContent = `import React from 'react';
 import { Composition } from 'remotion';
-import { VideoComposition } from './VideoComposition';
 
-// Debug logging for component import
-console.log('VideoComposition imported:', VideoComposition);
+console.log('Root.tsx loading...');
+
+// Import with extensive debugging
+import VideoComposition from './VideoComposition';
+console.log('VideoComposition imported in Root:', VideoComposition);
+console.log('VideoComposition type:', typeof VideoComposition);
+console.log('VideoComposition is function:', typeof VideoComposition === 'function');
 
 export const RemotionRoot: React.FC = () => {
+  console.log('RemotionRoot rendering, VideoComposition:', VideoComposition);
+  
   return (
     <>
       <Composition
@@ -256,30 +345,26 @@ registerRoot(RemotionRoot);`;
     indexContent
   );
   
-  // Create tsconfig.json for the project with Remotion-specific settings
+  // Create tsconfig.json with React.lazy() compatibility settings (Perplexity research)
   const tsconfigContent = {
     "compilerOptions": {
       "target": "ES2020",
       "lib": ["ES2020", "DOM", "DOM.Iterable"],
       "module": "ESNext",
-      "moduleResolution": "node",
-      "allowSyntheticDefaultImports": true,
-      "esModuleInterop": true,
-      "allowJs": true,
+      "moduleResolution": "bundler",
       "jsx": "react-jsx",
       "strict": true,
       "skipLibCheck": true,
+      "esModuleInterop": true,
+      "allowSyntheticDefaultImports": true,
       "forceConsistentCasingInFileNames": true,
-      "resolveJsonModule": true,
       "isolatedModules": true,
-      "noEmit": false,
-      "outDir": "./dist",
-      "baseUrl": ".",
-      "sourceMap": true,
-      "declaration": true
+      "noEmit": true,
+      "allowJs": true,
+      "resolveJsonModule": true
     },
-    "include": ["src/**/*.ts", "src/**/*.tsx"],
-    "exclude": ["node_modules", "dist"]
+    "include": ["src/**/*"],
+    "exclude": ["node_modules"]
   };
   
   await fs.writeFile(
