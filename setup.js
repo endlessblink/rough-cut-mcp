@@ -269,11 +269,11 @@ async function writeClaudeConfig(configFile, config) {
     const parsedConfig = JSON.parse(writtenContent);
     
     // Verify our MCP server is in the config
-    if (parsedConfig.mcpServers && parsedConfig.mcpServers.remotion) {
+    if (parsedConfig.mcpServers && parsedConfig.mcpServers['rough-cut-mcp']) {
       log('green', '✅ Config file written and validated successfully');
       return { success: true, config: parsedConfig };
     } else {
-      throw new Error('Remotion MCP server not found in written config');
+      throw new Error('rough-cut-mcp MCP server not found in written config');
     }
   } catch (error) {
     throw new Error(`Config validation failed: ${error.message}`);
@@ -305,6 +305,9 @@ function runCommand(command, args, options = {}) {
 }
 
 async function main() {
+  // Declare variables at function scope to avoid scope errors
+  let fullBuildPath = null;
+  
   try {
     log('cyan', '🚀 Remotion MCP Server V5.0 - Cross-Platform Setup');
     log('white', '='.repeat(55));
@@ -436,9 +439,6 @@ async function main() {
     
     const { configDir, configFile } = getClaudeConfigPaths();
     
-    // Declare variables outside try-catch for error handling access
-    let fullBuildPath = null;
-    
     try {
       // Verify paths exist before writing config
       fullBuildPath = path.resolve(buildPath);
@@ -457,7 +457,7 @@ async function main() {
       
       // Add our MCP server configuration
       existingConfig.mcpServers = existingConfig.mcpServers || {};
-      existingConfig.mcpServers.remotion = {
+      existingConfig.mcpServers['rough-cut-mcp'] = {
         command: nodePath,
         args: [fullBuildPath]
       };
@@ -467,11 +467,11 @@ async function main() {
       
       log('green', '✅ Claude Desktop configuration updated successfully!');
       log('blue', `📁 Config file: ${configFile}`);
-      log('green', `✅ MCP server "remotion" added (total: ${Object.keys(result.config.mcpServers).length})`);
+      log('green', `✅ MCP server "rough-cut-mcp" added (total: ${Object.keys(result.config.mcpServers).length})`);
       
       // Show what was written
       log('blue', '📋 Configuration written:');
-      console.log(JSON.stringify(result.config.mcpServers.remotion, null, 2));
+      console.log(JSON.stringify(result.config.mcpServers['rough-cut-mcp'], null, 2));
       
       // Additional verification - read back the file to ensure it actually contains our config
       log('yellow', '🔍 Verifying config file was written correctly...');
@@ -480,10 +480,10 @@ async function main() {
         const verificationConfig = JSON.parse(verificationContent);
         
         if (verificationConfig.mcpServers && 
-            verificationConfig.mcpServers.remotion && 
-            verificationConfig.mcpServers.remotion.command === nodePath &&
-            verificationConfig.mcpServers.remotion.args &&
-            verificationConfig.mcpServers.remotion.args[0] === fullBuildPath) {
+            verificationConfig.mcpServers['rough-cut-mcp'] && 
+            verificationConfig.mcpServers['rough-cut-mcp'].command === nodePath &&
+            verificationConfig.mcpServers['rough-cut-mcp'].args &&
+            verificationConfig.mcpServers['rough-cut-mcp'].args[0] === fullBuildPath) {
           log('green', '✅ Config file verification successful - all paths match!');
         } else {
           throw new Error('Config verification failed - written config does not match expected values');
@@ -539,7 +539,7 @@ async function main() {
         
         const manualConfig = {
           mcpServers: {
-            remotion: {
+            'rough-cut-mcp': {
               command: nodePath,
               args: [fullBuildPath]
             }
@@ -594,7 +594,7 @@ async function main() {
     log('yellow', '\\n🛠️ Troubleshooting:');
     log('white', '- Check Claude Desktop logs for MCP server errors');
     log('white', '- Verify Node.js is accessible from the configured path');
-    log('white', `- Test manually: ${nodePath} ${fullBuildPath}`);
+    log('white', `- Test manually: ${nodePath} ${fullBuildPath || 'build/index.js'}`);
     
   } catch (error) {
     log('red', `❌ Setup failed: ${error.message}`);
