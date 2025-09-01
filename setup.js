@@ -436,9 +436,12 @@ async function main() {
     
     const { configDir, configFile } = getClaudeConfigPaths();
     
+    // Declare variables outside try-catch for error handling access
+    let fullBuildPath = null;
+    
     try {
       // Verify paths exist before writing config
-      const fullBuildPath = path.resolve(buildPath);
+      fullBuildPath = path.resolve(buildPath);
       
       if (!fs.existsSync(fullBuildPath)) {
         throw new Error(`MCP server build not found: ${fullBuildPath}`);
@@ -519,30 +522,37 @@ async function main() {
         log('red', `   ❌ Diagnostic failed: ${diagError.message}`);
       }
       
-      // Show current paths for debugging
+      // Show current paths for debugging (with null safety)
       log('blue', '📍 Current paths being used:');
-      log('white', `   • Node.js: ${nodePath}`);
-      log('white', `   • MCP Server: ${fullBuildPath}`);
-      log('white', `   • Config file: ${configFile}`);
+      log('white', `   • Node.js: ${nodePath || 'not detected'}`);
+      log('white', `   • MCP Server: ${fullBuildPath || 'not resolved'}`);
+      log('white', `   • Config file: ${configFile || 'not determined'}`);
       
       log('yellow', '🛠️ Troubleshooting steps:');
       log('white', '   1. Close Claude Desktop completely (important!)');
       log('white', '   2. Run: remotion-mcp-debug for full diagnostics');
       log('white', '   3. If still failing, try manual configuration below');
       
-      log('yellow', '📋 Manual Configuration (copy to Claude Desktop config):');
-      
-      const manualConfig = {
-        mcpServers: {
-          remotion: {
-            command: nodePath,
-            args: [fullBuildPath]
+      // Only show manual config if we have the required paths
+      if (nodePath && fullBuildPath && configFile) {
+        log('yellow', '📋 Manual Configuration (copy to Claude Desktop config):');
+        
+        const manualConfig = {
+          mcpServers: {
+            remotion: {
+              command: nodePath,
+              args: [fullBuildPath]
+            }
           }
-        }
-      };
-      
-      console.log(JSON.stringify(manualConfig, null, 2));
-      log('yellow', `📍 Add to: ${configFile}`);
+        };
+        
+        console.log(JSON.stringify(manualConfig, null, 2));
+        log('yellow', `📍 Add to: ${configFile}`);
+      } else {
+        log('yellow', '📋 Manual Configuration:');
+        log('white', '   Cannot generate config - some paths were not resolved');
+        log('white', '   Run: remotion-mcp-debug for detailed path diagnostics');
+      }
     }
     
     log('green', '\\n🎯 Setup Complete!');
