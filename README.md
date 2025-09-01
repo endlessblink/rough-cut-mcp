@@ -103,9 +103,10 @@ Creates a new Remotion project with Claude's JSX.
 - Generates minimal `Root.tsx` that imports VideoComposition
 - Runs `npm install` automatically
 
-### 2. `edit-project(name, jsx)`
-Replaces `VideoComposition.tsx` with new JSX.
+### 2. `edit-project(name, jsx, duration?)`
+Replaces `VideoComposition.tsx` with new JSX and optionally updates video duration.
 - Simple file replacement, no AST parsing
+- Optional duration parameter (in seconds) updates Remotion config
 - Returns "refresh browser to see changes"
 
 ### 3. `launch-studio(name, port?)`
@@ -129,6 +130,23 @@ Returns detailed project information and status.
 ### 8. `get-studio-status()`
 Returns all running studios with ports and project names.
 
+### 9. `configure-audio(apiKey?, enabled?)`
+Configure optional AI audio generation features.
+- Set ElevenLabs API key for sound effects generation
+- Enable/disable audio features
+- Safely stores API key in environment variables
+
+### 10. `generate-audio(projectName, prompt, type, duration?)`
+Generate AI sound effects or music for your video project.
+- **Requires ElevenLabs API key** (configure with `configure-audio`)
+- Types: 'sfx' (sound effects) or 'music'
+- Downloads audio to project's `public/audio/` directory
+- Returns Remotion code snippet for easy integration
+- Example: "bouncing ball sound effect", "upbeat background music"
+
+### 11. `debug-audio-config()`
+Debug tool to check audio environment variables and configuration status.
+
 ## Project Structure
 
 Created projects have this structure:
@@ -137,8 +155,11 @@ project-name/
 ├── src/
 │   ├── VideoComposition.tsx  # Claude's JSX (exact copy)
 │   └── Root.tsx             # Minimal wrapper
+├── public/
+│   └── audio/               # AI-generated audio files
 ├── package.json            # Remotion dependencies
-└── remotion.config.ts      # Basic config
+├── remotion.config.ts      # Basic config with duration
+└── .env                    # Audio API configuration (if used)
 ```
 
 ## Key Features
@@ -156,7 +177,9 @@ The build system includes WSL2 protection:
 - Validates output for WSL paths
 - Ensures Windows compatibility
 
-## Usage Example
+## Usage Examples
+
+### Basic Video Creation
 
 1. Ask Claude: "Create a Remotion video with a bouncing ball"
 2. Claude generates JSX and calls `create-project("bouncing-ball", jsx)`
@@ -164,12 +187,32 @@ The build system includes WSL2 protection:
 4. Call `launch-studio("bouncing-ball")` to start editing
 5. Server returns `http://localhost:6600` for immediate use
 
+### AI Audio Integration
+
+1. Configure audio (one-time setup):
+   ```
+   Claude: "Configure audio with my ElevenLabs API key: xi-abc123..."
+   ```
+
+2. Generate sound effects:
+   ```
+   Claude: "Generate a bouncing ball sound effect for my project"
+   Server calls: generate-audio("bouncing-ball", "bouncing ball sound effect", "sfx", 3)
+   ```
+
+3. Audio is automatically saved to `public/audio/` and Claude provides integration code:
+   ```jsx
+   import { staticFile, Audio } from 'remotion';
+   <Audio src={staticFile('audio/sfx-1234567890.wav')} />
+   ```
+
 ## Dependencies
 
 - `@modelcontextprotocol/sdk` - MCP framework
 - `fs-extra` - Robust file operations  
 - `cross-env` - Cross-platform environment variables
 - `slash` - Cross-platform path handling
+- `dotenv` - Environment variable management
 - `typescript` - Build system
 
 ### Development Tools
