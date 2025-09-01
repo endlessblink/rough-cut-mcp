@@ -116,16 +116,17 @@ function findNodePath() {
 
 function findGlobalPackagePath() {
   const packageName = 'remotion-mcp-server';
+  const platform = detectPlatform();
   
-  // Try to find the global package installation
+  // Method 1: Try to resolve from current script location (most reliable for global installs)
   try {
-    // Check if running from a global installation
     const scriptDir = __dirname;
     const packageJsonPath = path.join(scriptDir, 'package.json');
     
     if (fs.existsSync(packageJsonPath)) {
       const packageJson = fs.readJsonSync(packageJsonPath);
       if (packageJson.name === packageName) {
+        log('blue', `📦 Found package via script location: ${scriptDir}`);
         return scriptDir;
       }
     }
@@ -133,30 +134,63 @@ function findGlobalPackagePath() {
     // Continue with other methods
   }
   
-  // Try common global installation paths
-  const platform = detectPlatform();
-  let globalPaths = [];
+  // Method 2: Try to use require.resolve (Node.js module resolution)
+  try {
+    const modulePath = require.resolve(packageName);
+    const packageRoot = modulePath.substring(0, modulePath.indexOf(packageName) + packageName.length);
+    if (fs.existsSync(path.join(packageRoot, 'package.json'))) {
+      log('blue', `📦 Found package via require.resolve: ${packageRoot}`);
+      return packageRoot;
+    }
+  } catch (error) {
+    // Continue with other methods
+  }
+  
+  // Method 3: Try common global npm paths for the current platform
+  const globalPaths = [];
   
   if (platform.isWindows) {
-    globalPaths = [
+    const userProfile = os.userInfo().username;
+    globalPaths.push(
       path.join(process.env.APPDATA || os.homedir(), 'npm', 'node_modules', packageName),
-      path.join('C:', 'Users', os.userInfo().username, 'AppData', 'Roaming', 'npm', 'node_modules', packageName),
-    ];
+      path.join('C:', 'Users', userProfile, 'AppData', 'Roaming', 'npm', 'node_modules', packageName),
+      path.join(process.env.PROGRAMFILES || 'C:\\Program Files', 'nodejs', 'node_modules', packageName)
+    );
   } else {
-    globalPaths = [
+    globalPaths.push(
       `/usr/local/lib/node_modules/${packageName}`,
       `/usr/lib/node_modules/${packageName}`,
       path.join(os.homedir(), `.npm-global/lib/node_modules/${packageName}`),
-      `/opt/homebrew/lib/node_modules/${packageName}`,
-    ];
+      `/opt/homebrew/lib/node_modules/${packageName}`
+    );
   }
   
   for (const globalPath of globalPaths) {
-    if (fs.existsSync(globalPath)) {
-      return globalPath;
+    try {
+      if (fs.existsSync(globalPath) && fs.existsSync(path.join(globalPath, 'package.json'))) {
+        log('blue', `📦 Found package via global path: ${globalPath}`);
+        return globalPath;
+      }
+    } catch (error) {
+      // Continue checking other paths
     }
   }
   
+  // Method 4: Try npm root -g command as last resort
+  try {
+    const { execSync } = require('child_process');
+    const npmRoot = execSync('npm root -g', { encoding: 'utf8' }).trim();
+    const npmGlobalPath = path.join(npmRoot, packageName);
+    
+    if (fs.existsSync(npmGlobalPath) && fs.existsSync(path.join(npmGlobalPath, 'package.json'))) {
+      log('blue', `📦 Found package via npm root -g: ${npmGlobalPath}`);
+      return npmGlobalPath;
+    }
+  } catch (error) {
+    // npm command failed
+  }
+  
+  log('red', `❌ Could not find global package installation for ${packageName}`);
   return null;
 }
 

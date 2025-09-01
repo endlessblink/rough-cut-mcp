@@ -97,6 +97,89 @@ function findNodePath() {
   return 'node'; // Final fallback
 }
 
+/**
+ * Dynamically find the global installation path for remotion-mcp-server
+ */
+function findGlobalPackagePath() {
+  const packageName = 'remotion-mcp-server';
+  const platform = detectPlatform();
+  
+  // Method 1: Try to resolve from current script location (most reliable for global installs)
+  try {
+    const scriptDir = __dirname;
+    const packageJsonPath = path.join(scriptDir, 'package.json');
+    
+    if (fs.existsSync(packageJsonPath)) {
+      const packageJson = fs.readJsonSync(packageJsonPath);
+      if (packageJson.name === packageName) {
+        log('blue', `📦 Found package via script location: ${scriptDir}`);
+        return scriptDir;
+      }
+    }
+  } catch (error) {
+    // Continue with other methods
+  }
+  
+  // Method 2: Try to use require.resolve (Node.js module resolution)
+  try {
+    const modulePath = require.resolve(packageName);
+    const packageRoot = modulePath.substring(0, modulePath.indexOf(packageName) + packageName.length);
+    if (fs.existsSync(path.join(packageRoot, 'package.json'))) {
+      log('blue', `📦 Found package via require.resolve: ${packageRoot}`);
+      return packageRoot;
+    }
+  } catch (error) {
+    // Continue with other methods
+  }
+  
+  // Method 3: Try common global npm paths for the current platform
+  const globalPaths = [];
+  
+  if (platform.isWindows) {
+    const userProfile = os.userInfo().username;
+    globalPaths.push(
+      path.join(process.env.APPDATA || os.homedir(), 'npm', 'node_modules', packageName),
+      path.join('C:', 'Users', userProfile, 'AppData', 'Roaming', 'npm', 'node_modules', packageName),
+      path.join(process.env.PROGRAMFILES || 'C:\\Program Files', 'nodejs', 'node_modules', packageName)
+    );
+  } else {
+    globalPaths.push(
+      `/usr/local/lib/node_modules/${packageName}`,
+      `/usr/lib/node_modules/${packageName}`,
+      path.join(os.homedir(), `.npm-global/lib/node_modules/${packageName}`),
+      `/opt/homebrew/lib/node_modules/${packageName}`
+    );
+  }
+  
+  for (const globalPath of globalPaths) {
+    try {
+      if (fs.existsSync(globalPath) && fs.existsSync(path.join(globalPath, 'package.json'))) {
+        log('blue', `📦 Found package via global path: ${globalPath}`);
+        return globalPath;
+      }
+    } catch (error) {
+      // Continue checking other paths
+    }
+  }
+  
+  // Method 4: Try npm root -g command as last resort
+  try {
+    const { execSync } = require('child_process');
+    const npmRoot = execSync('npm root -g', { encoding: 'utf8' }).trim();
+    const npmGlobalPath = path.join(npmRoot, packageName);
+    
+    if (fs.existsSync(npmGlobalPath) && fs.existsSync(path.join(npmGlobalPath, 'package.json'))) {
+      log('blue', `📦 Found package via npm root -g: ${npmGlobalPath}`);
+      return npmGlobalPath;
+    }
+  } catch (error) {
+    // npm command failed
+  }
+  
+  log('red', `❌ Could not find global package installation for ${packageName}`);
+  return null;
+}
+
 async function testNodeVersion(nodePath) {
   return new Promise((resolve, reject) => {
     const child = spawn(nodePath, ['--version'], { stdio: 'pipe' });
@@ -229,35 +312,54 @@ async function main() {
     const platform = detectPlatform();
     log('blue', `🔍 Platform: ${platform.platform}${platform.isWSL ? ' (WSL)' : ''}`);
     
-    // Determine if running from global installation or local directory
+    // Dynamically determine package root and installation type
     const currentDir = process.cwd();
-    const scriptDir = __dirname;
-    
     let packageRoot, isGlobalInstallation;
-    const localPackageJson = path.join(currentDir, 'package.json');
-    const globalPackageJson = path.join(scriptDir, 'package.json');
     
+    // First check if we're in local development directory
+    const localPackageJson = path.join(currentDir, 'package.json');
     if (fs.existsSync(localPackageJson)) {
-      // Running from local directory (development)
-      const packageJson = await fs.readJson(localPackageJson);
-      if (packageJson.name === 'remotion-mcp-server') {
-        packageRoot = currentDir;
-        isGlobalInstallation = false;
-        log('blue', '📍 Running from local development directory');
-      } else {
-        // Local directory but different package - assume global installation
-        packageRoot = scriptDir;
-        isGlobalInstallation = true;
-        log('blue', '📍 Running from global npm installation');
+      try {
+        const packageJson = await fs.readJson(localPackageJson);
+        if (packageJson.name === 'remotion-mcp-server') {
+          packageRoot = currentDir;
+          isGlobalInstallation = false;
+          log('blue', '📍 Running from local development directory');
+        }
+      } catch (error) {
+        // Invalid package.json, continue with global detection
       }
-    } else if (fs.existsSync(globalPackageJson)) {
-      // Running from global installation
-      packageRoot = scriptDir;
-      isGlobalInstallation = true;
-      log('blue', '📍 Running from global npm installation');
-    } else {
-      throw new Error('Cannot determine package location. Please run from project directory or install globally via npm.');
     }
+    
+    // If not local development, find global installation dynamically
+    if (!packageRoot) {
+      log('yellow', '🔍 Detecting global package installation...');
+      packageRoot = findGlobalPackagePath();
+      
+      if (packageRoot) {
+        isGlobalInstallation = true;
+        log('blue', `📍 Running from global npm installation: ${packageRoot}`);
+      } else {
+        throw new Error('Cannot find remotion-mcp-server installation. Please run: npm install -g remotion-mcp-server');
+      }
+    }
+    
+    // Verify package root contains required files
+    log('yellow', '🔍 Verifying package installation...');
+    const requiredFiles = [
+      path.join(packageRoot, 'package.json'),
+      path.join(packageRoot, 'build', 'index.js')
+    ];
+    
+    for (const filePath of requiredFiles) {
+      if (!fs.existsSync(filePath)) {
+        throw new Error(`Required file missing: ${filePath}. Package installation may be corrupted.`);
+      }
+    }
+    
+    log('green', '✅ Package installation verified');
+    log('blue', `📦 Package root: ${packageRoot}`);
+    log('blue', `📁 Build path: ${path.join(packageRoot, 'build', 'index.js')}`);
     
     // Find and test Node.js
     log('yellow', '🔍 Detecting Node.js installation...');
@@ -368,20 +470,73 @@ async function main() {
       log('blue', '📋 Configuration written:');
       console.log(JSON.stringify(result.config.mcpServers.remotion, null, 2));
       
+      // Additional verification - read back the file to ensure it actually contains our config
+      log('yellow', '🔍 Verifying config file was written correctly...');
+      try {
+        const verificationContent = await fs.readFile(configFile, 'utf8');
+        const verificationConfig = JSON.parse(verificationContent);
+        
+        if (verificationConfig.mcpServers && 
+            verificationConfig.mcpServers.remotion && 
+            verificationConfig.mcpServers.remotion.command === nodePath &&
+            verificationConfig.mcpServers.remotion.args &&
+            verificationConfig.mcpServers.remotion.args[0] === fullBuildPath) {
+          log('green', '✅ Config file verification successful - all paths match!');
+        } else {
+          throw new Error('Config verification failed - written config does not match expected values');
+        }
+      } catch (verificationError) {
+        throw new Error(`Config verification failed: ${verificationError.message}`);
+      }
+      
     } catch (error) {
       log('red', `❌ Failed to update Claude Desktop config: ${error.message}`);
-      log('yellow', '🔧 Troubleshooting:');
-      log('white', '   • Check if Claude Desktop is running (close it first)');
-      log('white', '   • Verify you have write permissions to config directory');
-      log('white', `   • Run: remotion-mcp-debug for detailed diagnostics`);
       
-      log('yellow', '📋 Manual Configuration (if needed):');
+      // Provide specific error diagnosis
+      log('yellow', '🔧 Detailed Diagnostics:');
+      
+      // Check config directory exists and is writable
+      try {
+        const configDir = path.dirname(configFile);
+        if (!fs.existsSync(configDir)) {
+          log('red', `   ❌ Config directory does not exist: ${configDir}`);
+          log('white', '   💡 Claude Desktop may not be installed properly');
+        } else {
+          log('green', `   ✅ Config directory exists: ${configDir}`);
+          
+          // Test write permissions
+          const testFile = path.join(configDir, 'test-write.tmp');
+          try {
+            await fs.writeFile(testFile, 'test');
+            await fs.remove(testFile);
+            log('green', '   ✅ Write permissions OK');
+          } catch (writeError) {
+            log('red', `   ❌ No write permission: ${writeError.message}`);
+            log('white', '   💡 Run as administrator or check folder permissions');
+          }
+        }
+      } catch (diagError) {
+        log('red', `   ❌ Diagnostic failed: ${diagError.message}`);
+      }
+      
+      // Show current paths for debugging
+      log('blue', '📍 Current paths being used:');
+      log('white', `   • Node.js: ${nodePath}`);
+      log('white', `   • MCP Server: ${fullBuildPath}`);
+      log('white', `   • Config file: ${configFile}`);
+      
+      log('yellow', '🛠️ Troubleshooting steps:');
+      log('white', '   1. Close Claude Desktop completely (important!)');
+      log('white', '   2. Run: remotion-mcp-debug for full diagnostics');
+      log('white', '   3. If still failing, try manual configuration below');
+      
+      log('yellow', '📋 Manual Configuration (copy to Claude Desktop config):');
       
       const manualConfig = {
         mcpServers: {
           remotion: {
             command: nodePath,
-            args: [path.resolve(buildPath)]
+            args: [fullBuildPath]
           }
         }
       };

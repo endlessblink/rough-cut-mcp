@@ -1,6 +1,6 @@
 {
   "name": "remotion-mcp-server",
-  "version": "5.3.0",
+  "version": "5.4.0",
   "description": "Cross-platform MCP server for Remotion video creation with AI audio generation",
   "main": "build/index.js",
   "preferGlobal": true,
