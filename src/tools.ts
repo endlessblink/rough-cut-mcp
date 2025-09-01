@@ -11,6 +11,10 @@ import {
   addRunningStudio,
   getRunningStudios,
   clearStudioTracking,
+  updateProjectDuration,
+  getAudioConfig,
+  setAudioConfig,
+  isAudioEnabled,
   StudioProcess
 } from './utils.js';
 
@@ -29,12 +33,13 @@ export const tools: Tool[] = [
   },
   {
     name: 'edit-project',
-    description: 'Replace VideoComposition.tsx with new JSX',
+    description: 'Replace VideoComposition.tsx with new JSX and optionally update duration',
     inputSchema: {
       type: 'object',
       properties: {
         name: { type: 'string', description: 'Project name' },
-        jsx: { type: 'string', description: 'New JSX code for VideoComposition.tsx' }
+        jsx: { type: 'string', description: 'New JSX code for VideoComposition.tsx' },
+        duration: { type: 'number', description: 'Video duration in seconds (optional)' }
       },
       required: ['name', 'jsx']
     }
@@ -101,6 +106,41 @@ export const tools: Tool[] = [
       properties: {},
       required: []
     }
+  },
+  {
+    name: 'configure-audio',
+    description: 'Configure optional AI audio generation (ElevenLabs SFX API)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        apiKey: { type: 'string', description: 'ElevenLabs API key (optional)' },
+        enabled: { type: 'boolean', description: 'Enable/disable audio features' }
+      },
+      required: []
+    }
+  },
+  {
+    name: 'generate-audio',
+    description: 'Generate AI sound effects or music for video (requires configuration)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        projectName: { type: 'string', description: 'Project name' },
+        prompt: { type: 'string', description: 'Audio description (e.g., bouncing ball sound effect)' },
+        type: { type: 'string', enum: ['sfx', 'music'], description: 'Audio type' },
+        duration: { type: 'number', description: 'Duration in seconds (optional)' }
+      },
+      required: ['projectName', 'prompt', 'type']
+    }
+  },
+  {
+    name: 'debug-audio-config',
+    description: 'Debug tool to check audio environment variables',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: []
+    }
   }
 ];
 
@@ -111,7 +151,7 @@ export async function handleToolCall(name: string, arguments_: any): Promise<any
         return await createProject(arguments_.name, arguments_.jsx);
       
       case 'edit-project':
-        return await editProject(arguments_.name, arguments_.jsx);
+        return await editProject(arguments_.name, arguments_.jsx, arguments_.duration);
       
       case 'launch-studio':
         return await launchStudio(arguments_.name, arguments_.port);
@@ -130,6 +170,15 @@ export async function handleToolCall(name: string, arguments_: any): Promise<any
       
       case 'get-studio-status':
         return await getStudioStatus();
+      
+      case 'configure-audio':
+        return await configureAudio(arguments_.apiKey, arguments_.enabled);
+      
+      case 'generate-audio':
+        return await generateAudio(arguments_.projectName, arguments_.prompt, arguments_.type, arguments_.duration);
+      
+      case 'debug-audio-config':
+        return await debugAudioConfig();
       
       default:
         throw new Error(`Unknown tool: ${name}`);
@@ -214,20 +263,34 @@ async function createProject(name: string, jsx: string) {
   });
 }
 
-async function editProject(name: string, jsx: string) {
+async function editProject(name: string, jsx: string, duration?: number) {
   const projectPath = getProjectPath(name);
   
   if (!(await fs.pathExists(projectPath))) {
     throw new Error(`Project "${name}" does not exist`);
   }
   
+  // Update VideoComposition.tsx with new JSX
   const compositionPath = path.join(projectPath, 'src', 'VideoComposition.tsx');
   await fs.writeFile(compositionPath, jsx);
+  
+  let message = `Project "${name}" updated successfully.`;
+  
+  // Update duration if provided (safe string replacement)
+  if (duration && duration > 0) {
+    try {
+      await updateProjectDuration(projectPath, duration);
+      message += ` Duration set to ${duration} seconds (${duration * 30} frames).`;
+    } catch (error) {
+      console.error(`[EDIT-PROJECT] Duration update failed:`, error);
+      message += ` Duration update failed: ${error instanceof Error ? error.message : 'unknown error'}.`;
+    }
+  }
   
   return {
     content: [{
       type: 'text',
-      text: `Project "${name}" updated successfully. Refresh browser to see changes.`
+      text: message + ' Refresh browser to see changes.'
     }]
   };
 }
@@ -501,6 +564,148 @@ async function getStudioStatus() {
     content: [{
       type: 'text',
       text: `Running studios (${runningStudios.length}):\n${runningStudios.map(s => `- ${s.projectName}: http://localhost:${s.port} (PID: ${s.pid})`).join('\n')}`
+    }]
+  };
+}
+
+// Optional Audio Tool Functions
+
+async function configureAudio(apiKey?: string, enabled?: boolean) {
+  try {
+    const currentConfig = getAudioConfig();
+    
+    // Use API key from parameter OR existing .env file
+    const effectiveApiKey = apiKey || currentConfig.elevenLabsApiKey;
+    const effectiveEnabled = enabled ?? currentConfig.enabled;
+    
+    const newConfig = {
+      enabled: effectiveEnabled,
+      elevenLabsApiKey: effectiveApiKey
+    };
+    
+    // Only update .env if values are actually changing
+    if (apiKey || enabled !== undefined) {
+      await setAudioConfig(newConfig);
+    }
+    
+    return {
+      content: [{
+        type: 'text',
+        text: `Audio features ${effectiveEnabled ? 'enabled' : 'disabled'}.${effectiveApiKey ? ' ElevenLabs API key configured.' : ' No API key configured - audio generation will not work.'}`
+      }]
+    };
+  } catch (error) {
+    throw new Error(`Audio configuration failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+  }
+}
+
+async function generateAudio(projectName: string, prompt: string, type: string, duration?: number) {
+  // Check if audio is enabled
+  const audioEnabled = isAudioEnabled();
+  if (!audioEnabled) {
+    return {
+      content: [{
+        type: 'text', 
+        text: 'Audio features are disabled. Use configure-audio tool to enable and set API key.'
+      }]
+    };
+  }
+  
+  const projectPath = getProjectPath(projectName);
+  if (!(await fs.pathExists(projectPath))) {
+    throw new Error(`Project "${projectName}" does not exist`);
+  }
+  
+  try {
+    const config = getAudioConfig();
+    
+    if (!config.elevenLabsApiKey) {
+      return {
+        content: [{
+          type: 'text',
+          text: 'ElevenLabs API key not configured. Use configure-audio tool to set API key.'
+        }]
+      };
+    }
+    
+    // Create audio in public directory for proper Remotion serving
+    const audioDir = path.join(projectPath, 'public', 'audio');
+    await fs.ensureDir(audioDir);
+    
+    // Generate audio with real ElevenLabs SFX API
+    const audioFileName = `${type}-${Date.now()}.wav`;
+    const audioPath = path.join(audioDir, audioFileName);
+    
+    console.error(`[GENERATE-AUDIO] Calling ElevenLabs API for: ${prompt}`);
+    
+    // Real ElevenLabs API call
+    const response = await fetch('https://api.elevenlabs.io/v1/sound-generation', {
+      method: 'POST',
+      headers: {
+        'xi-api-key': config.elevenLabsApiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        text: prompt,
+        duration_seconds: duration || 5
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`ElevenLabs API error: ${response.status} ${response.statusText}`);
+    }
+    
+    console.error(`[GENERATE-AUDIO] API call successful, downloading audio...`);
+    
+    // Download and save audio file
+    const audioBuffer = await response.arrayBuffer();
+    await fs.writeFile(audioPath, Buffer.from(audioBuffer));
+    
+    // Validate file was created successfully
+    const fileExists = await fs.pathExists(audioPath);
+    const fileStats = await fs.stat(audioPath);
+    
+    if (!fileExists || fileStats.size === 0) {
+      throw new Error('Audio file creation failed - file empty or not created');
+    }
+    
+    console.error(`[GENERATE-AUDIO] Audio file created: ${audioPath} (${fileStats.size} bytes)`);
+    
+    return {
+      content: [{
+        type: 'text',
+        text: `✅ Audio generated successfully for "${projectName}"!\n\n` +
+              `📄 Details:\n` +
+              `Prompt: ${prompt}\n` +
+              `Type: ${type}\n` +
+              `Duration: ${duration || 5} seconds\n` +
+              `File size: ${Math.round(fileStats.size / 1024)}KB\n\n` +
+              `🎵 Audio saved to: public/audio/${audioFileName}\n` +
+              `📝 Use in VideoComposition:\n` +
+              `import { staticFile } from 'remotion';\n` +
+              `<Audio src={staticFile('audio/${audioFileName}')} />\n\n` +
+              `🔄 Refresh Remotion Studio to see the audio in your timeline!`
+      }]
+    };
+  } catch (error) {
+    throw new Error(`Audio generation failed: ${error instanceof Error ? error.message : 'unknown error'}`);
+  }
+}
+
+async function debugAudioConfig() {
+  const config = getAudioConfig();
+  
+  return {
+    content: [{
+      type: 'text',
+      text: `Audio Configuration Debug:\n` +
+            `AUDIO_ENABLED: ${process.env.AUDIO_ENABLED}\n` +
+            `ELEVENLABS_API_KEY: ${process.env.ELEVENLABS_API_KEY ? '[SET]' : '[NOT SET]'}\n` +
+            `MUBERT_API_KEY: ${process.env.MUBERT_API_KEY ? '[SET]' : '[NOT SET]'}\n\n` +
+            `Parsed Config:\n` +
+            `enabled: ${config.enabled}\n` +
+            `elevenLabsApiKey: ${config.elevenLabsApiKey ? '[SET]' : '[NOT SET]'}\n` +
+            `mubertApiKey: ${config.mubertApiKey ? '[SET]' : '[NOT SET]'}`
     }]
   };
 }

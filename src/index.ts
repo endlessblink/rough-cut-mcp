@@ -1,5 +1,10 @@
 #!/usr/bin/env node
 
+// Load environment variables first with explicit path
+import * as path from 'path';
+import * as dotenv from 'dotenv';
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
@@ -12,7 +17,7 @@ class RemotionMCPServer {
     this.server = new Server(
       {
         name: 'remotion-mcp-server',
-        version: '5.0.0'
+        version: '5.1.0'
       },
       {
         capabilities: {

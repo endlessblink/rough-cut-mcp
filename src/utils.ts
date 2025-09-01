@@ -93,6 +93,86 @@ export function clearStudioTracking(): void {
   runningStudios.clear();
 }
 
+export async function updateProjectDuration(projectPath: string, durationSeconds: number): Promise<void> {
+  const rootPath = path.join(projectPath, 'src', 'Root.tsx');
+  
+  if (!(await fs.pathExists(rootPath))) {
+    throw new Error('Root.tsx not found in project');
+  }
+  
+  let rootContent = await fs.readFile(rootPath, 'utf-8');
+  const fps = 30; // Standard fps
+  const frames = Math.round(durationSeconds * fps);
+  
+  // Safe string replacement for durationInFrames
+  const updatedContent = rootContent.replace(
+    /durationInFrames=\{\d+\}/g,
+    `durationInFrames={${frames}}`
+  );
+  
+  await fs.writeFile(rootPath, updatedContent);
+}
+
+
+// Optional Audio Configuration Management (Secure .env based)
+interface AudioConfig {
+  enabled: boolean;
+  elevenLabsApiKey?: string;
+  mubertApiKey?: string;
+}
+
+export function getAudioConfig(): AudioConfig {
+  return {
+    enabled: process.env.AUDIO_ENABLED === 'true',
+    elevenLabsApiKey: process.env.ELEVENLABS_API_KEY,
+    mubertApiKey: process.env.MUBERT_API_KEY
+  };
+}
+
+export async function setAudioConfig(config: AudioConfig): Promise<void> {
+  const envPath = path.resolve(__dirname, '..', '.env');
+  
+  try {
+    // Read existing .env file or create new content
+    let envContent = '';
+    if (await fs.pathExists(envPath)) {
+      envContent = await fs.readFile(envPath, 'utf-8');
+    }
+    
+    // Update or add each environment variable
+    const updateEnvVar = (content: string, key: string, value: string | boolean | undefined) => {
+      if (value === undefined) return content;
+      
+      const line = `${key}=${value}`;
+      const regex = new RegExp(`^${key}=.*$`, 'm');
+      
+      if (regex.test(content)) {
+        return content.replace(regex, line);
+      } else {
+        return content + (content.endsWith('\n') ? '' : '\n') + line + '\n';
+      }
+    };
+    
+    envContent = updateEnvVar(envContent, 'AUDIO_ENABLED', config.enabled);
+    envContent = updateEnvVar(envContent, 'ELEVENLABS_API_KEY', config.elevenLabsApiKey);
+    envContent = updateEnvVar(envContent, 'MUBERT_API_KEY', config.mubertApiKey);
+    
+    await fs.writeFile(envPath, envContent);
+    
+    // Update current process.env for immediate effect
+    process.env.AUDIO_ENABLED = config.enabled.toString();
+    if (config.elevenLabsApiKey) process.env.ELEVENLABS_API_KEY = config.elevenLabsApiKey;
+    if (config.mubertApiKey) process.env.MUBERT_API_KEY = config.mubertApiKey;
+    
+  } catch (error) {
+    throw new Error(`Failed to save audio config: ${error instanceof Error ? error.message : 'unknown error'}`);
+  }
+}
+
+export function isAudioEnabled(): boolean {
+  return process.env.AUDIO_ENABLED === 'true';
+}
+
 export function getProjectPath(name: string): string {
   // Use Windows path format only
   const baseDir = 'D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\my-builds\\Video + Motion\\rough-cut_2';
@@ -102,6 +182,8 @@ export function getProjectPath(name: string): string {
 export async function createRemotionProject(projectPath: string, jsx: string): Promise<void> {
   await fs.ensureDir(projectPath);
   await fs.ensureDir(path.join(projectPath, 'src'));
+  await fs.ensureDir(path.join(projectPath, 'public'));
+  await fs.ensureDir(path.join(projectPath, 'public', 'audio'));
   
   // Ensure Claude's JSX has proper export pattern for Remotion 4.0.340
   const ensureProperExport = (jsxContent: string): string => {
