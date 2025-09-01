@@ -1,0 +1,31 @@
+#!/usr/bin/env node
+
+/**
+ * Global binary for remotion-mcp-build command
+ * Calls the build.js script from the package installation
+ */
+
+const path = require('path');
+const { spawn } = require('child_process');
+
+// Find the package root directory (where this bin script is located)
+const packageRoot = path.resolve(__dirname, '..');
+const buildScript = path.join(packageRoot, 'build.js');
+
+// Forward all arguments to the build script
+const args = process.argv.slice(2);
+
+// Spawn the build script with proper stdio
+const buildProcess = spawn(process.execPath, [buildScript, ...args], {
+  stdio: 'inherit',
+  cwd: packageRoot // Build should happen in package directory
+});
+
+buildProcess.on('exit', (code) => {
+  process.exit(code || 0);
+});
+
+buildProcess.on('error', (error) => {
+  console.error('Failed to run remotion-mcp-build:', error.message);
+  process.exit(1);
+});

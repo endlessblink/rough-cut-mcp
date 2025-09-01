@@ -1,0 +1,38 @@
+#!/usr/bin/env node
+
+/**
+ * Global binary for remotion-mcp-server command
+ * Starts the MCP server directly from global installation
+ */
+
+const path = require('path');
+const { spawn } = require('child_process');
+
+// Find the package root directory (where this bin script is located)  
+const packageRoot = path.resolve(__dirname, '..');
+const serverScript = path.join(packageRoot, 'build', 'index.js');
+
+// Forward all arguments to the server
+const args = process.argv.slice(2);
+
+// Check if built server exists
+const fs = require('fs');
+if (!fs.existsSync(serverScript)) {
+  console.error('Server not built. Run: remotion-mcp-build');
+  process.exit(1);
+}
+
+// Start the MCP server with proper stdio
+const serverProcess = spawn(process.execPath, [serverScript, ...args], {
+  stdio: 'inherit',
+  cwd: process.cwd() // Use current working directory for project operations
+});
+
+serverProcess.on('exit', (code) => {
+  process.exit(code || 0);
+});
+
+serverProcess.on('error', (error) => {
+  console.error('Failed to run remotion-mcp-server:', error.message);
+  process.exit(1);
+});

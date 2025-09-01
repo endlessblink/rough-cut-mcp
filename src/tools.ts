@@ -431,9 +431,8 @@ async function stopStudio(port: number) {
 }
 
 async function listProjects() {
-  // Use same path as getProjectPath() for consistency
-  const baseDir = 'D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\my-builds\\Video + Motion\\rough-cut_2';
-  const projectsDir = path.resolve(baseDir, 'assets', 'projects');
+  // Use same path as getProjectPath() for consistency  
+  const projectsDir = path.resolve(process.cwd(), 'assets', 'projects');
   
   if (!(await fs.pathExists(projectsDir))) {
     return {

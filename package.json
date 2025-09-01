@@ -1,8 +1,23 @@
 {
   "name": "remotion-mcp-server",
   "version": "5.1.0",
-  "description": "Minimal MCP server for Remotion video creation",
+  "description": "Cross-platform MCP server for Remotion video creation with AI audio generation",
   "main": "build/index.js",
+  "preferGlobal": true,
+  "bin": {
+    "remotion-mcp-setup": "./bin/remotion-mcp-setup",
+    "remotion-mcp-build": "./bin/remotion-mcp-build",
+    "remotion-mcp-server": "./bin/remotion-mcp-server"
+  },
+  "files": [
+    "build/",
+    "bin/",
+    "setup.js",
+    "build.js",
+    "utils/",
+    "README.md",
+    "package.json"
+  ],
   "scripts": {
     "prebuild": "node -e \"if(process.platform==='linux'&&process.env.WSL_DISTRO_NAME){console.error('Build on Windows only!');process.exit(1)}\"",
     "build": "node build.js",
@@ -19,9 +34,17 @@
     "dev:ts": "tsc && node build/index.js",
     "test:env": "bash -c \"source ~/.nvm/nvm.sh && node --version && npm --version && npx --version\""
   },
-  "keywords": ["mcp", "remotion", "video"],
-  "author": "",
+  "keywords": ["mcp", "remotion", "video", "claude", "ai", "audio", "cross-platform"],
+  "author": "endlessblink",
   "license": "MIT",
+  "homepage": "https://github.com/endlessblink/rough-cut-mcp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/endlessblink/rough-cut-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/endlessblink/rough-cut-mcp/issues"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.5.0",
     "fs-extra": "^11.2.0",

@@ -154,17 +154,34 @@ async function main() {
     const platform = detectPlatform();
     log('blue', `🔍 Platform: ${platform.platform}${platform.isWSL ? ' (WSL)' : ''}`);
     
-    // Check if we're in the right directory
+    // Determine if running from global installation or local directory
     const currentDir = process.cwd();
-    const packageJsonPath = path.join(currentDir, 'package.json');
+    const scriptDir = __dirname;
     
-    if (!fs.existsSync(packageJsonPath)) {
-      throw new Error('package.json not found. Please run this script from the project root directory.');
-    }
+    let packageRoot, isGlobalInstallation;
+    const localPackageJson = path.join(currentDir, 'package.json');
+    const globalPackageJson = path.join(scriptDir, 'package.json');
     
-    const packageJson = await fs.readJson(packageJsonPath);
-    if (packageJson.name !== 'remotion-mcp-server') {
-      log('yellow', '⚠️  Warning: Not in expected project directory, but continuing...');
+    if (fs.existsSync(localPackageJson)) {
+      // Running from local directory (development)
+      const packageJson = await fs.readJson(localPackageJson);
+      if (packageJson.name === 'remotion-mcp-server') {
+        packageRoot = currentDir;
+        isGlobalInstallation = false;
+        log('blue', '📍 Running from local development directory');
+      } else {
+        // Local directory but different package - assume global installation
+        packageRoot = scriptDir;
+        isGlobalInstallation = true;
+        log('blue', '📍 Running from global npm installation');
+      }
+    } else if (fs.existsSync(globalPackageJson)) {
+      // Running from global installation
+      packageRoot = scriptDir;
+      isGlobalInstallation = true;
+      log('blue', '📍 Running from global npm installation');
+    } else {
+      throw new Error('Cannot determine package location. Please run from project directory or install globally via npm.');
     }
     
     // Find and test Node.js
@@ -184,15 +201,18 @@ async function main() {
       throw error;
     }
     
-    // Install dependencies
-    log('yellow', '📦 Installing dependencies...');
-    await runCommand('npm', ['install']);
-    log('green', '✅ Dependencies installed successfully');
-    
-    // Build TypeScript
-    log('yellow', '🔧 Building TypeScript...');
-    await runCommand('npx', ['tsc']);
-    log('green', '✅ TypeScript built successfully');
+    // Install dependencies and build (only for local development)
+    if (!isGlobalInstallation) {
+      log('yellow', '📦 Installing dependencies...');
+      await runCommand('npm', ['install'], { cwd: packageRoot });
+      log('green', '✅ Dependencies installed successfully');
+      
+      log('yellow', '🔧 Building TypeScript...');
+      await runCommand('npx', ['tsc'], { cwd: packageRoot });
+      log('green', '✅ TypeScript built successfully');
+    } else {
+      log('green', '✅ Using pre-built global installation');
+    }
     
     // Create assets directory
     log('yellow', '📁 Creating assets directory...');
@@ -202,7 +222,7 @@ async function main() {
     
     // Test MCP server briefly
     log('yellow', '🧪 Testing MCP server startup...');
-    const buildPath = path.join(currentDir, 'build', 'index.js');
+    const buildPath = path.join(packageRoot, 'build', 'index.js');
     
     if (!fs.existsSync(buildPath)) {
       throw new Error('Build file not found. TypeScript compilation may have failed.');
@@ -260,6 +280,14 @@ async function main() {
     }
     
     log('green', '\\n🎯 Setup Complete!');
+    
+    if (isGlobalInstallation) {
+      log('yellow', 'Global Installation Ready:');
+      log('white', `• Assets will be created in: ${currentDir}/assets/projects/`);
+      log('white', '• Run commands from any directory using: remotion-mcp-setup, remotion-mcp-build');
+      log('white', '• Projects will be created in your current working directory');
+    }
+    
     log('yellow', 'Next Steps:');
     log('white', '1. Add the config above to your Claude Desktop configuration');
     log('white', '2. Restart Claude Desktop completely');

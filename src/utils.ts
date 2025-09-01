@@ -174,9 +174,9 @@ export function isAudioEnabled(): boolean {
 }
 
 export function getProjectPath(name: string): string {
-  // Use Windows path format only
-  const baseDir = 'D:\\MY PROJECTS\\AI\\LLM\\AI Code Gen\\my-builds\\Video + Motion\\rough-cut_2';
-  return path.resolve(baseDir, 'assets', 'projects', name);
+  // Use current working directory for cross-platform compatibility
+  // When installed globally, projects will be created where user runs commands
+  return path.resolve(process.cwd(), 'assets', 'projects', name);
 }
 
 export async function createRemotionProject(projectPath: string, jsx: string): Promise<void> {
