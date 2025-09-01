@@ -1,14 +1,14 @@
 {
-  "name": "remotion-mcp-server",
-  "version": "5.4.2",
+  "name": "rough-cut-mcp",
+  "version": "5.4.4",
   "description": "Cross-platform MCP server for Remotion video creation with AI audio generation",
   "main": "build/index.js",
   "preferGlobal": true,
   "bin": {
-    "remotion-mcp-setup": "./bin/remotion-mcp-setup",
-    "remotion-mcp-build": "./bin/remotion-mcp-build",
-    "remotion-mcp-server": "./bin/remotion-mcp-server",
-    "remotion-mcp-debug": "./bin/remotion-mcp-debug"
+    "rough-cut-setup": "./bin/rough-cut-setup",
+    "rough-cut-build": "./bin/rough-cut-build", 
+    "rough-cut-server": "./bin/rough-cut-server",
+    "rough-cut-debug": "./bin/rough-cut-debug"
   },
   "files": [
     "build/",

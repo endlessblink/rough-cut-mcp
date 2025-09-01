@@ -236,8 +236,45 @@ export async function createRemotionProject(projectPath: string, jsx: string): P
   await fs.ensureDir(path.join(projectPath, 'public'));
   await fs.ensureDir(path.join(projectPath, 'public', 'audio'));
   
+  // Basic JSX validation before processing
+  if (!jsx || jsx.trim().length === 0) {
+    throw new Error('JSX content is empty or invalid');
+  }
+  
+  if (jsx.includes('${') && jsx.split('${').length !== jsx.split('}').length) {
+    console.warn('[JSX-VALIDATION] Warning: Potentially malformed template expressions detected, attempting to clean...');
+  }
+  
+  // Validate and clean JSX content before processing
+  const validateAndCleanJSX = (jsxContent: string): string => {
+    // Basic JSX syntax validation and cleanup
+    let cleaned = jsxContent.trim();
+    
+    // Fix common template literal issues that cause "Expected }" errors
+    cleaned = cleaned.replace(/`([^`]*)`/g, '"$1"'); // Convert template literals to strings
+    cleaned = cleaned.replace(/\$\{[^}]*\}/g, ''); // Remove template literal expressions
+    
+    // Fix unclosed objects/braces (common Claude generation issue)
+    const openBraces = (cleaned.match(/\{/g) || []).length;
+    const closeBraces = (cleaned.match(/\}/g) || []).length;
+    
+    if (openBraces > closeBraces) {
+      // Add missing closing braces
+      cleaned += '\n' + '}'.repeat(openBraces - closeBraces);
+    }
+    
+    // Fix incomplete JSX expressions
+    if (cleaned.includes('${') && !cleaned.includes('}')) {
+      cleaned = cleaned.replace(/\$\{[^}]*$/, ''); // Remove incomplete expressions
+    }
+    
+    return cleaned;
+  };
+
   // Ensure Claude's JSX uses FUNCTION DECLARATION + default export (Perplexity research solution)
   const ensureProperExport = (jsxContent: string): string => {
+    // Clean and validate JSX first
+    const cleanedJSX = validateAndCleanJSX(jsxContent);
     // Add comprehensive debug logging
     const withLogging = (content: string): string => {
       const imports = content.split('\n').filter(line => line.startsWith('import')).join('\n');
@@ -250,34 +287,38 @@ export async function createRemotionProject(projectPath: string, jsx: string): P
         '\n\nconsole.log(\'VideoComposition function defined:\', VideoComposition);\n';
     };
     
-    if (jsxContent.includes('function VideoComposition()') && jsxContent.includes('export default VideoComposition')) {
-      return withLogging(jsxContent); // Already correct pattern
-    } else if (jsxContent.includes('export const VideoComposition')) {
+    if (cleanedJSX.includes('function VideoComposition()') && cleanedJSX.includes('export default VideoComposition')) {
+      return withLogging(cleanedJSX); // Already correct pattern
+    } else if (cleanedJSX.includes('export const VideoComposition')) {
       // Convert named arrow function to function declaration
-      const converted = jsxContent
+      const converted = cleanedJSX
         .replace('export const VideoComposition = () => {', 'function VideoComposition() {')
         + '\n\nexport default VideoComposition;';
       return withLogging(converted);
-    } else if (jsxContent.includes('const VideoComposition')) {
+    } else if (cleanedJSX.includes('const VideoComposition')) {
       // Convert const arrow function to function declaration
-      const converted = jsxContent
+      const converted = cleanedJSX
         .replace('const VideoComposition = () => {', 'function VideoComposition() {')
         + '\n\nexport default VideoComposition;';
       return withLogging(converted);
     } else {
-      // Create complete function declaration wrapper
-      return withLogging(`import React from 'react';
-import { AbsoluteFill } from 'remotion';
-
-function VideoComposition() {
-  return (
-    <AbsoluteFill>
-      ${jsxContent}
-    </AbsoluteFill>
-  );
-}
-
-export default VideoComposition;`);
+      // Create complete function declaration wrapper (safe string concatenation)
+      const safeWrapper = [
+        'import React from \'react\';',
+        'import { AbsoluteFill } from \'remotion\';',
+        '',
+        'function VideoComposition() {',
+        '  return (',
+        '    <AbsoluteFill>',
+        '      ' + cleanedJSX, // Safe concatenation with cleaned JSX
+        '    </AbsoluteFill>',
+        '  );',
+        '}',
+        '',
+        'export default VideoComposition;'
+      ].join('\n');
+      
+      return withLogging(safeWrapper);
     }
   };
   

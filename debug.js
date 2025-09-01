@@ -115,7 +115,7 @@ function findNodePath() {
 }
 
 function findGlobalPackagePath() {
-  const packageName = 'remotion-mcp-server';
+  const packageName = 'rough-cut-mcp';
   const platform = detectPlatform();
   
   // Method 1: Try to resolve from current script location (most reliable for global installs)
@@ -257,7 +257,7 @@ async function testServerStartup(nodePath, serverPath) {
 
 async function main() {
   try {
-    log('cyan', '🔍 Remotion MCP Server - Debug Tool');
+    log('cyan', '🔍 Rough Cut MCP - Debug Tool');
     log('white', '='.repeat(45));
     
     const platform = detectPlatform();
@@ -309,11 +309,11 @@ async function main() {
         }
       } else {
         log('red', `❌ Server not built: ${buildPath}`);
-        log('yellow', '   Run: remotion-mcp-build');
+        log('yellow', '   Run: rough-cut-build');
       }
     } else {
       log('red', '❌ Global package not found');
-      log('yellow', '   Run: npm install -g remotion-mcp-server');
+      log('yellow', '   Run: npm install -g rough-cut-mcp');
     }
     
     // 3. Check Claude Desktop Configuration
@@ -354,7 +354,7 @@ async function main() {
           
         } else {
           log('red', '❌ rough-cut-mcp MCP server not found in config');
-          log('yellow', '   Run: remotion-mcp-setup');
+          log('yellow', '   Run: rough-cut-setup');
         }
         
       } catch (error) {
@@ -394,9 +394,9 @@ async function main() {
 const args = process.argv.slice(2);
 if (args.includes('--help') || args.includes('-h')) {
   console.log(`
-Remotion MCP Server - Debug Tool
+Rough Cut MCP - Debug Tool
 
-Usage: remotion-mcp-debug [options]
+Usage: rough-cut-debug [options]
 
 Options:
   --help, -h    Show this help message

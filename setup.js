@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Remotion MCP Server - Cross-Platform Setup Script
+ * Rough Cut MCP - Cross-Platform Setup Script
  * Complements the Windows-specific setup-windows.ps1
  * Works on Windows, macOS, and Linux
  */
@@ -101,7 +101,7 @@ function findNodePath() {
  * Dynamically find the global installation path for remotion-mcp-server
  */
 function findGlobalPackagePath() {
-  const packageName = 'remotion-mcp-server';
+  const packageName = 'rough-cut-mcp';
   const platform = detectPlatform();
   
   // Method 1: Try to resolve from current script location (most reliable for global installs)
@@ -309,7 +309,7 @@ async function main() {
   let fullBuildPath = null;
   
   try {
-    log('cyan', '🚀 Remotion MCP Server V5.0 - Cross-Platform Setup');
+    log('cyan', '🚀 Rough Cut MCP V5.0 - Cross-Platform Setup');
     log('white', '='.repeat(55));
     
     const platform = detectPlatform();
@@ -324,7 +324,7 @@ async function main() {
     if (fs.existsSync(localPackageJson)) {
       try {
         const packageJson = await fs.readJson(localPackageJson);
-        if (packageJson.name === 'remotion-mcp-server') {
+        if (packageJson.name === 'rough-cut-mcp') {
           packageRoot = currentDir;
           isGlobalInstallation = false;
           log('blue', '📍 Running from local development directory');
@@ -343,7 +343,7 @@ async function main() {
         isGlobalInstallation = true;
         log('blue', `📍 Running from global npm installation: ${packageRoot}`);
       } else {
-        throw new Error('Cannot find remotion-mcp-server installation. Please run: npm install -g remotion-mcp-server');
+        throw new Error('Cannot find rough-cut-mcp installation. Please run: npm install -g rough-cut-mcp');
       }
     }
     
@@ -560,7 +560,7 @@ async function main() {
     if (isGlobalInstallation) {
       log('yellow', 'Global Installation Ready:');
       log('white', `• Assets will be created in: ${currentDir}/assets/projects/`);
-      log('white', '• Run commands from any directory using: remotion-mcp-setup, remotion-mcp-build');
+      log('white', '• Run commands from any directory using: rough-cut-setup, rough-cut-build');
       log('white', '• Projects will be created in your current working directory');
     }
     
@@ -585,7 +585,7 @@ async function main() {
     log('white', "   You should see MCP tools available!");
     
     log('white', '\\n4. 🔧 If MCP still not visible:');
-    log('white', '   • Run: remotion-mcp-debug');
+    log('white', '   • Run: rough-cut-debug');
     log('white', '   • Check Claude Desktop logs for errors');
     
     log('white', '\\n5. 🎵 Optional: Configure audio features');
@@ -606,7 +606,7 @@ async function main() {
 const args = process.argv.slice(2);
 if (args.includes('--help') || args.includes('-h')) {
   console.log(`
-Remotion MCP Server - Cross-Platform Setup
+Rough Cut MCP - Cross-Platform Setup
 
 Usage: node setup.js [options]
 
