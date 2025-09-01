@@ -1,0 +1,31 @@
+#!/usr/bin/env node
+
+/**
+ * Global binary for remotion-mcp-debug command
+ * Calls the debug.js script from the package installation
+ */
+
+const path = require('path');
+const { spawn } = require('child_process');
+
+// Find the package root directory (where this bin script is located)
+const packageRoot = path.resolve(__dirname, '..');
+const debugScript = path.join(packageRoot, 'debug.js');
+
+// Forward all arguments to the debug script
+const args = process.argv.slice(2);
+
+// Spawn the debug script with proper stdio
+const debugProcess = spawn(process.execPath, [debugScript, ...args], {
+  stdio: 'inherit',
+  cwd: process.cwd() // Use current working directory
+});
+
+debugProcess.on('exit', (code) => {
+  process.exit(code || 0);
+});
+
+debugProcess.on('error', (error) => {
+  console.error('Failed to run remotion-mcp-debug:', error.message);
+  process.exit(1);
+});

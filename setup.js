@@ -160,7 +160,7 @@ async function readExistingClaudeConfig(configFile) {
 }
 
 /**
- * Safely write Claude Desktop configuration with backup
+ * Safely write Claude Desktop configuration with backup and validation
  */
 async function writeClaudeConfig(configFile, config) {
   const configDir = path.dirname(configFile);
@@ -177,7 +177,24 @@ async function writeClaudeConfig(configFile, config) {
   }
   
   // Write new config
-  await fs.writeFile(configFile, JSON.stringify(config, null, 2));
+  const configJson = JSON.stringify(config, null, 2);
+  await fs.writeFile(configFile, configJson);
+  
+  // Validate what was written
+  try {
+    const writtenContent = await fs.readFile(configFile, 'utf8');
+    const parsedConfig = JSON.parse(writtenContent);
+    
+    // Verify our MCP server is in the config
+    if (parsedConfig.mcpServers && parsedConfig.mcpServers.remotion) {
+      log('green', '✅ Config file written and validated successfully');
+      return { success: true, config: parsedConfig };
+    } else {
+      throw new Error('Remotion MCP server not found in written config');
+    }
+  } catch (error) {
+    throw new Error(`Config validation failed: ${error.message}`);
+  }
 }
 
 function runCommand(command, args, options = {}) {
@@ -318,27 +335,47 @@ async function main() {
     const { configDir, configFile } = getClaudeConfigPaths();
     
     try {
+      // Verify paths exist before writing config
+      const fullBuildPath = path.resolve(buildPath);
+      
+      if (!fs.existsSync(fullBuildPath)) {
+        throw new Error(`MCP server build not found: ${fullBuildPath}`);
+      }
+      
+      log('blue', `📍 Config will be written to: ${configFile}`);
+      log('blue', `🎯 Node.js command: ${nodePath}`);
+      log('blue', `📦 MCP server path: ${fullBuildPath}`);
+      
       // Read existing configuration
       const existingConfig = await readExistingClaudeConfig(configFile);
+      log('blue', `📋 Found ${Object.keys(existingConfig.mcpServers || {}).length} existing MCP servers`);
       
       // Add our MCP server configuration
-      const fullBuildPath = path.resolve(buildPath);
       existingConfig.mcpServers = existingConfig.mcpServers || {};
       existingConfig.mcpServers.remotion = {
         command: nodePath,
         args: [fullBuildPath]
       };
       
-      // Write updated configuration
-      await writeClaudeConfig(configFile, existingConfig);
+      // Write updated configuration with validation
+      const result = await writeClaudeConfig(configFile, existingConfig);
       
       log('green', '✅ Claude Desktop configuration updated successfully!');
       log('blue', `📁 Config file: ${configFile}`);
-      log('green', '✅ MCP server "remotion" added to Claude Desktop');
+      log('green', `✅ MCP server "remotion" added (total: ${Object.keys(result.config.mcpServers).length})`);
+      
+      // Show what was written
+      log('blue', '📋 Configuration written:');
+      console.log(JSON.stringify(result.config.mcpServers.remotion, null, 2));
       
     } catch (error) {
       log('red', `❌ Failed to update Claude Desktop config: ${error.message}`);
-      log('yellow', '📋 Manual Configuration Required:');
+      log('yellow', '🔧 Troubleshooting:');
+      log('white', '   • Check if Claude Desktop is running (close it first)');
+      log('white', '   • Verify you have write permissions to config directory');
+      log('white', `   • Run: remotion-mcp-debug for detailed diagnostics`);
+      
+      log('yellow', '📋 Manual Configuration (if needed):');
       
       const manualConfig = {
         mcpServers: {
@@ -362,11 +399,32 @@ async function main() {
       log('white', '• Projects will be created in your current working directory');
     }
     
-    log('yellow', 'Next Steps:');
+    log('yellow', '🚀 Next Steps - CRITICAL for MCP to appear:');
     log('white', '1. ✅ Claude Desktop configuration automatically updated');
-    log('white', '2. 🔄 Restart Claude Desktop completely (important!)');
-    log('white', "3. 🎬 Test with: 'Create a Remotion project called test with bouncing ball'");
-    log('white', '4. 🎵 Optional: Configure audio with your ElevenLabs API key');
+    
+    log('cyan', '\\n2. 🔄 RESTART CLAUDE DESKTOP COMPLETELY:');
+    if (platform.isWindows) {
+      log('white', '   • Right-click Claude Desktop in system tray → Exit');
+      log('white', '   • OR: Press Ctrl+Shift+Esc → Task Manager → End Claude Desktop');
+      log('white', '   • Wait 3 seconds, then restart Claude Desktop from Start menu');
+    } else if (platform.isMacOS) {
+      log('white', '   • Press Cmd+Q in Claude Desktop (or Claude → Quit Claude Desktop)');
+      log('white', '   • Wait 3 seconds, then restart from Applications or Dock');
+    } else {
+      log('white', '   • Close Claude Desktop completely (not minimize)');
+      log('white', '   • Wait 3 seconds, then restart the application');
+    }
+    
+    log('white', "\\n3. 🎬 Test MCP Server:");
+    log('white', "   Ask Claude: 'Create a Remotion project called test with bouncing ball'");
+    log('white', "   You should see MCP tools available!");
+    
+    log('white', '\\n4. 🔧 If MCP still not visible:');
+    log('white', '   • Run: remotion-mcp-debug');
+    log('white', '   • Check Claude Desktop logs for errors');
+    
+    log('white', '\\n5. 🎵 Optional: Configure audio features');
+    log('white', "   Ask Claude: 'Configure audio with my ElevenLabs API key'");
     
     log('yellow', '\\n🛠️ Troubleshooting:');
     log('white', '- Check Claude Desktop logs for MCP server errors');
