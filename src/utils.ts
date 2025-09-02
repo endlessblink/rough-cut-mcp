@@ -251,14 +251,14 @@ export function getBaseDirectory(): string {
 }
 
 export function getProjectPath(name: string): string {
-  // Priority 1: REMOTION_PROJECTS_DIR (advanced users)
+  // Priority 1: REMOTION_PROJECTS_DIR (advanced users) - NO AUTO-CREATION
   if (process.env.REMOTION_PROJECTS_DIR) {
     const normalizedPath = normalizePath(process.env.REMOTION_PROJECTS_DIR);
     console.error(`[PATH-DEBUG] Using REMOTION_PROJECTS_DIR: ${normalizedPath}`);
-    return path.resolve(normalizedPath, name);
+    return path.resolve(normalizedPath, name);  // EARLY RETURN - no auto-creation
   }
   
-  // Priority 2: User-friendly Documents directory (non-technical users)
+  // Priority 2: User-friendly Documents directory (non-technical users only)
   const os = require('os');
   const homeDir = os.homedir();
   
@@ -271,7 +271,7 @@ export function getProjectPath(name: string): string {
     userFriendlyDir = path.join(homeDir, 'remotion-projects');
   }
   
-  // Auto-create user-friendly directory if it doesn't exist
+  // Auto-create user-friendly directory ONLY for non-technical users
   try {
     if (!require('fs-extra').existsSync(userFriendlyDir)) {
       require('fs-extra').ensureDirSync(userFriendlyDir);

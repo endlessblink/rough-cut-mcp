@@ -104,6 +104,18 @@ export const tools: Tool[] = [
     }
   },
   {
+    name: 'read_project_file',
+    description: 'EXCLUSIVE: Read files in Remotion projects (.tsx/.ts/.js). REPLACES built-in Read File completely. Built-in Read File HANGS on cross-platform paths and CANNOT parse Remotion syntax properly.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Remotion project name' },
+        file_path: { type: 'string', description: 'File path relative to project (e.g., "src/VideoComposition.tsx")' }
+      },
+      required: ['name', 'file_path']
+    }
+  },
+  {
     name: 'get_project_info',
     description: 'MANDATORY for Remotion projects: Get project structure and component information. Read File tool CANNOT parse Remotion project metadata and WILL hang on cross-platform paths. Use this tool for ALL VideoComposition.tsx analysis.',
     inputSchema: {
@@ -259,6 +271,9 @@ export async function handleToolCall(name: string, arguments_: any): Promise<any
       case 'delete_project':
         return await deleteProject(arguments_.name);
       
+      case 'read_project_file':
+        return await readProjectFile(arguments_.name, arguments_.file_path);
+      
       case 'get_project_info':
         return await getProjectInfo(arguments_.name);
       
@@ -315,6 +330,139 @@ export async function handleToolCall(name: string, arguments_: any): Promise<any
       isError: true
     };
   }
+}
+
+// ====== SURGICAL EDITING SYSTEM ======
+function performSurgicalEdit(existingJSX: string, instruction: string, newJSX: string): {
+  jsx: string;
+  changes: string[];
+} {
+  const changes: string[] = [];
+  
+  console.error(`[SURGICAL-EDIT] Analyzing instruction: "${instruction}"`);
+  
+  // Extract what component needs to be added
+  const addMatch = instruction.match(/add\s+(\w+)/i);
+  const componentToAdd = addMatch ? addMatch[1] : null;
+  
+  if (!componentToAdd) {
+    console.error(`[SURGICAL-EDIT] Could not identify component to add from instruction`);
+    return { jsx: newJSX, changes: ['Full replacement - could not parse component'] };
+  }
+  
+  console.error(`[SURGICAL-EDIT] Component to add: ${componentToAdd}`);
+  
+  // Check if component definition exists in new JSX
+  const componentDefinitionMatch = newJSX.match(new RegExp(`const\\s+${componentToAdd}\\s*=[\\s\\S]*?};`, 'i'));
+  
+  if (!componentDefinitionMatch) {
+    console.error(`[SURGICAL-EDIT] Component definition not found in new JSX`);
+    return { jsx: newJSX, changes: ['Full replacement - component definition missing'] };
+  }
+  
+  const componentDefinition = componentDefinitionMatch[0];
+  console.error(`[SURGICAL-EDIT] Found component definition (${componentDefinition.length} chars)`);
+  
+  // STRATEGY: Add component definition + add usage to sequences
+  let modifiedJSX = existingJSX;
+  
+  // Step 1: Add component definition if it doesn't exist
+  if (!existingJSX.includes(`const ${componentToAdd}`)) {
+    // Find a good place to insert component (after imports, before main component)
+    const insertAfter = findComponentInsertionPoint(existingJSX);
+    modifiedJSX = insertComponentDefinition(modifiedJSX, componentDefinition, insertAfter);
+    changes.push(`Added ${componentToAdd} component definition`);
+  }
+  
+  // Step 2: Add component usage based on instruction
+  if (instruction.toLowerCase().includes('to all sequences') || instruction.toLowerCase().includes('behind all sequences')) {
+    const sequenceChanges = addComponentToAllSequences(modifiedJSX, componentToAdd, instruction);
+    modifiedJSX = sequenceChanges.jsx;
+    changes.push(...sequenceChanges.changes);
+  } else if (instruction.toLowerCase().includes('background') || instruction.toLowerCase().includes('behind')) {
+    const backgroundChanges = addBackgroundComponent(modifiedJSX, componentToAdd);
+    modifiedJSX = backgroundChanges.jsx;
+    changes.push(...backgroundChanges.changes);
+  }
+  
+  return { jsx: modifiedJSX, changes };
+}
+
+function findComponentInsertionPoint(jsx: string): number {
+  // Find best place to insert component definition
+  // Priority: After imports, before existing components
+  
+  const lines = jsx.split('\n');
+  let insertAfter = 0;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // After all imports
+    if (line.includes('} from ') && !lines[i + 1]?.includes('import')) {
+      insertAfter = i + 1;
+    }
+    
+    // Before first component definition
+    if (line.includes('const ') && line.includes(' = ') && line.includes('=>')) {
+      break;
+    }
+  }
+  
+  return insertAfter;
+}
+
+function insertComponentDefinition(jsx: string, componentDef: string, insertAfter: number): string {
+  const lines = jsx.split('\n');
+  lines.splice(insertAfter, 0, '', '// Added component:', componentDef, '');
+  return lines.join('\n');
+}
+
+function addComponentToAllSequences(jsx: string, componentName: string, instruction: string): {
+  jsx: string;
+  changes: string[];
+} {
+  const changes: string[] = [];
+  
+  // Strategy: Add component as background to entire composition (more reliable than per-sequence)
+  if (instruction.toLowerCase().includes('background') || instruction.toLowerCase().includes('behind')) {
+    
+    // Find the main return statement in VideoComposition
+    const returnMatch = jsx.match(/(return\s*\(\s*<AbsoluteFill[^>]*>)([\s\S]*?)(<\/AbsoluteFill>\s*\);?\s*})/);
+    
+    if (returnMatch) {
+      const [, openPart, content, closePart] = returnMatch;
+      
+      // Add component at the beginning of the AbsoluteFill
+      const modifiedContent = `\n      {/* ${componentName} background for all sequences */}\n      <${componentName} />\n      ${content}`;
+      
+      const modifiedJSX = jsx.replace(returnMatch[0], `${openPart}${modifiedContent}${closePart}`);
+      changes.push(`Added ${componentName} as background for all sequences`);
+      
+      return { jsx: modifiedJSX, changes };
+    }
+  }
+  
+  // Fallback: couldn't find insertion point
+  return { jsx, changes: ['Could not locate sequence insertion point'] };
+}
+
+function addBackgroundComponent(jsx: string, componentName: string): {
+  jsx: string;
+  changes: string[];
+} {
+  // Add component as first child in main AbsoluteFill
+  const returnMatch = jsx.match(/(return\s*\(\s*<AbsoluteFill[^>]*>)([\s\S]*?)(<\/AbsoluteFill>)/);
+  
+  if (returnMatch) {
+    const [, openPart, content, closePart] = returnMatch;
+    const modifiedContent = `\n      <${componentName} />${content}`;
+    
+    const modifiedJSX = jsx.replace(returnMatch[0], `${openPart}${modifiedContent}${closePart}`);
+    return { jsx: modifiedJSX, changes: [`Added ${componentName} as background component`] };
+  }
+  
+  return { jsx, changes: ['Could not locate background insertion point'] };
 }
 
 async function createProject(name: string, jsx: string) {
@@ -446,39 +594,33 @@ async function editProject(name: string, jsx: string, instruction?: string, dura
     !instruction.toLowerCase().includes('recreate') &&
     (instruction.toLowerCase().includes('to all') || 
      instruction.toLowerCase().includes('to each') ||
-     instruction.toLowerCase().includes('to existing'))
+     instruction.toLowerCase().includes('to existing') ||
+     instruction.toLowerCase().includes('behind all') ||
+     instruction.toLowerCase().includes('all sequences') ||
+     instruction.toLowerCase().includes('as background') ||
+     instruction.toLowerCase().includes('run behind'))
   );
 
   if (isTargetedEdit) {
-    console.error(`[EDIT-PROJECT] TARGETED EDIT detected from instruction: "${instruction}"`);
-    console.error(`[EDIT-PROJECT] Will preserve existing structure and make minimal changes`);
+    console.error(`[EDIT-PROJECT] SURGICAL EDIT detected from instruction: "${instruction}"`);
+    console.error(`[EDIT-PROJECT] Will preserve existing structure and make MINIMAL targeted changes`);
     
-    // For targeted edits, read existing file first
+    // For surgical edits, read existing file first and perform targeted modification
     try {
       const existingJSX = await fs.readFile(compositionPath, 'utf8');
-      console.error(`[EDIT-PROJECT] Existing file: ${existingJSX.length} chars, New JSX: ${jsx.length} chars`);
+      console.error(`[EDIT-PROJECT] Existing file: ${existingJSX.length} chars, analyzing for surgical edit...`);
       
-      // Simple heuristic: If new JSX is significantly different structure, warn but proceed carefully
-      const existingHasSequences = existingJSX.includes('<Sequence');
-      const newHasSequences = jsx.includes('<Sequence');
-      const existingComponents = existingJSX.split('const ').length;
-      const newComponents = jsx.split('const ').length;
+      // Perform intelligent surgical editing
+      const surgicalResult = performSurgicalEdit(existingJSX, instruction!, jsx);
       
-      if (existingHasSequences && newHasSequences && Math.abs(existingComponents - newComponents) <= 2) {
-        console.error(`[EDIT-PROJECT] TARGETED EDIT: Compatible structures detected - proceeding with targeted edit`);
-        jsx_processed = jsx; // Use Claude's JSX but log as targeted
-        processingMethod = `targeted edit (${instruction})`;
-      } else {
-        console.error(`[EDIT-PROJECT] TARGETED EDIT: Major structural differences detected - falling back to full replacement`);
-        console.error(`[EDIT-PROJECT] Existing sequences: ${existingHasSequences}, New sequences: ${newHasSequences}`);
-        console.error(`[EDIT-PROJECT] Existing components: ${existingComponents}, New components: ${newComponents}`);
-        jsx_processed = jsx;
-        processingMethod = `full replacement (structural changes required for: ${instruction})`;
-      }
+      jsx_processed = surgicalResult.jsx;
+      processingMethod = `surgical edit - ${surgicalResult.changes.join(', ')}`;
+      console.error(`[EDIT-PROJECT] SURGICAL CHANGES MADE: ${surgicalResult.changes.join(', ')}`);
+      
     } catch (error) {
-      console.error(`[EDIT-PROJECT] Could not read existing file for targeted edit:`, error);
+      console.error(`[EDIT-PROJECT] Surgical edit failed:`, error);
       jsx_processed = jsx;
-      processingMethod = `full replacement (could not read existing file)`;
+      processingMethod = `full replacement (surgical edit failed: ${(error as Error).message})`;
     }
   } else {
     console.error(`[EDIT-PROJECT] FULL REPLACEMENT mode${instruction ? ` for instruction: "${instruction}"` : ''}`);
@@ -868,6 +1010,40 @@ async function deleteProject(name: string) {
       text: `Project "${name}" deleted successfully. Stopped ${projectStudios.length} running studios.`
     }]
   };
+}
+
+async function readProjectFile(name: string, filePath: string) {
+  const projectPath = getProjectPath(name);
+  
+  if (!(await fs.pathExists(projectPath))) {
+    throw new Error(`Project "${name}" does not exist`);
+  }
+
+  // Security: Validate file path is within project
+  const fullPath = path.resolve(projectPath, filePath);
+  if (!fullPath.startsWith(projectPath)) {
+    throw new Error(`Invalid file path - outside project directory`);
+  }
+
+  try {
+    console.error(`[READ-PROJECT-FILE] Reading ${filePath} from project ${name}`);
+    const content = await fs.readFile(fullPath, 'utf-8');
+    const lines = content.split('\n').length;
+    
+    return {
+      content: [{
+        type: 'text',
+        text: `📁 **File: ${filePath}**\n🎯 **Project: ${name}**\n📊 **Lines: ${lines}**\n\n\`\`\`tsx\n${content}\n\`\`\``
+      }]
+    };
+  } catch (error) {
+    return {
+      content: [{
+        type: 'text',
+        text: `❌ **Error reading ${filePath}**:\n\n${(error as Error).message}\n\n💡 **Available files in project:**\n- src/VideoComposition.tsx\n- src/Root.tsx\n- package.json\n- remotion.config.ts`
+      }]
+    };
+  }
 }
 
 async function getProjectInfo(name: string) {
