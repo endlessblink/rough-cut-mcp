@@ -251,15 +251,43 @@ export function getBaseDirectory(): string {
 }
 
 export function getProjectPath(name: string): string {
-  // If REMOTION_PROJECTS_DIR is set, use it directly as the projects directory
+  // Priority 1: REMOTION_PROJECTS_DIR (advanced users)
   if (process.env.REMOTION_PROJECTS_DIR) {
     const normalizedPath = normalizePath(process.env.REMOTION_PROJECTS_DIR);
+    console.error(`[PATH-DEBUG] Using REMOTION_PROJECTS_DIR: ${normalizedPath}`);
     return path.resolve(normalizedPath, name);
   }
   
-  // Otherwise use smart detection with assets/projects structure
+  // Priority 2: User-friendly Documents directory (non-technical users)
+  const os = require('os');
+  const homeDir = os.homedir();
+  
+  let userFriendlyDir: string;
+  if (process.platform === 'win32') {
+    userFriendlyDir = path.join(homeDir, 'Documents', 'Remotion Projects');
+  } else if (process.platform === 'darwin') {
+    userFriendlyDir = path.join(homeDir, 'Documents', 'Remotion Projects');
+  } else {
+    userFriendlyDir = path.join(homeDir, 'remotion-projects');
+  }
+  
+  // Auto-create user-friendly directory if it doesn't exist
+  try {
+    if (!require('fs-extra').existsSync(userFriendlyDir)) {
+      require('fs-extra').ensureDirSync(userFriendlyDir);
+      console.error(`[AUTO-SETUP] Created user-friendly project directory: ${userFriendlyDir}`);
+    }
+    console.error(`[PATH-DEBUG] Using user-friendly directory: ${userFriendlyDir}`);
+    return path.resolve(userFriendlyDir, name);
+  } catch (error) {
+    console.error(`[AUTO-SETUP] Could not create user-friendly directory:`, error);
+  }
+  
+  // Priority 3: Technical fallback (assets/projects structure)
   const baseDir = getBaseDirectory();
-  return path.resolve(baseDir, 'assets', 'projects', name);
+  const fallbackDir = path.resolve(baseDir, 'assets', 'projects');
+  console.error(`[PATH-DEBUG] Using technical fallback: ${fallbackDir}`);
+  return path.resolve(fallbackDir, name);
 }
 
 // ====== SHARED JSX PROCESSING FUNCTIONS ======

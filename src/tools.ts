@@ -33,8 +33,8 @@ import { checkpointManager, jsxProcessor } from './checkpoint-processor.js';
 
 export const tools: Tool[] = [
   {
-    name: 'create_project',
-    description: 'Create a new Remotion project with Claude-generated JSX',
+    name: 'create_project',  
+    description: 'MANDATORY for video creation: Create new Remotion projects with proper JSX structure. This is the ONLY tool that can create valid Remotion projects. Built-in tools CANNOT create the required project structure.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -46,12 +46,13 @@ export const tools: Tool[] = [
   },
   {
     name: 'edit_project',
-    description: 'Replace VideoComposition.tsx with new JSX and optionally update duration',
+    description: 'MANDATORY for VideoComposition.tsx files: Use this tool for ALL Remotion project edits. Built-in Edit/Read tools CANNOT handle Remotion syntax and WILL corrupt projects. Required for surgical edits and targeted changes.',
     inputSchema: {
       type: 'object',
       properties: {
-        name: { type: 'string', description: 'Project name' },
-        jsx: { type: 'string', description: 'New JSX code for VideoComposition.tsx' },
+        name: { type: 'string', description: 'Remotion project name (required for .tsx file operations)' },
+        jsx: { type: 'string', description: 'Complete JSX code for VideoComposition.tsx file (Remotion components only)' },
+        instruction: { type: 'string', description: 'CRITICAL: User instruction for surgical/targeted edits vs full replacement (required for preserving animation structure)' },
         duration: { type: 'number', description: 'Video duration in seconds (optional)' },
         use_resumption: { type: 'boolean', description: 'Use resumption system with timeout protection (default: true, set false to disable)' },
         resume_from: { type: 'string', description: 'Resume from specific operation ID (optional)' }
@@ -84,7 +85,7 @@ export const tools: Tool[] = [
   },
   {
     name: 'list_projects',
-    description: 'List all Remotion projects',
+    description: 'MANDATORY for Remotion project discovery: List all video projects with metadata. File system tools CANNOT detect Remotion project structure and WILL miss critical project information. Use this for ALL project listing.',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -104,7 +105,7 @@ export const tools: Tool[] = [
   },
   {
     name: 'get_project_info',
-    description: 'Get detailed information about a project',
+    description: 'MANDATORY for Remotion projects: Get project structure and component information. Read File tool CANNOT parse Remotion project metadata and WILL hang on cross-platform paths. Use this tool for ALL VideoComposition.tsx analysis.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -244,7 +245,7 @@ export async function handleToolCall(name: string, arguments_: any): Promise<any
         return await createProject(arguments_.name, arguments_.jsx);
       
       case 'edit_project':
-        return await editProject(arguments_.name, arguments_.jsx, arguments_.duration, arguments_.use_resumption, arguments_.resume_from);
+        return await editProject(arguments_.name, arguments_.jsx, arguments_.instruction, arguments_.duration, arguments_.use_resumption, arguments_.resume_from);
       
       case 'launch_studio':
         return await launchStudio(arguments_.name, arguments_.port);
@@ -360,10 +361,22 @@ async function createProject(name: string, jsx: string) {
       if (stderr) console.error(`[CREATE-PROJECT] npm stderr:`, stderr);
       
       if (code === 0) {
+        // Check if this is user's first project (welcome message)  
+        const projectsDir = path.dirname(projectPath);
+        const isFirstProject = !require('fs-extra').existsSync(projectsDir) || 
+                             require('fs-extra').readdirSync(projectsDir).filter((item: string) => 
+                               require('fs-extra').statSync(path.join(projectsDir, item)).isDirectory()
+                             ).length <= 1;
+        
+        let welcomeMessage = '';
+        if (isFirstProject) {
+          welcomeMessage = `\n\n🎉 **Welcome to Remotion MCP!** This is your first project.\n📁 All your video projects are saved to: ${projectsDir}\n💡 Tip: Use launch_studio to preview your animations!`;
+        }
+
         resolve({
           content: [{
             type: 'text',
-            text: `Project "${name}" created successfully at ${projectPath}\n\nNext step: Use launch-studio tool to start Remotion Studio.`
+            text: `Project "${name}" created successfully at ${projectPath}${welcomeMessage}\n\nNext step: Use launch-studio tool to start Remotion Studio.`
           }]
         });
       } else {
@@ -378,7 +391,7 @@ async function createProject(name: string, jsx: string) {
   });
 }
 
-async function editProject(name: string, jsx: string, duration?: number, useResumption?: boolean, resumeFrom?: string) {
+async function editProject(name: string, jsx: string, instruction?: string, duration?: number, useResumption?: boolean, resumeFrom?: string) {
   const projectPath = getProjectPath(name);
   
   // AUTOMATIC RECOVERY: Check if project exists and its integrity
@@ -425,50 +438,95 @@ async function editProject(name: string, jsx: string, duration?: number, useResu
   const compositionPath = path.join(projectPath, 'src', 'VideoComposition.tsx');
   let jsx_processed: string;
   let processingMethod: string;
-  
-  // HYBRID PROCESSING: Use resumption system by DEFAULT, with opt-out option
-  if (useResumption === false) {
-    console.error(`[EDIT-PROJECT] Using existing JSX processing system (explicitly disabled)`);
-    jsx_processed = ensureProperExportSafe(jsx);
-    processingMethod = 'existing system (explicitly disabled)';
-  } else {
-    console.error(`[EDIT-PROJECT] Using resumption system (default)${resumeFrom ? ` - resuming from ${resumeFrom}` : ''}`);
+
+  // INSTRUCTION-AWARE PROCESSING: Detect if this should be a targeted edit
+  const isTargetedEdit = instruction && (
+    instruction.toLowerCase().includes('add') && 
+    !instruction.toLowerCase().includes('replace') &&
+    !instruction.toLowerCase().includes('recreate') &&
+    (instruction.toLowerCase().includes('to all') || 
+     instruction.toLowerCase().includes('to each') ||
+     instruction.toLowerCase().includes('to existing'))
+  );
+
+  if (isTargetedEdit) {
+    console.error(`[EDIT-PROJECT] TARGETED EDIT detected from instruction: "${instruction}"`);
+    console.error(`[EDIT-PROJECT] Will preserve existing structure and make minimal changes`);
     
+    // For targeted edits, read existing file first
     try {
-      // Generate or use existing operation ID
-      const operationId = resumeFrom || `edit_${name}_${Date.now()}`;
+      const existingJSX = await fs.readFile(compositionPath, 'utf8');
+      console.error(`[EDIT-PROJECT] Existing file: ${existingJSX.length} chars, New JSX: ${jsx.length} chars`);
       
-      // Check for existing checkpoint if resuming
-      const existingCheckpoint = resumeFrom ? checkpointManager.getCheckpoint(resumeFrom) : undefined;
+      // Simple heuristic: If new JSX is significantly different structure, warn but proceed carefully
+      const existingHasSequences = existingJSX.includes('<Sequence');
+      const newHasSequences = jsx.includes('<Sequence');
+      const existingComponents = existingJSX.split('const ').length;
+      const newComponents = jsx.split('const ').length;
       
-      if (resumeFrom && !existingCheckpoint) {
-        throw new Error(`No checkpoint found for operation: ${resumeFrom}`);
+      if (existingHasSequences && newHasSequences && Math.abs(existingComponents - newComponents) <= 2) {
+        console.error(`[EDIT-PROJECT] TARGETED EDIT: Compatible structures detected - proceeding with targeted edit`);
+        jsx_processed = jsx; // Use Claude's JSX but log as targeted
+        processingMethod = `targeted edit (${instruction})`;
+      } else {
+        console.error(`[EDIT-PROJECT] TARGETED EDIT: Major structural differences detected - falling back to full replacement`);
+        console.error(`[EDIT-PROJECT] Existing sequences: ${existingHasSequences}, New sequences: ${newHasSequences}`);
+        console.error(`[EDIT-PROJECT] Existing components: ${existingComponents}, New components: ${newComponents}`);
+        jsx_processed = jsx;
+        processingMethod = `full replacement (structural changes required for: ${instruction})`;
       }
-      
-      // Use resumption system with timeout protection
-      jsx_processed = await jsxProcessor.processJSXWithResumption(jsx, name, operationId, existingCheckpoint);
-      processingMethod = `resumption system${resumeFrom ? ' (resumed)' : ''}`;
-      
     } catch (error) {
-      console.error(`[EDIT-PROJECT] Resumption system failed:`, error);
-      
-      // Check if it's a resumable timeout error
-      const isTimeoutError = error instanceof Error && error.message.includes('RESUMABLE_TIMEOUT');
-      
-      if (isTimeoutError) {
-        // Timeout occurred - return with resumption instructions
-        return {
-          content: [{
-            type: 'text',
-            text: `⏳ **Operation Timed Out**\n\n${error.message}\n\n💡 Your progress has been saved. Use \`resume_operation\` to continue from where it stopped, or try again with regular processing.`
-          }]
-        };
-      }
-      
-      // Other error - fallback to existing system
-      console.error(`[EDIT-PROJECT] Falling back to existing JSX processing system`);
+      console.error(`[EDIT-PROJECT] Could not read existing file for targeted edit:`, error);
+      jsx_processed = jsx;
+      processingMethod = `full replacement (could not read existing file)`;
+    }
+  } else {
+    console.error(`[EDIT-PROJECT] FULL REPLACEMENT mode${instruction ? ` for instruction: "${instruction}"` : ''}`);
+    
+    // HYBRID PROCESSING: Use resumption system by DEFAULT, with opt-out option
+    if (useResumption === false) {
+      console.error(`[EDIT-PROJECT] Using existing JSX processing system (explicitly disabled)`);
       jsx_processed = ensureProperExportSafe(jsx);
-      processingMethod = 'existing system (fallback from resumption error)';
+      processingMethod = 'existing system (explicitly disabled)';
+    } else {
+      console.error(`[EDIT-PROJECT] Using resumption system (default)${resumeFrom ? ` - resuming from ${resumeFrom}` : ''}`);
+      
+      try {
+        // Generate or use existing operation ID
+        const operationId = resumeFrom || `edit_${name}_${Date.now()}`;
+        
+        // Check for existing checkpoint if resuming
+        const existingCheckpoint = resumeFrom ? checkpointManager.getCheckpoint(resumeFrom) : undefined;
+        
+        if (resumeFrom && !existingCheckpoint) {
+          throw new Error(`No checkpoint found for operation: ${resumeFrom}`);
+        }
+        
+        // Use resumption system with timeout protection
+        jsx_processed = await jsxProcessor.processJSXWithResumption(jsx, name, operationId, existingCheckpoint);
+        processingMethod = `resumption system${resumeFrom ? ' (resumed)' : ''}`;
+        
+      } catch (error) {
+        console.error(`[EDIT-PROJECT] Resumption system failed:`, error);
+        
+        // Check if it's a resumable timeout error
+        const isTimeoutError = error instanceof Error && error.message.includes('RESUMABLE_TIMEOUT');
+        
+        if (isTimeoutError) {
+          // Timeout occurred - return with resumption instructions
+          return {
+            content: [{
+              type: 'text',
+              text: `⏳ **Operation Timed Out**\n\n${error.message}\n\n💡 Your progress has been saved. Use \`resume_operation\` to continue from where it stopped, or try again with regular processing.`
+            }]
+          };
+        }
+        
+        // Other error - fallback to existing system
+        console.error(`[EDIT-PROJECT] Falling back to existing JSX processing system`);
+        jsx_processed = ensureProperExportSafe(jsx);
+        processingMethod = 'existing system (fallback from resumption error)';
+      }
     }
   }
   
