@@ -32,7 +32,7 @@ class RemotionMCPServer {
     this.server = new Server(
       {
         name: 'rough-cut-mcp',
-        version: '5.5.1'
+        version: '5.6.0'
       },
       {
         capabilities: {

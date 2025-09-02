@@ -1,6 +1,6 @@
 {
-  "name": "rough-cut-mcp-e2e",
-  "version": "5.5.1",
+  "name": "rough-cut-mcp",
+  "version": "5.6.0",
   "description": "Cross-platform MCP server for Remotion video creation with AI audio generation",
   "main": "build/index.js",
   "preferGlobal": true,
