@@ -101,7 +101,7 @@ function findNodePath() {
  * Dynamically find the global installation path for remotion-mcp-server
  */
 function findGlobalPackagePath() {
-  const packageName = 'rough-cut-mcp';
+  const packageName = 'rough-cut-mcp-e2e';
   const platform = detectPlatform();
   
   // Method 1: Try to resolve from current script location (most reliable for global installs)
@@ -269,11 +269,11 @@ async function writeClaudeConfig(configFile, config) {
     const parsedConfig = JSON.parse(writtenContent);
     
     // Verify our MCP server is in the config
-    if (parsedConfig.mcpServers && parsedConfig.mcpServers['rough-cut-mcp']) {
+    if (parsedConfig.mcpServers && parsedConfig.mcpServers['rough-cut-mcp-e2e']) {
       log('green', '✅ Config file written and validated successfully');
       return { success: true, config: parsedConfig };
     } else {
-      throw new Error('rough-cut-mcp MCP server not found in written config');
+      throw new Error('rough-cut-mcp-e2e MCP server not found in written config');
     }
   } catch (error) {
     throw new Error(`Config validation failed: ${error.message}`);
@@ -324,7 +324,7 @@ async function main() {
     if (fs.existsSync(localPackageJson)) {
       try {
         const packageJson = await fs.readJson(localPackageJson);
-        if (packageJson.name === 'rough-cut-mcp') {
+        if (packageJson.name === 'rough-cut-mcp-e2e') {
           packageRoot = currentDir;
           isGlobalInstallation = false;
           log('blue', '📍 Running from local development directory');
@@ -343,7 +343,7 @@ async function main() {
         isGlobalInstallation = true;
         log('blue', `📍 Running from global npm installation: ${packageRoot}`);
       } else {
-        throw new Error('Cannot find rough-cut-mcp installation. Please run: npm install -g rough-cut-mcp');
+        throw new Error('Cannot find rough-cut-mcp-e2e installation. Please run: npm install -g rough-cut-mcp-e2e');
       }
     }
     
@@ -457,7 +457,7 @@ async function main() {
       
       // Add our MCP server configuration
       existingConfig.mcpServers = existingConfig.mcpServers || {};
-      existingConfig.mcpServers['rough-cut-mcp'] = {
+      existingConfig.mcpServers['rough-cut-mcp-e2e'] = {
         command: nodePath,
         args: [fullBuildPath]
       };
@@ -467,11 +467,11 @@ async function main() {
       
       log('green', '✅ Claude Desktop configuration updated successfully!');
       log('blue', `📁 Config file: ${configFile}`);
-      log('green', `✅ MCP server "rough-cut-mcp" added (total: ${Object.keys(result.config.mcpServers).length})`);
+      log('green', `✅ MCP server "rough-cut-mcp-e2e" added (total: ${Object.keys(result.config.mcpServers).length})`);
       
       // Show what was written
       log('blue', '📋 Configuration written:');
-      console.log(JSON.stringify(result.config.mcpServers['rough-cut-mcp'], null, 2));
+      console.log(JSON.stringify(result.config.mcpServers['rough-cut-mcp-e2e'], null, 2));
       
       // Additional verification - read back the file to ensure it actually contains our config
       log('yellow', '🔍 Verifying config file was written correctly...');
@@ -480,10 +480,10 @@ async function main() {
         const verificationConfig = JSON.parse(verificationContent);
         
         if (verificationConfig.mcpServers && 
-            verificationConfig.mcpServers['rough-cut-mcp'] && 
-            verificationConfig.mcpServers['rough-cut-mcp'].command === nodePath &&
-            verificationConfig.mcpServers['rough-cut-mcp'].args &&
-            verificationConfig.mcpServers['rough-cut-mcp'].args[0] === fullBuildPath) {
+            verificationConfig.mcpServers['rough-cut-mcp-e2e'] && 
+            verificationConfig.mcpServers['rough-cut-mcp-e2e'].command === nodePath &&
+            verificationConfig.mcpServers['rough-cut-mcp-e2e'].args &&
+            verificationConfig.mcpServers['rough-cut-mcp-e2e'].args[0] === fullBuildPath) {
           log('green', '✅ Config file verification successful - all paths match!');
         } else {
           throw new Error('Config verification failed - written config does not match expected values');
@@ -539,7 +539,7 @@ async function main() {
         
         const manualConfig = {
           mcpServers: {
-            'rough-cut-mcp': {
+            'rough-cut-mcp-e2e': {
               command: nodePath,
               args: [fullBuildPath]
             }

@@ -41,7 +41,7 @@ function detectPlatform() {
 }
 
 function findGlobalPackagePath() {
-  const packageName = 'rough-cut-mcp';
+  const packageName = 'rough-cut-mcp-e2e';
   
   // Method 1: Script location (most reliable for global installs)
   try {

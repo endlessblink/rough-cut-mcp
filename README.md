@@ -4,23 +4,36 @@ A minimal MCP server for Remotion video creation. Claude Desktop generates JSX i
 
 ## Quick Start
 
-### Cross-Platform Setup (Recommended)
+### NPM Package Installation (Recommended)
+
+1. **Install globally:**
+   ```bash
+   npm install -g rough-cut-mcp-e2e
+   ```
+
+2. **Automated setup:**
+   ```bash
+   rough-cut-setup
+   ```
+   
+   This will:
+   - Detect your platform automatically
+   - Find Node.js installation
+   - Test the MCP server
+   - Write Claude Desktop configuration automatically
+   - Provide restart instructions
+
+### Local Development Setup
 
 1. **Install dependencies:**
    ```bash
    npm install
    ```
 
-2. **Automated setup (detects your platform):**
+2. **Build and setup:**
    ```bash
    npm run setup
    ```
-   
-   This will:
-   - Build the TypeScript source
-   - Test the MCP server
-   - Generate platform-specific Claude Desktop configuration
-   - Provide next steps
 
 ### Platform-Specific Setup
 
@@ -45,37 +58,37 @@ npm run build:windows  # Windows PowerShell build (if preferred)
 
 The setup script will generate the correct configuration for your system. Example configurations:
 
-**Windows:**
+**Windows (automatically generated):**
 ```json
 {
   "mcpServers": {
-    "remotion": {
+    "rough-cut-mcp-e2e": {
       "command": "C:\\Program Files\\nodejs\\node.exe",
-      "args": ["D:\\path\\to\\rough-cut_2\\build\\index.js"]
+      "args": ["C:\\Users\\username\\AppData\\Roaming\\npm\\node_modules\\rough-cut-mcp-e2e\\build\\index.js"]
     }
   }
 }
 ```
 
-**macOS:**
+**macOS (automatically generated):**
 ```json
 {
   "mcpServers": {
-    "remotion": {
+    "rough-cut-mcp-e2e": {
       "command": "/usr/local/bin/node",
-      "args": ["/path/to/rough-cut_2/build/index.js"]
+      "args": ["/usr/local/lib/node_modules/rough-cut-mcp-e2e/build/index.js"]
     }
   }
 }
 ```
 
-**Linux:**
+**Linux (automatically generated):**
 ```json
 {
   "mcpServers": {
-    "remotion": {
+    "rough-cut-mcp-e2e": {
       "command": "/usr/bin/node",
-      "args": ["/path/to/rough-cut_2/build/index.js"]
+      "args": ["/usr/lib/node_modules/rough-cut-mcp-e2e/build/index.js"]
     }
   }
 }

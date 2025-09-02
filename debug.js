@@ -115,7 +115,7 @@ function findNodePath() {
 }
 
 function findGlobalPackagePath() {
-  const packageName = 'rough-cut-mcp';
+  const packageName = 'rough-cut-mcp-e2e';
   const platform = detectPlatform();
   
   // Method 1: Try to resolve from current script location (most reliable for global installs)
@@ -313,7 +313,7 @@ async function main() {
       }
     } else {
       log('red', '❌ Global package not found');
-      log('yellow', '   Run: npm install -g rough-cut-mcp');
+      log('yellow', '   Run: npm install -g rough-cut-mcp-e2e');
     }
     
     // 3. Check Claude Desktop Configuration
@@ -332,10 +332,10 @@ async function main() {
         
         log('green', '✅ Config file is valid JSON');
         
-        if (config.mcpServers && config.mcpServers['rough-cut-mcp']) {
-          log('green', '✅ rough-cut-mcp MCP server found in config');
+        if (config.mcpServers && config.mcpServers['rough-cut-mcp-e2e']) {
+          log('green', '✅ rough-cut-mcp-e2e MCP server found in config');
           
-          const roughCutConfig = config.mcpServers['rough-cut-mcp'];
+          const roughCutConfig = config.mcpServers['rough-cut-mcp-e2e'];
           log('blue', `Command: ${roughCutConfig.command}`);
           log('blue', `Args: ${JSON.stringify(roughCutConfig.args)}`);
           
@@ -353,7 +353,7 @@ async function main() {
           }
           
         } else {
-          log('red', '❌ rough-cut-mcp MCP server not found in config');
+          log('red', '❌ rough-cut-mcp-e2e MCP server not found in config');
           log('yellow', '   Run: rough-cut-setup');
         }
         
