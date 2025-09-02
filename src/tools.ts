@@ -16,12 +16,20 @@ import {
   setAudioConfig,
   isAudioEnabled,
   getBaseDirectory,
-  StudioProcess
+  StudioProcess,
+  validateVideoCompositionFile,
+  checkProjectIntegrity,
+  autoRecoverProject,
+  ensureProperExport,
+  createProjectBackup,
+  listProjectBackups,
+  restoreProjectBackup,
+  cleanOldBackups
 } from './utils.js';
 
 export const tools: Tool[] = [
   {
-    name: 'create-project',
+    name: 'create_project',
     description: 'Create a new Remotion project with Claude-generated JSX',
     inputSchema: {
       type: 'object',
@@ -33,7 +41,7 @@ export const tools: Tool[] = [
     }
   },
   {
-    name: 'edit-project',
+    name: 'edit_project',
     description: 'Replace VideoComposition.tsx with new JSX and optionally update duration',
     inputSchema: {
       type: 'object',
@@ -46,7 +54,7 @@ export const tools: Tool[] = [
     }
   },
   {
-    name: 'launch-studio',
+    name: 'launch_studio',
     description: 'Start Remotion Studio for a project',
     inputSchema: {
       type: 'object',
@@ -58,7 +66,7 @@ export const tools: Tool[] = [
     }
   },
   {
-    name: 'stop-studio',
+    name: 'stop_studio',
     description: 'Stop Remotion Studio running on specified port',
     inputSchema: {
       type: 'object',
@@ -69,7 +77,7 @@ export const tools: Tool[] = [
     }
   },
   {
-    name: 'list-projects',
+    name: 'list_projects',
     description: 'List all Remotion projects',
     inputSchema: {
       type: 'object',
@@ -78,7 +86,7 @@ export const tools: Tool[] = [
     }
   },
   {
-    name: 'delete-project',
+    name: 'delete_project',
     description: 'Delete a Remotion project completely',
     inputSchema: {
       type: 'object',
@@ -89,7 +97,7 @@ export const tools: Tool[] = [
     }
   },
   {
-    name: 'get-project-info',
+    name: 'get_project_info',
     description: 'Get detailed information about a project',
     inputSchema: {
       type: 'object',
@@ -100,7 +108,7 @@ export const tools: Tool[] = [
     }
   },
   {
-    name: 'get-studio-status',
+    name: 'get_studio_status',
     description: 'Get status of all running Remotion Studios',
     inputSchema: {
       type: 'object',
@@ -109,7 +117,7 @@ export const tools: Tool[] = [
     }
   },
   {
-    name: 'configure-audio',
+    name: 'configure_audio',
     description: 'Configure optional AI audio generation (ElevenLabs SFX API)',
     inputSchema: {
       type: 'object',
@@ -121,7 +129,7 @@ export const tools: Tool[] = [
     }
   },
   {
-    name: 'generate-audio',
+    name: 'generate_audio',
     description: 'Generate AI sound effects or music for video (requires configuration)',
     inputSchema: {
       type: 'object',
@@ -135,12 +143,47 @@ export const tools: Tool[] = [
     }
   },
   {
-    name: 'debug-audio-config',
+    name: 'debug_audio_config',
     description: 'Debug tool to check audio environment variables',
     inputSchema: {
       type: 'object',
       properties: {},
       required: []
+    }
+  },
+  {
+    name: 'list_project_backups',
+    description: 'List all available backups for a project',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Project name' }
+      },
+      required: ['name']
+    }
+  },
+  {
+    name: 'restore_project_backup',
+    description: 'Restore VideoComposition.tsx from a specific backup',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Project name' },
+        backupFilename: { type: 'string', description: 'Backup filename to restore from' }
+      },
+      required: ['name', 'backupFilename']
+    }
+  },
+  {
+    name: 'clean_project_backups',
+    description: 'Clean old backups, keeping only the most recent ones',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', description: 'Project name' },
+        keepCount: { type: 'number', description: 'Number of backups to keep (default: 5)' }
+      },
+      required: ['name']
     }
   }
 ];
@@ -148,38 +191,47 @@ export const tools: Tool[] = [
 export async function handleToolCall(name: string, arguments_: any): Promise<any> {
   try {
     switch (name) {
-      case 'create-project':
+      case 'create_project':
         return await createProject(arguments_.name, arguments_.jsx);
       
-      case 'edit-project':
+      case 'edit_project':
         return await editProject(arguments_.name, arguments_.jsx, arguments_.duration);
       
-      case 'launch-studio':
+      case 'launch_studio':
         return await launchStudio(arguments_.name, arguments_.port);
       
-      case 'stop-studio':
+      case 'stop_studio':
         return await stopStudio(arguments_.port);
       
-      case 'list-projects':
+      case 'list_projects':
         return await listProjects();
       
-      case 'delete-project':
+      case 'delete_project':
         return await deleteProject(arguments_.name);
       
-      case 'get-project-info':
+      case 'get_project_info':
         return await getProjectInfo(arguments_.name);
       
-      case 'get-studio-status':
+      case 'get_studio_status':
         return await getStudioStatus();
       
-      case 'configure-audio':
+      case 'configure_audio':
         return await configureAudio(arguments_.apiKey, arguments_.enabled);
       
-      case 'generate-audio':
+      case 'generate_audio':
         return await generateAudio(arguments_.projectName, arguments_.prompt, arguments_.type, arguments_.duration);
       
-      case 'debug-audio-config':
+      case 'debug_audio_config':
         return await debugAudioConfig();
+      
+      case 'list_project_backups':
+        return await listBackups(arguments_.name);
+      
+      case 'restore_project_backup':
+        return await restoreBackup(arguments_.name, arguments_.backupFilename);
+      
+      case 'clean_project_backups':
+        return await cleanBackups(arguments_.name, arguments_.keepCount);
       
       default:
         throw new Error(`Unknown tool: ${name}`);
@@ -267,17 +319,73 @@ async function createProject(name: string, jsx: string) {
 async function editProject(name: string, jsx: string, duration?: number) {
   const projectPath = getProjectPath(name);
   
+  // AUTOMATIC RECOVERY: Check if project exists and its integrity
   if (!(await fs.pathExists(projectPath))) {
-    throw new Error(`Project "${name}" does not exist`);
+    // Project doesn't exist - auto-create it instead
+    console.error(`[AUTO-RECOVERY] Project "${name}" doesn't exist - creating it automatically`);
+    await createRemotionProject(projectPath, jsx);
+    
+    if (duration && duration > 0) {
+      await updateProjectDuration(projectPath, duration);
+    }
+    
+    return {
+      content: [{
+        type: 'text',
+        text: `Project "${name}" didn't exist - automatically created it with your JSX. Refresh browser to see changes.`
+      }]
+    };
   }
   
-  // Update VideoComposition.tsx with new JSX
+  // Check project integrity and auto-recover if needed
+  const integrity = await checkProjectIntegrity(name);
+  
+  if (integrity.needsRecovery) {
+    console.error(`[AUTO-RECOVERY] Project "${name}" needs recovery - fixing automatically`);
+    const recovery = await autoRecoverProject(name, jsx, duration);
+    
+    if (recovery.success) {
+      return {
+        content: [{
+          type: 'text',
+          text: `Project "${name}" was incomplete - automatically recovered and updated. Actions: ${recovery.actions.join(', ')}. Refresh browser to see changes.`
+        }]
+      };
+    } else {
+      throw new Error(`Failed to recover project "${name}": ${recovery.message}`);
+    }
+  }
+  
+  // AUTOMATIC BACKUP: Protect user's working animation before editing
+  const backupResult = await createProjectBackup(name);
+  console.error(`[EDIT-PROJECT] Backup result:`, backupResult.message);
+  
+  // Project is complete - proceed with normal edit using SAME JSX FILTERING as create_project
+  const jsx_processed = ensureProperExport(jsx);
   const compositionPath = path.join(projectPath, 'src', 'VideoComposition.tsx');
-  await fs.writeFile(compositionPath, jsx);
+  
+  // Validate processed JSX before writing
+  const validation = validateVideoCompositionFile(jsx_processed);
+  if (!validation.isValid) {
+    console.error(`[EDIT-PROJECT] JSX validation issues detected:`, validation.issues);
+    
+    // If JSX is invalid and we have a backup, warn the user
+    if (backupResult.success) {
+      throw new Error(`JSX validation failed. Original file backed up as: ${backupResult.backupPath}. Issues: ${validation.issues.join(', ')}`);
+    } else {
+      throw new Error(`JSX validation failed and backup failed: ${validation.issues.join(', ')}`);
+    }
+  }
+  
+  await fs.writeFile(compositionPath, jsx_processed);
+  
+  // Clean old backups (keep last 5)
+  const cleanupResult = await cleanOldBackups(name, 5);
+  console.error(`[EDIT-PROJECT] Backup cleanup:`, cleanupResult.message);
   
   let message = `Project "${name}" updated successfully.`;
   
-  // Update duration if provided (safe string replacement)
+  // Update duration if provided
   if (duration && duration > 0) {
     try {
       await updateProjectDuration(projectPath, duration);
@@ -432,9 +540,17 @@ async function stopStudio(port: number) {
 }
 
 async function listProjects() {
-  // Use smart detection to find existing projects (same logic as getProjectPath)
-  const baseDir = getBaseDirectory();
-  const projectsDir = path.resolve(baseDir, 'assets', 'projects');
+  // Get projects directory using same logic as getProjectPath
+  let projectsDir;
+  
+  if (process.env.REMOTION_PROJECTS_DIR) {
+    // Use direct projects directory from environment variable
+    projectsDir = process.env.REMOTION_PROJECTS_DIR;
+  } else {
+    // Use base directory + assets/projects structure
+    const baseDir = getBaseDirectory();
+    projectsDir = path.resolve(baseDir, 'assets', 'projects');
+  }
   
   if (!(await fs.pathExists(projectsDir))) {
     return {
@@ -709,6 +825,68 @@ async function debugAudioConfig() {
             `enabled: ${config.enabled}\n` +
             `elevenLabsApiKey: ${config.elevenLabsApiKey ? '[SET]' : '[NOT SET]'}\n` +
             `mubertApiKey: ${config.mubertApiKey ? '[SET]' : '[NOT SET]'}`
+    }]
+  };
+}
+
+// ====== BACKUP MANAGEMENT TOOLS ======
+
+async function listBackups(name: string) {
+  const result = await listProjectBackups(name);
+  
+  if (!result.success) {
+    throw new Error(result.message);
+  }
+  
+  if (result.backups.length === 0) {
+    return {
+      content: [{
+        type: 'text',
+        text: `No backups found for project "${name}"`
+      }]
+    };
+  }
+  
+  const backupList = result.backups.map((backup, index) => {
+    const timestamp = backup.replace('VideoComposition-backup-', '').replace('.tsx', '');
+    const dateStr = timestamp.replace(/-/g, ':').replace('T', ' ');
+    return `${index + 1}. ${backup} (${dateStr})`;
+  }).join('\n');
+  
+  return {
+    content: [{
+      type: 'text',
+      text: `Found ${result.backups.length} backup(s) for "${name}":\n\n${backupList}`
+    }]
+  };
+}
+
+async function restoreBackup(name: string, backupFilename: string) {
+  const result = await restoreProjectBackup(name, backupFilename);
+  
+  if (!result.success) {
+    throw new Error(result.message);
+  }
+  
+  return {
+    content: [{
+      type: 'text',
+      text: result.message + ' Refresh browser to see restored animation.'
+    }]
+  };
+}
+
+async function cleanBackups(name: string, keepCount?: number) {
+  const result = await cleanOldBackups(name, keepCount || 5);
+  
+  if (!result.success) {
+    throw new Error(result.message);
+  }
+  
+  return {
+    content: [{
+      type: 'text',
+      text: result.message
     }]
   };
 }

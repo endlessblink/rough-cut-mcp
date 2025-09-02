@@ -1,9 +1,24 @@
 #!/usr/bin/env node
 
-// Load environment variables first with explicit path
+// Load environment variables first with multiple path attempts
 import * as path from 'path';
 import * as dotenv from 'dotenv';
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
+import * as fs from 'fs';
+
+// Try multiple .env file locations to ensure it's found regardless of where Claude Desktop starts the process
+const envPaths = [
+  path.resolve(__dirname, '../.env'),           // Standard: build/../.env
+  path.resolve(__dirname, '.env'),              // Same directory as build
+  path.resolve(process.cwd(), '.env'),          // Current working directory
+];
+
+for (const envPath of envPaths) {
+  if (fs.existsSync(envPath)) {
+    console.error(`[ENV] Loading .env from: ${envPath}`);
+    dotenv.config({ path: envPath });
+    break;
+  }
+}
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
@@ -16,8 +31,8 @@ class RemotionMCPServer {
   constructor() {
     this.server = new Server(
       {
-        name: 'remotion-mcp-server',
-        version: '5.1.0'
+        name: 'rough-cut-mcp',
+        version: '5.5.1'
       },
       {
         capabilities: {
@@ -37,32 +52,7 @@ class RemotionMCPServer {
 
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
-      
-      try {
-        const result = await handleToolCall(name, args || {});
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(result, null, 2)
-            }
-          ]
-        };
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: false,
-                error: errorMessage
-              }, null, 2)
-            }
-          ],
-          isError: true
-        };
-      }
+      return await handleToolCall(name, args || {});
     });
   }
 
