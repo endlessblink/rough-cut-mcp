@@ -11,6 +11,7 @@ import {
   addRunningStudio,
   getRunningStudios,
   clearStudioTracking,
+  removeDeadStudio,
   updateProjectDuration,
   getAudioConfig,
   setAudioConfig,
@@ -20,12 +21,15 @@ import {
   validateVideoCompositionFile,
   checkProjectIntegrity,
   autoRecoverProject,
-  ensureProperExport,
+  ensureProperExportSafe,
   createProjectBackup,
   listProjectBackups,
   restoreProjectBackup,
   cleanOldBackups
 } from './utils.js';
+
+// Import new resumption system (safe - isolated until used)
+import { checkpointManager, jsxProcessor } from './checkpoint-processor.js';
 
 export const tools: Tool[] = [
   {
@@ -48,7 +52,9 @@ export const tools: Tool[] = [
       properties: {
         name: { type: 'string', description: 'Project name' },
         jsx: { type: 'string', description: 'New JSX code for VideoComposition.tsx' },
-        duration: { type: 'number', description: 'Video duration in seconds (optional)' }
+        duration: { type: 'number', description: 'Video duration in seconds (optional)' },
+        use_resumption: { type: 'boolean', description: 'Use resumption system with timeout protection (default: true, set false to disable)' },
+        resume_from: { type: 'string', description: 'Resume from specific operation ID (optional)' }
       },
       required: ['name', 'jsx']
     }
@@ -185,6 +191,49 @@ export const tools: Tool[] = [
       },
       required: ['name']
     }
+  },
+  // ====== NEW RESUMPTION TOOLS (Safe - Additive Only) ======
+  {
+    name: 'list_interrupted_operations',
+    description: 'List all operations that were interrupted and can be resumed',
+    inputSchema: {
+      type: 'object',
+      properties: {},
+      required: []
+    }
+  },
+  {
+    name: 'resume_operation',
+    description: 'Resume an interrupted edit_project operation from its last checkpoint',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        operationId: { type: 'string', description: 'ID of the operation to resume' }
+      },
+      required: ['operationId']
+    }
+  },
+  {
+    name: 'cancel_operation',
+    description: 'Cancel an interrupted operation and clean up its checkpoint',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        operationId: { type: 'string', description: 'ID of the operation to cancel' }
+      },
+      required: ['operationId']
+    }
+  },
+  {
+    name: 'cleanup_stale_operations',
+    description: 'Clean up old interrupted operations (older than 24 hours)',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        maxAgeHours: { type: 'number', description: 'Maximum age in hours (default: 24)' }
+      },
+      required: []
+    }
   }
 ];
 
@@ -195,7 +244,7 @@ export async function handleToolCall(name: string, arguments_: any): Promise<any
         return await createProject(arguments_.name, arguments_.jsx);
       
       case 'edit_project':
-        return await editProject(arguments_.name, arguments_.jsx, arguments_.duration);
+        return await editProject(arguments_.name, arguments_.jsx, arguments_.duration, arguments_.use_resumption, arguments_.resume_from);
       
       case 'launch_studio':
         return await launchStudio(arguments_.name, arguments_.port);
@@ -232,6 +281,19 @@ export async function handleToolCall(name: string, arguments_: any): Promise<any
       
       case 'clean_project_backups':
         return await cleanBackups(arguments_.name, arguments_.keepCount);
+      
+      // ====== NEW RESUMPTION TOOL HANDLERS (Safe - Isolated) ======
+      case 'list_interrupted_operations':
+        return await listInterruptedOperations();
+        
+      case 'resume_operation':
+        return await resumeOperation(arguments_.operationId);
+        
+      case 'cancel_operation':
+        return await cancelOperation(arguments_.operationId);
+        
+      case 'cleanup_stale_operations':
+        return await cleanupStaleOperations(arguments_.maxAgeHours);
       
       default:
         throw new Error(`Unknown tool: ${name}`);
@@ -316,7 +378,7 @@ async function createProject(name: string, jsx: string) {
   });
 }
 
-async function editProject(name: string, jsx: string, duration?: number) {
+async function editProject(name: string, jsx: string, duration?: number, useResumption?: boolean, resumeFrom?: string) {
   const projectPath = getProjectPath(name);
   
   // AUTOMATIC RECOVERY: Check if project exists and its integrity
@@ -360,30 +422,77 @@ async function editProject(name: string, jsx: string, duration?: number) {
   const backupResult = await createProjectBackup(name);
   console.error(`[EDIT-PROJECT] Backup result:`, backupResult.message);
   
-  // Project is complete - proceed with normal edit using SAME JSX FILTERING as create_project
-  const jsx_processed = ensureProperExport(jsx);
   const compositionPath = path.join(projectPath, 'src', 'VideoComposition.tsx');
+  let jsx_processed: string;
+  let processingMethod: string;
   
-  // Validate processed JSX before writing
+  // HYBRID PROCESSING: Use resumption system by DEFAULT, with opt-out option
+  if (useResumption === false) {
+    console.error(`[EDIT-PROJECT] Using existing JSX processing system (explicitly disabled)`);
+    jsx_processed = ensureProperExportSafe(jsx);
+    processingMethod = 'existing system (explicitly disabled)';
+  } else {
+    console.error(`[EDIT-PROJECT] Using resumption system (default)${resumeFrom ? ` - resuming from ${resumeFrom}` : ''}`);
+    
+    try {
+      // Generate or use existing operation ID
+      const operationId = resumeFrom || `edit_${name}_${Date.now()}`;
+      
+      // Check for existing checkpoint if resuming
+      const existingCheckpoint = resumeFrom ? checkpointManager.getCheckpoint(resumeFrom) : undefined;
+      
+      if (resumeFrom && !existingCheckpoint) {
+        throw new Error(`No checkpoint found for operation: ${resumeFrom}`);
+      }
+      
+      // Use resumption system with timeout protection
+      jsx_processed = await jsxProcessor.processJSXWithResumption(jsx, name, operationId, existingCheckpoint);
+      processingMethod = `resumption system${resumeFrom ? ' (resumed)' : ''}`;
+      
+    } catch (error) {
+      console.error(`[EDIT-PROJECT] Resumption system failed:`, error);
+      
+      // Check if it's a resumable timeout error
+      const isTimeoutError = error instanceof Error && error.message.includes('RESUMABLE_TIMEOUT');
+      
+      if (isTimeoutError) {
+        // Timeout occurred - return with resumption instructions
+        return {
+          content: [{
+            type: 'text',
+            text: `⏳ **Operation Timed Out**\n\n${error.message}\n\n💡 Your progress has been saved. Use \`resume_operation\` to continue from where it stopped, or try again with regular processing.`
+          }]
+        };
+      }
+      
+      // Other error - fallback to existing system
+      console.error(`[EDIT-PROJECT] Falling back to existing JSX processing system`);
+      jsx_processed = ensureProperExportSafe(jsx);
+      processingMethod = 'existing system (fallback from resumption error)';
+    }
+  }
+  
+  // Validate processed JSX before writing (regardless of processing method)
   const validation = validateVideoCompositionFile(jsx_processed);
   if (!validation.isValid) {
     console.error(`[EDIT-PROJECT] JSX validation issues detected:`, validation.issues);
     
     // If JSX is invalid and we have a backup, warn the user
     if (backupResult.success) {
-      throw new Error(`JSX validation failed. Original file backed up as: ${backupResult.backupPath}. Issues: ${validation.issues.join(', ')}`);
+      throw new Error(`JSX validation failed (processed with ${processingMethod}). Original file backed up as: ${backupResult.backupPath}. Issues: ${validation.issues.join(', ')}`);
     } else {
       throw new Error(`JSX validation failed and backup failed: ${validation.issues.join(', ')}`);
     }
   }
   
   await fs.writeFile(compositionPath, jsx_processed);
+  console.error(`[EDIT-PROJECT] JSX processed successfully using: ${processingMethod}`);
   
   // Clean old backups (keep last 5)
   const cleanupResult = await cleanOldBackups(name, 5);
   console.error(`[EDIT-PROJECT] Backup cleanup:`, cleanupResult.message);
   
-  let message = `Project "${name}" updated successfully.`;
+  let message = `Project "${name}" updated successfully using ${processingMethod}.`;
   
   // Update duration if provided
   if (duration && duration > 0) {
@@ -413,10 +522,21 @@ async function launchStudio(name: string, port?: number) {
   
   const studioPort = port || await findAvailablePort();
   
-  // Check if studio is already running on this port
+  // IMPROVED: Check for healthy running studios, clean up zombies
   const existingStudios = getRunningStudios();
-  if (existingStudios.find(s => s.port === studioPort)) {
-    throw new Error(`Studio already running on port ${studioPort}`);
+  const existingStudio = existingStudios.find(s => s.port === studioPort || s.projectName === name);
+  
+  if (existingStudio) {
+    // Check if process is actually still running
+    try {
+      process.kill(existingStudio.pid, 0); // Signal 0 tests if process exists
+      throw new Error(`Studio already running for "${name}" on port ${existingStudio.port} (PID: ${existingStudio.pid})`);
+    } catch (killError) {
+      // Process is dead - clean up zombie tracking
+      console.error(`[LAUNCH-STUDIO] Cleaning up zombie studio process (PID: ${existingStudio.pid})`);
+      // Remove from tracking (we'll implement this helper)
+      removeDeadStudio(existingStudio.port);
+    }
   }
   
   // Validate project has Remotion dependencies
@@ -425,12 +545,14 @@ async function launchStudio(name: string, port?: number) {
     throw new Error(`Project "${name}" missing package.json - run create-project first`);
   }
   
-  console.error(`[LAUNCH-STUDIO] Starting Remotion Studio (Windows npx)`);
+  console.error(`[LAUNCH-STUDIO] Starting Remotion Studio for "${name}"`);
   console.error(`[LAUNCH-STUDIO] Project: ${projectPath}`);
   console.error(`[LAUNCH-STUDIO] Port: ${studioPort}`);
   
   return new Promise((resolve, reject) => {
     const env = { ...process.env, PORT: studioPort.toString() };
+    let settled = false;
+    let studioTrackingAdded = false;
     
     // Spawn npx in shell on Windows for proper resolution
     const studioProcess = spawn(
@@ -446,72 +568,131 @@ async function launchStudio(name: string, port?: number) {
     
     let stdoutBuffer = '';
     let stderrBuffer = '';
-    let settled = false;
     
-    // Helper to clean up and reject
+    if (!studioProcess.pid) {
+      reject(new Error('Failed to spawn Remotion Studio process'));
+      return;
+    }
+    
+    // Helper to clean up on failure
     const cleanup = (err: Error) => {
       if (!settled) {
         settled = true;
-        studioProcess.kill();
+        console.error(`[LAUNCH-STUDIO] Cleanup due to error:`, err.message);
+        
+        // Kill process if still running
+        try {
+          studioProcess.kill('SIGTERM');
+          setTimeout(() => {
+            try {
+              studioProcess.kill('SIGKILL'); // Force kill after 5 seconds
+            } catch {}
+          }, 5000);
+        } catch {}
+        
+        // Remove from tracking if we added it
+        if (studioTrackingAdded) {
+          removeDeadStudio(studioPort);
+        }
+        
         reject(err);
       }
     };
     
-    // Watch for unexpected exit
+    // IMPROVED: Only treat early exits as errors, not normal shutdown
+    let startupPhase = true;
+    setTimeout(() => { startupPhase = false; }, 10000); // 10 second startup phase
+    
     studioProcess.on('exit', (code, signal) => {
       console.error(`[LAUNCH-STUDIO] Process exited: code=${code}, signal=${signal}`);
-      console.error(`[LAUNCH-STUDIO] STDOUT: ${stdoutBuffer}`);
-      console.error(`[LAUNCH-STUDIO] STDERR: ${stderrBuffer}`);
-      cleanup(new Error(`Studio exited prematurely (code=${code}, signal=${signal})\nSTDOUT: ${stdoutBuffer}\nSTDERR: ${stderrBuffer}`));
+      console.error(`[LAUNCH-STUDIO] Startup phase: ${startupPhase}`);
+      
+      if (startupPhase && !settled) {
+        // Only treat as error if during startup phase
+        console.error(`[LAUNCH-STUDIO] STDOUT: ${stdoutBuffer}`);
+        console.error(`[LAUNCH-STUDIO] STDERR: ${stderrBuffer}`);
+        cleanup(new Error(`Studio failed to start (code=${code}, signal=${signal})\nSTDOUT: ${stdoutBuffer}\nSTDERR: ${stderrBuffer}`));
+      } else if (studioTrackingAdded) {
+        // Normal shutdown after startup - just clean up tracking
+        console.error(`[LAUNCH-STUDIO] Studio shut down normally, cleaning up tracking`);
+        removeDeadStudio(studioPort);
+      }
     });
     
-    // Accumulate stdout & stderr for debugging
+    // Collect output for debugging
     studioProcess.stdout!.on('data', (chunk: Buffer) => {
-      stdoutBuffer += chunk.toString();
-      console.error(`[LAUNCH-STUDIO] STDOUT:`, chunk.toString());
+      const output = chunk.toString();
+      stdoutBuffer += output;
+      console.error(`[LAUNCH-STUDIO] STDOUT:`, output.trim());
+      
+      // Look for success indicators
+      if (output.includes('Local:') || output.includes('ready') || output.includes('started')) {
+        console.error(`[LAUNCH-STUDIO] Detected success indicator in output`);
+      }
     });
     
     studioProcess.stderr!.on('data', (chunk: Buffer) => {
-      stderrBuffer += chunk.toString();
-      console.error(`[LAUNCH-STUDIO] STDERR:`, chunk.toString());
+      const output = chunk.toString();
+      stderrBuffer += output;
+      console.error(`[LAUNCH-STUDIO] STDERR:`, output.trim());
     });
     
-    // Track the studio process
-    const studio: StudioProcess = {
-      pid: studioProcess.pid!,
-      port: studioPort,
-      projectName: name,
-      process: studioProcess
-    };
-    
-    addRunningStudio(studio);
-    
-    // Periodically check if port is actually listening (Perplexity solution)
+    // IMPROVED: Smart port checking with retry logic
     const startTime = Date.now();
     const timeoutMs = 30000;
+    let checkAttempts = 0;
+    const maxAttempts = 60; // 30 seconds / 500ms
     
     const checkPort = () => {
       if (settled) return;
       
-      const socket = net.createConnection({ host: '127.0.0.1', port: studioPort }, () => {
-        console.error(`[LAUNCH-STUDIO] Port ${studioPort} is now listening!`);
+      checkAttempts++;
+      console.error(`[LAUNCH-STUDIO] Port check attempt ${checkAttempts}/${maxAttempts}`);
+      
+      const socket = net.createConnection({ 
+        host: '127.0.0.1', 
+        port: studioPort,
+        timeout: 2000 
+      });
+      
+      socket.on('connect', () => {
+        console.error(`[LAUNCH-STUDIO] ✅ Port ${studioPort} is now listening!`);
+        socket.end();
+        
         if (!settled) {
           settled = true;
+          
+          // NOW add to tracking (only after confirmed success)
+          const studio: StudioProcess = {
+            pid: studioProcess.pid!,
+            port: studioPort,
+            projectName: name,
+            process: studioProcess
+          };
+          
+          addRunningStudio(studio);
+          studioTrackingAdded = true;
+          
           resolve({
             content: [{
               type: 'text',
-              text: `Remotion Studio started for "${name}" at http://localhost:${studioPort}\n\nOpen this URL in your browser to see the animation.`
+              text: `✅ Remotion Studio started for "${name}"\n\n🌐 **URL**: http://localhost:${studioPort}\n📁 **Project**: ${name}\n🔧 **PID**: ${studioProcess.pid}\n\nOpen the URL in your browser to see the animation.`
             }]
           });
         }
-        socket.end();
       });
       
       socket.on('error', () => {
-        // Port not ready yet
-        if (Date.now() - startTime > timeoutMs) {
+        socket.destroy();
+        
+        // Check if we've exceeded time or attempts
+        if (checkAttempts >= maxAttempts || Date.now() - startTime > timeoutMs) {
           cleanup(new Error(
-            `Timeout: Studio did not listen on port ${studioPort} within ${timeoutMs}ms.\n` +
+            `Timeout: Studio did not start within ${timeoutMs}ms after ${checkAttempts} attempts.\n` +
+            `This might indicate:\n` +
+            `- Port ${studioPort} is blocked by firewall\n` +
+            `- Remotion dependencies missing\n` +
+            `- Project has compilation errors\n\n` +
             `STDOUT: ${stdoutBuffer}\nSTDERR: ${stderrBuffer}`
           ));
         } else {
@@ -519,10 +700,16 @@ async function launchStudio(name: string, port?: number) {
           setTimeout(checkPort, 500);
         }
       });
+      
+      socket.on('timeout', () => {
+        socket.destroy();
+        // Treat timeout same as error
+        socket.emit('error');
+      });
     };
     
-    // Start checking port after 2 seconds (give process time to start)
-    setTimeout(checkPort, 2000);
+    // Start checking port after 3 seconds (give process more time to start)
+    setTimeout(checkPort, 3000);
   });
 }
 
@@ -889,4 +1076,188 @@ async function cleanBackups(name: string, keepCount?: number) {
       text: result.message
     }]
   };
+}
+
+// ====== NEW RESUMPTION TOOL IMPLEMENTATIONS (Safe - Isolated) ======
+
+/**
+ * List all operations that can be resumed
+ * Safe: Read-only operation, no impact on existing functionality
+ */
+async function listInterruptedOperations() {
+  try {
+    const operations = checkpointManager.getDetailedOperations();
+    
+    if (operations.length === 0) {
+      return {
+        content: [{
+          type: 'text',
+          text: '✅ No interrupted operations found. All operations completed successfully.'
+        }]
+      };
+    }
+
+    const operationsList = operations.map(op => {
+      const staleWarning = op.isStale ? ' ⚠️ (stale - may be outdated)' : '';
+      return `• **${op.operationId}**\n  - Project: ${op.projectName}\n  - Stage: ${op.stage}\n  - Progress: ${op.progress}%\n  - Age: ${op.ageSeconds}s${staleWarning}`;
+    }).join('\n\n');
+
+    return {
+      content: [{
+        type: 'text',
+        text: `📋 **Interrupted Operations (${operations.length})**\n\nThe following operations can be resumed:\n\n${operationsList}\n\n💡 Use \`resume_operation\` with the operation ID to continue from where it stopped.`
+      }]
+    };
+    
+  } catch (error) {
+    console.error('[LIST-OPERATIONS] Error:', error);
+    return {
+      content: [{
+        type: 'text',
+        text: `❌ Failed to list operations: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }],
+      isError: true
+    };
+  }
+}
+
+/**
+ * Resume an interrupted operation
+ * Safe: Uses existing checkpoint system, includes fallback protection
+ */
+async function resumeOperation(operationId: string) {
+  try {
+    console.error(`[RESUME-OPERATION] Starting resumption for: ${operationId}`);
+    
+    const checkpoint = checkpointManager.getCheckpoint(operationId);
+    if (!checkpoint) {
+      return {
+        content: [{
+          type: 'text',
+          text: `❌ No checkpoint found for operation: ${operationId}\n\n💡 Use \`list_interrupted_operations\` to see available operations.`
+        }],
+        isError: true
+      };
+    }
+
+    console.error(`[RESUME-OPERATION] Found checkpoint for ${checkpoint.projectName} at stage ${checkpoint.stage} (${checkpoint.progress}%)`);
+    
+    // Resume JSX processing from checkpoint
+    const result = await jsxProcessor.processJSXWithResumption(
+      checkpoint.data.originalJSX || '',
+      checkpoint.projectName,
+      operationId,
+      checkpoint
+    );
+
+    // Write the completed JSX to the project
+    const compositionPath = path.join(getProjectPath(checkpoint.projectName), 'src', 'VideoComposition.tsx');
+    await fs.writeFile(compositionPath, result);
+
+    console.error(`[RESUME-OPERATION] Successfully completed operation: ${operationId}`);
+    
+    return {
+      content: [{
+        type: 'text',
+        text: `✅ **Operation Resumed Successfully!**\n\n**Project**: ${checkpoint.projectName}\n**Operation**: ${operationId}\n**Status**: Completed from ${checkpoint.stage} stage\n\n🎬 VideoComposition.tsx has been updated with the processed JSX.`
+      }]
+    };
+
+  } catch (error) {
+    console.error('[RESUME-OPERATION] Error:', error);
+    
+    // Check if it's a resumable timeout error
+    const isTimeoutError = error instanceof Error && error.message.includes('RESUMABLE_TIMEOUT');
+    
+    if (isTimeoutError) {
+      return {
+        content: [{
+          type: 'text',
+          text: `⏳ **Operation Timed Out Again**\n\n${error.message}\n\n💡 You can try resuming again - progress has been saved.`
+        }]
+      };
+    }
+    
+    return {
+      content: [{
+        type: 'text',
+        text: `❌ **Resume Failed**: ${error instanceof Error ? error.message : 'Unknown error'}\n\n💡 The checkpoint is preserved. You can try resuming again or use \`cancel_operation\` to clean up.`
+      }],
+      isError: true
+    };
+  }
+}
+
+/**
+ * Cancel an operation and clean up its checkpoint
+ * Safe: Clean-up operation, no impact on existing functionality
+ */
+async function cancelOperation(operationId: string) {
+  try {
+    const checkpoint = checkpointManager.getCheckpoint(operationId);
+    
+    if (!checkpoint) {
+      return {
+        content: [{
+          type: 'text',
+          text: `ℹ️ No checkpoint found for operation: ${operationId}\n\nOperation may have already completed or been cancelled.`
+        }]
+      };
+    }
+
+    checkpointManager.removeCheckpoint(operationId);
+    
+    return {
+      content: [{
+        type: 'text',
+        text: `🗑️ **Operation Cancelled**\n\n**Operation**: ${operationId}\n**Project**: ${checkpoint.projectName}\n**Stage**: ${checkpoint.stage} (${checkpoint.progress}%)\n\nCheckpoint has been cleaned up.`
+      }]
+    };
+
+  } catch (error) {
+    console.error('[CANCEL-OPERATION] Error:', error);
+    return {
+      content: [{
+        type: 'text',
+        text: `❌ Failed to cancel operation: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }],
+      isError: true
+    };
+  }
+}
+
+/**
+ * Clean up stale operations
+ * Safe: Maintenance operation, no impact on existing functionality
+ */
+async function cleanupStaleOperations(maxAgeHours?: number) {
+  try {
+    const cleaned = checkpointManager.cleanStaleOperations(maxAgeHours || 24);
+    
+    if (cleaned === 0) {
+      return {
+        content: [{
+          type: 'text',
+          text: `✅ **No Cleanup Needed**\n\nAll checkpoints are recent (less than ${maxAgeHours || 24} hours old).`
+        }]
+      };
+    }
+
+    return {
+      content: [{
+        type: 'text',
+        text: `🧹 **Cleanup Completed**\n\nRemoved ${cleaned} stale operation(s) older than ${maxAgeHours || 24} hours.`
+      }]
+    };
+
+  } catch (error) {
+    console.error('[CLEANUP-OPERATIONS] Error:', error);
+    return {
+      content: [{
+        type: 'text',
+        text: `❌ Failed to cleanup operations: ${error instanceof Error ? error.message : 'Unknown error'}`
+      }],
+      isError: true
+    };
+  }
 }

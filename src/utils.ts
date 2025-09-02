@@ -94,6 +94,13 @@ export function clearStudioTracking(): void {
   runningStudios.clear();
 }
 
+export function removeDeadStudio(port: number): void {
+  if (runningStudios.has(port)) {
+    runningStudios.delete(port);
+    console.error(`[STUDIO-TRACKING] Removed dead studio on port ${port}`);
+  }
+}
+
 export async function updateProjectDuration(projectPath: string, durationSeconds: number): Promise<void> {
   const rootPath = path.join(projectPath, 'src', 'Root.tsx');
   
@@ -258,102 +265,14 @@ export function getProjectPath(name: string): string {
 // ====== SHARED JSX PROCESSING FUNCTIONS ======
 
 /**
- * Validate and clean JSX content before processing
- * Shared by both create_project and edit_project for consistency
+ * SAFE version of ensureProperExport that doesn't use validateAndCleanJSX
+ * Used only for create_project and auto-recovery to prevent corruption
  */
-function validateAndCleanJSX(jsxContent: string): string {
-  // Basic JSX syntax validation and cleanup
-  let cleaned = jsxContent.trim();
+export function ensureProperExportSafe(jsxContent: string): string {
+  // Use JSX directly without corrupting regex processing
+  const cleanedJSX = jsxContent.trim();
   
-  console.error(`[JSX-VALIDATION] Processing JSX (length: ${cleaned.length})`);
-  
-  // ENHANCED: Protect CSS-in-JS and template literals from incorrect processing
-  const protectedTemplates = new Map();
-  let templateIndex = 0;
-  
-  // Step 1: Protect CSS-in-JS style blocks
-  const styleBlockPattern = /<style>\s*\{\s*(["`])([\s\S]*?)\1\s*\}\s*<\/style>/gi;
-  cleaned = cleaned.replace(styleBlockPattern, (match, quoteType, cssContent) => {
-    const placeholder = `__PROTECTED_CSS_${templateIndex}__`;
-    protectedTemplates.set(placeholder, `<style>{\`${cssContent}\`}</style>`);
-    templateIndex++;
-    console.error(`[JSX-VALIDATION] Protected CSS block: ${placeholder}`);
-    return placeholder;
-  });
-  
-  // Step 2: Protect template literals with interpolation (like `translate(${value}px)`)
-  const templateLiteralPattern = /`([^`]*\$\{[^}]*\}[^`]*)`/g;
-  cleaned = cleaned.replace(templateLiteralPattern, (match, content) => {
-    const placeholder = `__PROTECTED_TEMPLATE_${templateIndex}__`;
-    protectedTemplates.set(placeholder, match);
-    templateIndex++;
-    console.error(`[JSX-VALIDATION] Protected template literal: ${placeholder}`);
-    return placeholder;
-  });
-  
-  // Step 3: Only convert simple template literals (no variables)
-  cleaned = cleaned.replace(/`([^`${}]*)`/g, '"$1"');
-  
-  // Step 4: Remove incomplete template expressions only
-  cleaned = cleaned.replace(/\$\{[^}]*$/g, ''); // Remove incomplete expressions at end
-  
-  // Fix unclosed objects/braces (common Claude generation issue)
-  const openBraces = (cleaned.match(/\{/g) || []).length;
-  const closeBraces = (cleaned.match(/\}/g) || []).length;
-  
-  if (openBraces > closeBraces) {
-    console.error(`[JSX-VALIDATION] Adding ${openBraces - closeBraces} missing closing braces`);
-    cleaned += '\n' + '}'.repeat(openBraces - closeBraces);
-  }
-  
-  // CRITICAL: Remove <Composition> tags to prevent nesting errors
-  const originalLength = cleaned.length;
-  
-  // Step 5: Remove Composition from imports (cleanup)
-  cleaned = cleaned.replace(/import\s*\{([^}]*),\s*Composition([^}]*)\}/g, 'import {$1$2}');
-  cleaned = cleaned.replace(/import\s*\{\s*Composition\s*,([^}]*)\}/g, 'import {$1}');
-  cleaned = cleaned.replace(/import\s*\{\s*Composition\s*\}/g, '');
-  
-  // Step 6: Remove self-closing <Composition> tags entirely
-  cleaned = cleaned.replace(/<Composition[^>]*\/>/gs, '');
-  
-  // Step 7: Extract content from <Composition> wrapper tags
-  cleaned = cleaned.replace(/<Composition[^>]*>([^]*?)<\/Composition>/gs, '$1');
-  
-  // Step 8: Handle component prop patterns - extract inner content
-  const componentPropPattern = /<Composition[^>]*component=\{\s*\(\s*\)\s*=>\s*\(([^]*?)\)\s*\}[^>]*>/gs;
-  let match;
-  while ((match = componentPropPattern.exec(cleaned)) !== null) {
-    const innerContent = match[1].trim();
-    cleaned = cleaned.replace(match[0], innerContent);
-    componentPropPattern.lastIndex = 0; // Reset for next iteration
-  }
-  
-  // Step 9: Clean up empty fragments
-  cleaned = cleaned.replace(/<>\s*<\/>/gs, '');
-  cleaned = cleaned.replace(/<React\.Fragment>\s*<\/React\.Fragment>/gs, '');
-  
-  // Step 10: Restore protected templates
-  protectedTemplates.forEach((original, placeholder) => {
-    cleaned = cleaned.replace(placeholder, original);
-  });
-  
-  if (originalLength !== cleaned.length) {
-    console.error(`[JSX-VALIDATION] Removed Composition tags (${originalLength} → ${cleaned.length} chars)`);
-  }
-  
-  return cleaned;
-}
-
-/**
- * Ensure Claude's JSX uses proper function declaration and export
- * Shared by both create_project and edit_project for consistency
- */
-export function ensureProperExport(jsxContent: string): string {
-  // Clean and validate JSX first
-  const cleanedJSX = validateAndCleanJSX(jsxContent);
-  
-  console.error(`[ENSURE-PROPER-EXPORT] Processing cleaned JSX (${cleanedJSX.length} chars)`);
+  console.error(`[ENSURE-PROPER-EXPORT-SAFE] Processing JSX safely (${cleanedJSX.length} chars)`);
   
   // CRITICAL: Improved detection of complete React modules
   const hasImports = cleanedJSX.includes('import');
@@ -366,7 +285,7 @@ export function ensureProperExport(jsxContent: string): string {
   const isCompleteModule = hasImports && (hasInterfaces || hasComponents || cleanedJSX.split('const ').length > 2);
   
   if (isCompleteModule) {
-    console.error('[ENSURE-PROPER-EXPORT] Complete React module detected - minimal processing');
+    console.error('[ENSURE-PROPER-EXPORT-SAFE] Complete React module detected - minimal processing');
     
     // For complete modules, only ensure proper default export
     if (!hasExport) {
@@ -385,74 +304,34 @@ export function ensureProperExport(jsxContent: string): string {
         componentToExport = reactFcMatch[1];
       }
       
+      // Look for function ComponentName pattern
+      const functionMatch = cleanedJSX.match(/function (\w+)/);
+      if (functionMatch && functionMatch[1] !== 'VideoComposition') {
+        componentToExport = functionMatch[1];
+      }
+      
       return cleanedJSX + `\n\nexport default ${componentToExport};`;
     }
     
-    // Already has export - return as-is
     return cleanedJSX;
   }
   
-  // IMPROVED: Better detection for simple function components
-  const hasCompleteFunction = cleanedJSX.includes('function VideoComposition') && 
-                             cleanedJSX.includes('return') && 
-                             cleanedJSX.includes('}') &&
-                             !isCompleteModule; // Not a complex module
-  
-  if (hasCompleteFunction) {
-    console.error('[ENSURE-PROPER-EXPORT] Simple function component detected');
-    
-    if (hasExport) {
-      return cleanedJSX; // Already complete
-    } else {
-      return cleanedJSX + '\n\nexport default VideoComposition;';
-    }
+  // Simple component handling - just ensure export default exists
+  if (hasExport) {
+    return cleanedJSX;
   }
   
-  // Handle arrow function patterns
-  if (cleanedJSX.includes('export const VideoComposition')) {
-    console.error('[ENSURE-PROPER-EXPORT] Converting export const arrow function');
-    const converted = cleanedJSX
-      .replace('export const VideoComposition = () => {', 'function VideoComposition() {')
-      + '\n\nexport default VideoComposition;';
-    return converted;
+  // Add export default if missing for simple components
+  if (hasFunction) {
+    return cleanedJSX + '\n\nexport default VideoComposition;';
   }
   
-  if (cleanedJSX.includes('const VideoComposition') && !isCompleteModule) {
-    console.error('[ENSURE-PROPER-EXPORT] Converting const arrow function');
-    const converted = cleanedJSX
-      .replace('const VideoComposition = () => {', 'function VideoComposition() {')
-      + '\n\nexport default VideoComposition;';
-    return converted;
-  }
-  
-  // LAST RESORT: Simple JSX fragment only
-  console.error('[ENSURE-PROPER-EXPORT] Simple JSX fragment - wrapping in function');
-  
-  // Remove any stray imports/interfaces from fragments
-  const fragmentOnly = cleanedJSX
-    .replace(/^import.*$/gm, '')
-    .replace(/^interface.*$/gm, '')
-    .replace(/^type.*$/gm, '')
-    .replace(/^const.*React\.FC.*$/gm, '')
-    .trim();
-  
-  const safeWrapper = [
-    'import React from \'react\';',
-    'import { AbsoluteFill } from \'remotion\';',
-    '',
-    'function VideoComposition() {',
-    '  return (',
-    '    <AbsoluteFill>',
-    '      ' + fragmentOnly,
-    '    </AbsoluteFill>',
-    '  );',
-    '}',
-    '',
-    'export default VideoComposition;'
-  ].join('\n');
-  
-  return safeWrapper;
+  // If no function detected, wrap in a basic component
+  return `export default function VideoComposition() {
+  return (${cleanedJSX});
+}`;
 }
+
 
 export async function createRemotionProject(projectPath: string, jsx: string): Promise<void> {
   await fs.ensureDir(projectPath);
@@ -469,7 +348,7 @@ export async function createRemotionProject(projectPath: string, jsx: string): P
     console.warn('[JSX-VALIDATION] Warning: Potentially malformed template expressions detected, attempting to clean...');
   }
   
-  const videoCompositionContent = ensureProperExport(jsx);
+  const videoCompositionContent = ensureProperExportSafe(jsx);
   
   await fs.writeFile(
     path.join(projectPath, 'src', 'VideoComposition.tsx'),
@@ -717,8 +596,8 @@ export async function autoRecoverProject(name: string, jsx: string, duration?: n
     await fs.ensureDir(path.join(projectPath, 'public', 'audio'));
     actions.push('Ensured directory structure');
     
-    // Always update/fix VideoComposition.tsx with processed JSX
-    const jsx_processed = ensureProperExport(jsx);
+    // Always update/fix VideoComposition.tsx with processed JSX (using safe method)
+    const jsx_processed = ensureProperExportSafe(jsx);
     const compositionPath = path.join(projectPath, 'src', 'VideoComposition.tsx');
     await fs.writeFile(compositionPath, jsx_processed);
     actions.push('Updated VideoComposition.tsx with filtered JSX');
