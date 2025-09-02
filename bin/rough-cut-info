@@ -1,0 +1,31 @@
+#!/usr/bin/env node
+
+/**
+ * Global binary for rough-cut-info command
+ * Shows package version and build information
+ */
+
+const path = require('path');
+const { spawn } = require('child_process');
+
+// Find the package root directory (where this bin script is located)
+const packageRoot = path.resolve(__dirname, '..');
+const infoScript = path.join(packageRoot, 'info.js');
+
+// Forward all arguments to the info script
+const args = process.argv.slice(2);
+
+// Spawn the info script with proper stdio
+const infoProcess = spawn(process.execPath, [infoScript, ...args], {
+  stdio: 'inherit',
+  cwd: process.cwd()
+});
+
+infoProcess.on('exit', (code) => {
+  process.exit(code || 0);
+});
+
+infoProcess.on('error', (error) => {
+  console.error('Failed to run rough-cut-info:', error.message);
+  process.exit(1);
+});
