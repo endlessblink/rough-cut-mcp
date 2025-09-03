@@ -401,12 +401,12 @@ export async function createRemotionProject(projectPath: string, jsx: string): P
     console.warn('[JSX-VALIDATION] Warning: Potentially malformed template expressions detected, attempting to clean...');
   }
   
-  // NEW: AST-based design prism enhancement (safe, zero corruption)
-  // Import the AST system
-  const { enhanceJSXThroughAST } = await import('./ast-design-prism');
-  const designPrismResult = enhanceJSXThroughAST(jsx);
-  console.error(`[CREATE-PROJECT] AST Design Prism applied ${designPrismResult.enhancements.length} safe enhancements`);
-  const videoCompositionContent = ensureProperExportSafe(designPrismResult.enhancedJSX);
+  // DISABLED: Design prism enhancement system (regex-based corruption issues)
+  // TODO: Replace with AST-based enhancement when ready
+  // const designPrismResult = enhanceJSXThroughDesignPrism(jsx);
+  // console.error(`[CREATE-PROJECT] Design prism applied ${designPrismResult.enhancements.length} enhancements`);
+  console.error(`[CREATE-PROJECT] Design prism DISABLED - using clean JSX to prevent corruption`);
+  const videoCompositionContent = ensureProperExportSafe(jsx);
   
   // CRITICAL: Ensure consistent .tsx file extensions for React components
   const videoCompositionPath = path.join(projectPath, 'src', 'VideoComposition.tsx');

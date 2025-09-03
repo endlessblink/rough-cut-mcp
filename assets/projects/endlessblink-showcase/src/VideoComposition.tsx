@@ -1,409 +1,610 @@
-import React from 'react';
-import {
-  AbsoluteFill,
-  interpolate,
-  spring,
-  useCurrentFrame,
-  useVideoConfig,
-  Sequence,
-} from 'remotion';
+import React from "react";
+import { AbsoluteFill, Sequence, interpolate, Easing, useCurrentFrame, useVideoConfig } from "remotion";
 
-// Matrix Rain Component
-const MatrixRain = ({ opacity = 1 }) => {
+const True80sSynthwave: React.FC = () => {
   const frame = useCurrentFrame();
-  const { width, height } = useVideoConfig();
-  
-  const columns = 20;
-  const characters = '01アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
-  
-  const drops = Array.from({ length: columns }, (_, i) => ({
-    x: (i * width) / columns,
-    speed: 2 + (i % 3),
-    offset: (i * 137.5) % 100,
-  }));
-  
-  return (
-    <AbsoluteFill style={{ opacity }}>
-      {drops.map((drop, i) => (
+  const { fps, durationInFrames } = useVideoConfig();
+
+  // Timeline - 18 seconds
+  const introStart = 0;
+  const introEnd = fps * 3;
+  const titleStart = fps * 2;
+  const titleEnd = fps * 6;
+  const project1Start = fps * 6.5;
+  const project1End = fps * 11;
+  const project2Start = fps * 11.5;
+  const project2End = fps * 16;
+  const finalStart = fps * 16.5;
+
+  // 80s easing
+  const smoothOut = Easing.out(Easing.cubic);
+  const smoothIn = Easing.in(Easing.cubic);
+
+  // 80s Synthwave colors
+  const colors = {
+    neonPink: '#ff007f',
+    neonCoral: '#ff6b6b',
+    brightCyan: '#00ffff',
+    hotPink: '#ff1493',
+    darkSpace: '#0a0a0f',
+    gridColor: '#ff007f',
+    glowPink: '#ff69b4'
+  };
+
+  // Tron-style grid floor
+  const createTronGrid = () => {
+    const gridLines = [];
+    const perspective = 0.8;
+    const vanishingY = 400;
+    
+    // Horizontal lines (going into distance)
+    for (let i = 0; i < 20; i++) {
+      const progress = i / 20;
+      const y = 500 + (progress * 580);
+      const width = interpolate(progress, [0, 1], [1920, 200]);
+      const x = (1920 - width) / 2;
+      const opacity = interpolate(progress, [0, 0.7, 1], [1, 0.8, 0.2]);
+      
+      gridLines.push({
+        type: 'horizontal',
+        x, y, width,
+        opacity: opacity * 0.6,
+        glowIntensity: 1 - progress
+      });
+    }
+
+    // Vertical lines (perspective lines)
+    for (let i = 0; i < 15; i++) {
+      const x = (i / 14) * 1920;
+      const startY = 500;
+      const endY = 1080;
+      
+      gridLines.push({
+        type: 'vertical',
+        x1: x,
+        y1: startY,
+        x2: 960 + (x - 960) * perspective,
+        y2: endY,
+        opacity: 0.4
+      });
+    }
+
+    return gridLines;
+  };
+
+  // Retro starfield
+  const createRetroStars = () => {
+    const stars = [];
+    for (let i = 0; i < 40; i++) {
+      const x = (i * 47) % 1920;
+      const y = (i * 31) % 400; // Only in upper area
+      const twinkle = Math.sin(frame * 0.03 + i) * 0.3 + 0.7;
+      const size = 1 + (i % 3);
+      
+      stars.push({ x, y, size, twinkle });
+    }
+    return stars;
+  };
+
+  // Glitch text component
+  const GlitchText = ({ 
+    children, 
+    size = 48, 
+    color = colors.neonPink,
+    glitchIntensity = 1 
+  }: {
+    children: string;
+    size?: number;
+    color?: string;
+    glitchIntensity?: number;
+  }) => {
+    const glitchOffset = Math.sin(frame * 0.3) * glitchIntensity * 3;
+    const glitchOpacity = Math.sin(frame * 0.5) * 0.1 + 0.9;
+    
+    return (
+      <div style={{ position: 'relative', display: 'inline-block' }}>
+        {/* Main text */}
         <div
-          key={i}
+          style={{
+            fontSize: `${size}px`,
+            fontFamily: 'Courier New, monospace',
+            fontWeight: 'bold',
+            color,
+            textShadow: `
+              0 0 5px ${color},
+              0 0 10px ${color},
+              0 0 20px ${color},
+              0 0 40px ${color}
+            `,
+            letterSpacing: '2px',
+            position: 'relative',
+            zIndex: 2,
+          }}
+        >
+          {children}
+        </div>
+        
+        {/* Glitch layers */}
+        <div
           style={{
             position: 'absolute',
-            left: drop.x,
-            top: ((frame * drop.speed + drop.offset) % (height + 200)) - 200,
-            color: '#00ff41',
-            fontFamily: 'monospace',
-            fontSize: 14,
-            textShadow: '0 0 5px #00ff41',
-          }}
-        >
-          {characters[Math.floor((frame + i) / 10) % characters.length]}
-        </div>
-      ))}
-    </AbsoluteFill>
-  );
-};
-
-// GitHub Logo Component
-const GitHubLogo = ({ size = 60, color = 'white' }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
-    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-  </svg>
-);
-
-// Typewriter Effect Component
-const TypewriterText = ({ text, delay = 0, style = {} }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  
-  const startFrame = delay * fps;
-  const progress = Math.max(0, (frame - startFrame) / (2 * fps));
-  const charactersToShow = Math.floor(progress * text.length);
-  
-  return (
-    <span style={{ fontFamily: 'Monaco, monospace', ...style }}>
-      {text.substring(0, charactersToShow)}
-      <span style={{ 
-        opacity: Math.sin(frame * 0.5) > 0 ? 1 : 0,
-        color: '#00ff41'
-      }}>
-        |
-      </span>
-    </span>
-  );
-};
-
-// Project Card Component
-const ProjectCard = ({ title, description, delay = 0, color = '#00D9FF' }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  
-  const startFrame = delay * fps;
-  const slideProgress = spring({
-    frame: frame - startFrame,
-    fps,
-    config: { damping: 15, stiffness: 100 },
-  });
-  
-  const translateX = interpolate(slideProgress, [0, 1], [300, 0]);
-  const opacity = interpolate(slideProgress, [0, 1], [0, 1]);
-  
-  return (
-    <div
-      style={{
-        transform: `translateX(${translateX}px)`,
-        opacity,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        border: `2px solid ${color}`,
-        borderRadius: 8,
-        padding: 20,
-        margin: 10,
-        minHeight: 100,
-        boxShadow: `0 0 20px ${color}40`,
-      }}
-    >
-      <h3 style={{ 
-        color: color, 
-        margin: 0, 
-        marginBottom: 8,
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 18,
-      }}>
-        {title}
-      </h3>
-      <p style={{ 
-        color: 'white', 
-        margin: 0,
-        fontFamily: 'Arial, sans-serif',
-        fontSize: 14,
-        lineHeight: 1.4,
-      }}>
-        {description}
-      </p>
-    </div>
-  );
-};
-
-// Stats Grid Component
-const StatsGrid = ({ delay = 0 }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-  
-  const startFrame = delay * fps;
-  const progress = spring({
-    frame: frame - startFrame,
-    fps,
-    config: { damping: 12, stiffness: 80 },
-  });
-  
-  const scale = interpolate(progress, [0, 1], [0.8, 1]);
-  const opacity = interpolate(progress, [0, 1], [0, 1]);
-  
-  const stats = [
-    { label: 'Repositories', value: '12+', color: '#00D9FF' },
-    { label: 'MCP Servers', value: '3', color: '#F38BA8' },
-    { label: 'Languages', value: '8+', color: '#A6E3A1' },
-    { label: 'Active Projects', value: '5', color: '#F9E2AF' },
-  ];
-  
-  return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: 20,
-        transform: `scale(${scale})`,
-        opacity,
-      }}
-    >
-      {stats.map((stat, i) => (
-        <div
-          key={i}
-          style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            border: `2px solid ${stat.color}`,
-            borderRadius: 8,
-            padding: 15,
-            textAlign: 'center',
-            boxShadow: `0 0 15px ${stat.color}40`,
-          }}
-        >
-          <div style={{ 
-            color: stat.color, 
-            fontSize: 24, 
+            top: 0,
+            left: glitchOffset,
+            fontSize: `${size}px`,
+            fontFamily: 'Courier New, monospace',
             fontWeight: 'bold',
-            fontFamily: 'Arial, sans-serif',
-            marginBottom: 5,
-          }}>
-            {stat.value}
-          </div>
-          <div style={{ 
-            color: 'white', 
-            fontSize: 12,
-            fontFamily: 'Arial, sans-serif',
-          }}>
-            {stat.label}
-          </div>
+            color: '#ff0000',
+            letterSpacing: '2px',
+            opacity: glitchOpacity * 0.7,
+            zIndex: 1,
+          }}
+        >
+          {children}
         </div>
-      ))}
-    </div>
-  );
-};
+        
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: -glitchOffset,
+            fontSize: `${size}px`,
+            fontFamily: 'Courier New, monospace',
+            fontWeight: 'bold',
+            color: '#00ffff',
+            letterSpacing: '2px',
+            opacity: glitchOpacity * 0.5,
+            zIndex: 0,
+          }}
+        >
+          {children}
+        </div>
+      </div>
+    );
+  };
 
-// Main Video Composition
-export const VideoComposition: React.FC = () => {
-  const frame = useCurrentFrame();
-  const { width, height } = useVideoConfig();
+  // CRT scan lines
+  const scanLineOffset = (frame * 2) % 1080;
+
+  // Animation calculations
+  const introOpacity = interpolate(frame, [introStart, introStart + 30], [0, 1], { easing: smoothOut });
   
-  // Background gradient animation
-  const gradientRotation = interpolate(frame, [0, 900], [0, 360]);
-  const backgroundOpacity = interpolate(frame, [0, 30, 870, 900], [0.8, 1, 1, 0]);
-  
+  const titleOpacity = interpolate(frame, [titleStart, titleStart + 40], [0, 1], { easing: smoothOut });
+  const titleScale = interpolate(frame, [titleStart, titleStart + 60], [0.8, 1], { easing: smoothOut });
+  const titleExit = interpolate(frame, [titleEnd - 40, titleEnd], [1, 0], { easing: smoothIn });
+
+  const project1Opacity = interpolate(frame, [project1Start, project1Start + 30], [0, 1], { easing: smoothOut });
+  const project1Exit = interpolate(frame, [project1End - 30, project1End], [1, 0], { easing: smoothIn });
+
+  const project2Opacity = interpolate(frame, [project2Start, project2Start + 30], [0, 1], { easing: smoothOut });
+  const project2Exit = interpolate(frame, [project2End - 30, project2End], [1, 0], { easing: smoothIn });
+
+  const finalOpacity = interpolate(frame, [finalStart, finalStart + 30], [0, 1], { easing: smoothOut });
+
   return (
     <AbsoluteFill>
-      {/* Animated Background */}
-      <AbsoluteFill
+      {/* Dark space background */}
+      <div
         style={{
-          background: `linear-gradient(${gradientRotation}deg, #0a0a0a, #1a1a2e, #16213e)`,
-          opacity: backgroundOpacity,
+          position: 'absolute',
+          width: '100%',
+          height: '100%',
+          background: `
+            radial-gradient(ellipse at 50% 20%, 
+              ${colors.darkSpace} 0%, 
+              #000000 70%
+            )
+          `,
         }}
       />
-      
-      {/* Matrix Rain Effect - appears at 1s and continues */}
-      <Sequence from={30} durationInFrames={870}>
-        <MatrixRain opacity={0.3} />
-      </Sequence>
-      
-      {/* Title Scene (0-5s) */}
-      <Sequence from={0} durationInFrames={150}>
+
+      {/* Retro stars */}
+      <div style={{ position: 'absolute', width: '100%', height: '100%' }}>
+        {createRetroStars().map((star, i) => (
+          <div
+            key={i}
+            style={{
+              position: 'absolute',
+              left: star.x,
+              top: star.y,
+              width: star.size * 2,
+              height: star.size * 2,
+              background: colors.brightCyan,
+              borderRadius: '50%',
+              opacity: star.twinkle * 0.8,
+              boxShadow: `0 0 ${star.size * 3}px ${colors.brightCyan}`,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* Tron grid floor */}
+      <div style={{ position: 'absolute', width: '100%', height: '100%' }}>
+        {createTronGrid().map((line, i) => (
+          <div key={i}>
+            {line.type === 'horizontal' ? (
+              <div
+                style={{
+                  position: 'absolute',
+                  left: line.x,
+                  top: line.y,
+                  width: line.width,
+                  height: 2,
+                  background: colors.gridColor,
+                  opacity: line.opacity,
+                  boxShadow: `0 0 ${line.glowIntensity * 10}px ${colors.gridColor}`,
+                }}
+              />
+            ) : (
+              <svg
+                style={{
+                  position: 'absolute',
+                  width: '100%',
+                  height: '100%',
+                  pointerEvents: 'none',
+                }}
+              >
+                <line
+                  x1={line.x1}
+                  y1={line.y1}
+                  x2={line.x2}
+                  y2={line.y2}
+                  stroke={colors.gridColor}
+                  strokeWidth="2"
+                  opacity={line.opacity}
+                  filter={`drop-shadow(0 0 3px ${colors.gridColor})`}
+                />
+              </svg>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* CRT scan lines */}
+      <div
+        style={{
+          position: 'absolute',
+          width: '100%',
+          height: '4px',
+          background: `linear-gradient(90deg, 
+            transparent, 
+            ${colors.brightCyan}88, 
+            transparent
+          )`,
+          top: scanLineOffset,
+          opacity: 0.6,
+          boxShadow: `0 0 20px ${colors.brightCyan}`,
+        }}
+      />
+
+      {/* Intro sequence */}
+      <Sequence from={introStart} durationInFrames={titleStart - introStart + 40}>
         <AbsoluteFill
           style={{
             display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
             alignItems: 'center',
-            textAlign: 'center',
+            justifyContent: 'center',
+            opacity: introOpacity * (frame < titleStart + 30 ? 1 : 0),
           }}
         >
-          <div style={{ marginBottom: 30 }}>
-            <GitHubLogo size={80} color="#00ff41" />
+          <div style={{ textAlign: 'center' }}>
+            <GlitchText size={32} color={colors.brightCyan}>
+              ENDLESSBLINK STUDIOS PRESENTS
+            </GlitchText>
+            
+            <div style={{ marginTop: 30 }}>
+              <GlitchText size={20} color={colors.neonCoral}>
+                A NEW AWARD WINNING REPOSITORY
+              </GlitchText>
+            </div>
           </div>
-          
-          <h1 style={{
-            fontSize: 48,
-            fontWeight: 'bold',
-            color: 'white',
-            margin: 0,
-            marginBottom: 10,
-            textShadow: '0 0 20px #00ff41',
-            fontFamily: 'Arial, sans-serif',
-          }}>
-            <TypewriterText text="endlessblink" delay={0.5} />
-          </h1>
-          
-          <h2 style={{
-            fontSize: 24,
-            color: '#00ff41',
-            margin: 0,
-            fontFamily: 'monospace',
-            textShadow: '0 0 10px #00ff41',
-          }}>
-            <TypewriterText text="MCP Server Innovations" delay={2} />
-          </h2>
         </AbsoluteFill>
       </Sequence>
-      
-      {/* Stats Scene (5-17s) */}
-      <Sequence from={150} durationInFrames={360}>
+
+      {/* Main title sequence */}
+      <Sequence from={titleStart} durationInFrames={titleEnd - titleStart}>
         <AbsoluteFill
           style={{
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'center',
             alignItems: 'center',
-            padding: 40,
+            justifyContent: 'center',
+            opacity: titleOpacity * titleExit,
+            transform: `scale(${titleScale})`,
           }}
         >
-          <h2 style={{
-            fontSize: 32,
-            color: '#00D9FF',
-            textAlign: 'center',
-            marginBottom: 40,
-            textShadow: '0 0 15px #00D9FF',
-            fontFamily: 'Arial, sans-serif',
-          }}>
-            Like-I-Said v2: Advanced MCP Memory
-          </h2>
-          
-          <StatsGrid delay={0.5} />
-          
-          <div style={{
-            marginTop: 30,
-            padding: 20,
-            backgroundColor: 'rgba(0, 217, 255, 0.1)',
-            border: '2px solid #00D9FF',
-            borderRadius: 10,
-            textAlign: 'center',
-            maxWidth: 600,
-          }}>
-            <p style={{
-              color: 'white',
-              fontSize: 16,
-              margin: 0,
-              fontFamily: 'Arial, sans-serif',
-              lineHeight: 1.5,
-            }}>
-              Persistent memory system with advanced task management,
-              real-time dashboard interface, and intelligent context tracking
-            </p>
-          </div>
-        </AbsoluteFill>
-      </Sequence>
-      
-      {/* Projects Scene (17-29s) */}
-      <Sequence from={510} durationInFrames={360}>
-        <AbsoluteFill
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: 40,
-          }}
-        >
-          <h2 style={{
-            fontSize: 32,
-            color: '#F38BA8',
-            textAlign: 'center',
-            marginBottom: 40,
-            textShadow: '0 0 15px #F38BA8',
-            fontFamily: 'Arial, sans-serif',
-          }}>
-            Comfy-Guru: Peaceful ComfyUI Debugging
-          </h2>
-          
-          <div style={{ maxWidth: 800, width: '100%' }}>
-            <ProjectCard
-              title="Error Analysis Interface"
-              description="Advanced ComfyUI error categorization with intelligent debugging suggestions and real-time status tracking"
-              delay={0.5}
-              color="#F38BA8"
+          {/* Large retro logo */}
+          <div style={{ position: 'relative', marginBottom: 60 }}>
+            {/* Background glow */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: '-40px',
+                background: `radial-gradient(ellipse, ${colors.neonPink}22, transparent)`,
+                filter: 'blur(30px)',
+              }}
             />
             
-            <ProjectCard
-              title="Peaceful Debugging Visualization"
-              description="Zen-like approach to workflow debugging with clear visual indicators and step-by-step resolution guidance"
-              delay={1}
-              color="#F38BA8"
+            <GlitchText size={120} color={colors.neonPink}>
+              ENDLESSBLINK
+            </GlitchText>
+            
+            {/* Retro underline */}
+            <div
+              style={{
+                marginTop: 20,
+                height: 4,
+                background: `linear-gradient(90deg, 
+                  transparent, 
+                  ${colors.neonPink}, 
+                  ${colors.hotPink},
+                  ${colors.neonPink}, 
+                  transparent
+                )`,
+                boxShadow: `0 0 20px ${colors.neonPink}`,
+              }}
             />
+          </div>
+
+          {/* Reviews/ratings like the Loox image */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '1200px' }}>
+            {/* Left review */}
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ marginBottom: 10 }}>
+                <GlitchText size={16} color={colors.neonCoral} glitchIntensity={0.5}>
+                  BEST MEMORY SYSTEM
+                </GlitchText>
+              </div>
+              <div style={{ marginBottom: 10 }}>
+                <GlitchText size={16} color={colors.neonCoral} glitchIntensity={0.5}>
+                  IN THE AI ECOSYSTEM
+                </GlitchText>
+              </div>
+              <div style={{ display: 'flex', gap: 5 }}>
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} style={{ color: colors.neonPink, fontSize: 20 }}>★</div>
+                ))}
+              </div>
+              <GlitchText size={14} color={colors.brightCyan} glitchIntensity={0.3}>
+                - LLM FEDERATION -
+              </GlitchText>
+            </div>
+
+            {/* Right review */}
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ marginBottom: 10 }}>
+                <GlitchText size={16} color={colors.neonCoral} glitchIntensity={0.5}>
+                  MCP-LEVEL TWISTS
+                </GlitchText>
+              </div>
+              <div style={{ marginBottom: 10 }}>
+                <GlitchText size={16} color={colors.neonCoral} glitchIntensity={0.5}>
+                  AND TURNS HIGHLY RECOMMEND
+                </GlitchText>
+              </div>
+              <div style={{ display: 'flex', gap: 5, justifyContent: 'flex-end' }}>
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} style={{ color: colors.neonPink, fontSize: 20 }}>★</div>
+                ))}
+              </div>
+              <GlitchText size={14} color={colors.brightCyan} glitchIntensity={0.3}>
+                - AI DEVELOPERS -
+              </GlitchText>
+            </div>
           </div>
         </AbsoluteFill>
       </Sequence>
-      
-      {/* Call to Action (29-30s) */}
-      <Sequence from={870} durationInFrames={30}>
+
+      {/* Project 1 - 80s style */}
+      <Sequence from={project1Start} durationInFrames={project1End - project1Start}>
         <AbsoluteFill
           style={{
             display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
             alignItems: 'center',
-            textAlign: 'center',
-          }}
-        >
-          <div style={{ marginBottom: 20 }}>
-            <GitHubLogo size={60} color="white" />
-          </div>
-          
-          <h2 style={{
-            fontSize: 28,
-            color: 'white',
-            margin: 0,
-            marginBottom: 10,
-            fontFamily: 'Arial, sans-serif',
-          }}>
-            ⭐ Star the repos!
-          </h2>
-          
-          <p style={{
-            fontSize: 18,
-            color: '#00ff41',
-            margin: 0,
-            fontFamily: 'monospace',
-          }}>
-            github.com/endlessblink
-          </p>
-        </AbsoluteFill>
-      </Sequence>
-      
-      {/* Progress Bar */}
-      <Sequence from={0} durationInFrames={900}>
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 20,
-            left: 40,
-            right: 40,
-            height: 4,
-            backgroundColor: 'rgba(255, 255, 255, 0.2)',
-            borderRadius: 2,
-            overflow: 'hidden',
+            justifyContent: 'center',
+            opacity: project1Opacity * project1Exit,
           }}
         >
           <div
             style={{
-              height: '100%',
-              width: `${(frame / 900) * 100}%`,
-              background: 'linear-gradient(90deg, #00D9FF, #F38BA8)',
-              borderRadius: 2,
-              transition: 'width 0.1s ease-out',
+              width: '900px',
+              padding: '40px 60px',
+              border: `3px solid ${colors.neonPink}`,
+              background: `linear-gradient(135deg, 
+                rgba(255, 0, 127, 0.1), 
+                rgba(0, 255, 255, 0.1)
+              )`,
+              boxShadow: `
+                0 0 30px ${colors.neonPink}66,
+                inset 0 0 30px rgba(255, 0, 127, 0.1)
+              `,
+              position: 'relative',
             }}
-          />
-        </div>
+          >
+            {/* Retro corner decorations */}
+            <div style={{ position: 'absolute', top: 10, left: 10, color: colors.neonPink, fontSize: 20 }}>◢</div>
+            <div style={{ position: 'absolute', top: 10, right: 10, color: colors.neonPink, fontSize: 20 }}>◣</div>
+            <div style={{ position: 'absolute', bottom: 10, left: 10, color: colors.neonPink, fontSize: 20 }}>◥</div>
+            <div style={{ position: 'absolute', bottom: 10, right: 10, color: colors.neonPink, fontSize: 20 }}>◤</div>
+
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ marginBottom: 20 }}>
+                <GlitchText size={48} color={colors.neonPink}>
+                  LIKE-I-SAID-V2
+                </GlitchText>
+              </div>
+
+              <div style={{ marginBottom: 30 }}>
+                <GlitchText size={18} color={colors.brightCyan} glitchIntensity={0.5}>
+                  ADVANCED MCP MEMORY AND TASK MANAGEMENT
+                </GlitchText>
+                <div style={{ marginTop: 10 }}>
+                  <GlitchText size={18} color={colors.brightCyan} glitchIntensity={0.5}>
+                    FOR LARGE LANGUAGE MODELS
+                  </GlitchText>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                {[
+                  'MEMORY LINKING',
+                  'NATURAL INTERFACE',
+                  'CROSS SESSION',
+                  'REACT DASHBOARD'
+                ].map((feature, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      padding: '10px 20px',
+                      border: `2px solid ${colors.neonCoral}`,
+                      background: `rgba(255, 107, 107, 0.2)`,
+                      opacity: interpolate(
+                        frame,
+                        [project1Start + 60 + i * 10, project1Start + 80 + i * 10],
+                        [0, 1]
+                      ),
+                    }}
+                  >
+                    <GlitchText size={14} color={colors.neonCoral} glitchIntensity={0.3}>
+                      {feature}
+                    </GlitchText>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </AbsoluteFill>
       </Sequence>
+
+      {/* Project 2 - 80s style */}
+      <Sequence from={project2Start} durationInFrames={project2End - project2Start}>
+        <AbsoluteFill
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: project2Opacity * project2Exit,
+          }}
+        >
+          <div
+            style={{
+              width: '900px',
+              padding: '40px 60px',
+              border: `3px solid ${colors.brightCyan}`,
+              background: `linear-gradient(135deg, 
+                rgba(0, 255, 255, 0.1), 
+                rgba(255, 0, 127, 0.1)
+              )`,
+              boxShadow: `
+                0 0 30px ${colors.brightCyan}66,
+                inset 0 0 30px rgba(0, 255, 255, 0.1)
+              `,
+              position: 'relative',
+            }}
+          >
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ marginBottom: 20 }}>
+                <GlitchText size={48} color={colors.brightCyan}>
+                  COMFY-GURU
+                </GlitchText>
+              </div>
+
+              <div style={{ marginBottom: 30 }}>
+                <GlitchText size={18} color={colors.neonPink} glitchIntensity={0.5}>
+                  CLAUDE DESKTOP ↔ COMFYUI BRIDGE
+                </GlitchText>
+                <div style={{ marginTop: 10 }}>
+                  <GlitchText size={18} color={colors.neonPink} glitchIntensity={0.5}>
+                    ERROR DETECTION AND LOG ANALYSIS
+                  </GlitchText>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: 15 }}>
+                {[
+                  'ERROR DETECTION',
+                  'LOG ANALYSIS',
+                  'PYTHON BRIDGE',
+                  'REAL-TIME SYNC'
+                ].map((feature, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      padding: '8px 16px',
+                      border: `2px solid ${colors.hotPink}`,
+                      background: `rgba(255, 20, 147, 0.2)`,
+                      opacity: interpolate(
+                        frame,
+                        [project2Start + 60 + i * 8, project2Start + 80 + i * 8],
+                        [0, 1]
+                      ),
+                    }}
+                  >
+                    <GlitchText size={12} color={colors.hotPink} glitchIntensity={0.3}>
+                      {feature}
+                    </GlitchText>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </AbsoluteFill>
+      </Sequence>
+
+      {/* Final 80s screen */}
+      <Sequence from={finalStart} durationInFrames={durationInFrames - finalStart}>
+        <AbsoluteFill
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: finalOpacity,
+          }}
+        >
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ marginBottom: 40 }}>
+              <GlitchText size={72} color={colors.neonPink}>
+                ACCESS GRANTED
+              </GlitchText>
+            </div>
+
+            <div style={{ marginBottom: 30 }}>
+              <GlitchText size={28} color={colors.brightCyan} glitchIntensity={0.5}>
+                GITHUB.COM/ENDLESSBLINK
+              </GlitchText>
+            </div>
+
+            <div
+              style={{
+                padding: '15px 30px',
+                border: `2px solid ${colors.neonPink}`,
+                background: `rgba(255, 0, 127, 0.2)`,
+                opacity: Math.sin(frame * 0.1) * 0.3 + 0.7,
+              }}
+            >
+              <GlitchText size={16} color={colors.neonPink} glitchIntensity={0.5}>
+                PRESS START TO EXPLORE
+              </GlitchText>
+            </div>
+          </div>
+        </AbsoluteFill>
+      </Sequence>
+
+      {/* 80s vignette overlay */}
+      <div
+        style={{
+          position: 'absolute',
+          width: '100%',
+          height: '100%',
+          background: `radial-gradient(ellipse at center, 
+            transparent 40%, 
+            rgba(0, 0, 0, 0.6) 100%
+          )`,
+          pointerEvents: 'none',
+        }}
+      />
     </AbsoluteFill>
   );
 };
 
-// Compatibility exports for both import patterns
-export default VideoComposition;
+export default True80sSynthwave;

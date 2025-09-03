@@ -98,10 +98,10 @@ function findNodePath() {
 }
 
 /**
- * Dynamically find the global installation path for remotion-mcp-server
+ * Dynamically find the global installation path for rough-cut-mcp
  */
 function findGlobalPackagePath() {
-  const packageName = 'rough-cut-mcp-e2e';
+  const packageName = 'rough-cut-mcp';
   const platform = detectPlatform();
   
   // Method 1: Try to resolve from current script location (most reliable for global installs)
@@ -269,11 +269,11 @@ async function writeClaudeConfig(configFile, config) {
     const parsedConfig = JSON.parse(writtenContent);
     
     // Verify our MCP server is in the config
-    if (parsedConfig.mcpServers && parsedConfig.mcpServers['rough-cut-mcp-e2e']) {
+    if (parsedConfig.mcpServers && parsedConfig.mcpServers['rough-cut-mcp']) {
       log('green', '✅ Config file written and validated successfully');
       return { success: true, config: parsedConfig };
     } else {
-      throw new Error('rough-cut-mcp-e2e MCP server not found in written config');
+      throw new Error('rough-cut-mcp MCP server not found in written config');
     }
   } catch (error) {
     throw new Error(`Config validation failed: ${error.message}`);
@@ -324,7 +324,7 @@ async function main() {
     if (fs.existsSync(localPackageJson)) {
       try {
         const packageJson = await fs.readJson(localPackageJson);
-        if (packageJson.name === 'rough-cut-mcp-e2e') {
+        if (packageJson.name === 'rough-cut-mcp') {
           packageRoot = currentDir;
           isGlobalInstallation = false;
           log('blue', '📍 Running from local development directory');
@@ -343,7 +343,7 @@ async function main() {
         isGlobalInstallation = true;
         log('blue', `📍 Running from global npm installation: ${packageRoot}`);
       } else {
-        throw new Error('Cannot find rough-cut-mcp-e2e installation. Please run: npm install -g rough-cut-mcp-e2e');
+        throw new Error('Cannot find rough-cut-mcp installation. Please run: npm install -g rough-cut-mcp');
       }
     }
     
@@ -394,11 +394,16 @@ async function main() {
       log('green', '✅ Using pre-built global installation');
     }
     
-    // Create assets directory
+    // Create assets directory and auto-configure .env
     log('yellow', '📁 Creating assets directory...');
-    const assetsDir = path.join(currentDir, 'assets', 'projects');
+    const assetsDir = path.join(packageRoot, 'assets', 'projects');
     await fs.ensureDir(assetsDir);
     log('green', '✅ Assets directory ready');
+    
+    // Auto-generate .env file with correct paths
+    log('yellow', '📝 Auto-configuring .env file...');
+    await createDefaultEnvFile(packageRoot);
+    log('green', '✅ .env file auto-configured');
     
     // Test MCP server briefly
     log('yellow', '🧪 Testing MCP server startup...');
@@ -455,11 +460,14 @@ async function main() {
       const existingConfig = await readExistingClaudeConfig(configFile);
       log('blue', `📋 Found ${Object.keys(existingConfig.mcpServers || {}).length} existing MCP servers`);
       
-      // Add our MCP server configuration
+      // Add our MCP server configuration with environment variables
       existingConfig.mcpServers = existingConfig.mcpServers || {};
-      existingConfig.mcpServers['rough-cut-mcp-e2e'] = {
+      existingConfig.mcpServers['rough-cut-mcp'] = {
         command: nodePath,
-        args: [fullBuildPath]
+        args: [fullBuildPath],
+        env: {
+          REMOTION_PROJECTS_DIR: path.join(packageRoot, 'assets', 'projects')
+        }
       };
       
       // Write updated configuration with validation
@@ -467,11 +475,11 @@ async function main() {
       
       log('green', '✅ Claude Desktop configuration updated successfully!');
       log('blue', `📁 Config file: ${configFile}`);
-      log('green', `✅ MCP server "rough-cut-mcp-e2e" added (total: ${Object.keys(result.config.mcpServers).length})`);
+      log('green', `✅ MCP server "rough-cut-mcp" added (total: ${Object.keys(result.config.mcpServers).length})`);
       
       // Show what was written
       log('blue', '📋 Configuration written:');
-      console.log(JSON.stringify(result.config.mcpServers['rough-cut-mcp-e2e'], null, 2));
+      console.log(JSON.stringify(result.config.mcpServers['rough-cut-mcp'], null, 2));
       
       // Additional verification - read back the file to ensure it actually contains our config
       log('yellow', '🔍 Verifying config file was written correctly...');
@@ -480,11 +488,13 @@ async function main() {
         const verificationConfig = JSON.parse(verificationContent);
         
         if (verificationConfig.mcpServers && 
-            verificationConfig.mcpServers['rough-cut-mcp-e2e'] && 
-            verificationConfig.mcpServers['rough-cut-mcp-e2e'].command === nodePath &&
-            verificationConfig.mcpServers['rough-cut-mcp-e2e'].args &&
-            verificationConfig.mcpServers['rough-cut-mcp-e2e'].args[0] === fullBuildPath) {
-          log('green', '✅ Config file verification successful - all paths match!');
+            verificationConfig.mcpServers['rough-cut-mcp'] && 
+            verificationConfig.mcpServers['rough-cut-mcp'].command === nodePath &&
+            verificationConfig.mcpServers['rough-cut-mcp'].args &&
+            verificationConfig.mcpServers['rough-cut-mcp'].args[0] === fullBuildPath &&
+            verificationConfig.mcpServers['rough-cut-mcp'].env &&
+            verificationConfig.mcpServers['rough-cut-mcp'].env.REMOTION_PROJECTS_DIR === path.join(packageRoot, 'assets', 'projects')) {
+          log('green', '✅ Config file verification successful - all paths and environment variables match!');
         } else {
           throw new Error('Config verification failed - written config does not match expected values');
         }
@@ -539,9 +549,12 @@ async function main() {
         
         const manualConfig = {
           mcpServers: {
-            'rough-cut-mcp-e2e': {
+            'rough-cut-mcp': {
               command: nodePath,
-              args: [fullBuildPath]
+              args: [fullBuildPath],
+              env: {
+                REMOTION_PROJECTS_DIR: path.join(packageRoot, 'assets', 'projects')
+              }
             }
           }
         };
@@ -633,4 +646,56 @@ if (require.main === module) {
   });
 }
 
-module.exports = { detectPlatform, findNodePath, testNodeVersion };
+/**
+ * Create or update .env file with correct paths for this installation
+ */
+async function createDefaultEnvFile(packageRoot) {
+  const envPath = path.join(packageRoot, '.env');
+  const envExamplePath = path.join(packageRoot, '.env.example');
+  
+  // Use the same logic as getBaseDirectory to determine correct project path
+  const baseDir = packageRoot; // For this installation, projects go in package root
+  const projectsPath = path.resolve(baseDir, 'assets', 'projects');
+  
+  // Ensure projects directory exists
+  await fs.ensureDir(projectsPath);
+  
+  let envContent = '';
+  
+  // Read existing .env if it exists
+  if (await fs.pathExists(envPath)) {
+    envContent = await fs.readFile(envPath, 'utf8');
+    log('blue', '📝 Updating existing .env file');
+  } else {
+    // Start with .env.example if .env doesn't exist
+    if (await fs.pathExists(envExamplePath)) {
+      envContent = await fs.readFile(envExamplePath, 'utf8');
+      log('blue', '📝 Creating .env from .env.example');
+    } else {
+      envContent = '# Remotion MCP Server Configuration\n\n';
+      log('blue', '📝 Creating new .env file');
+    }
+  }
+  
+  // Update or add REMOTION_PROJECTS_DIR (point directly to projects directory)
+  const projectsDirLine = `REMOTION_PROJECTS_DIR=${path.join(packageRoot, 'assets', 'projects')}`;
+  const regex = /^REMOTION_PROJECTS_DIR=.*$/m;
+  
+  if (regex.test(envContent)) {
+    envContent = envContent.replace(regex, projectsDirLine);
+    log('yellow', '🔄 Updated REMOTION_PROJECTS_DIR in .env');
+  } else {
+    envContent = envContent + '\n' + projectsDirLine + '\n';
+    log('green', '✅ Added REMOTION_PROJECTS_DIR to .env');
+  }
+  
+  // Write updated .env file
+  await fs.writeFile(envPath, envContent);
+  
+  log('green', `✅ .env file configured with projects path: ${projectsPath}`);
+  log('blue', `📁 Projects will be created in: ${projectsPath}`);
+  
+  return { envPath, projectsPath };
+}
+
+module.exports = { detectPlatform, findNodePath, testNodeVersion, createDefaultEnvFile };

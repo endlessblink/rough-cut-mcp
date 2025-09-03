@@ -8,7 +8,7 @@ A minimal MCP server for Remotion video creation. Claude Desktop generates JSX i
 
 1. **Install globally:**
    ```bash
-   npm install -g rough-cut-mcp-e2e
+   npm install -g rough-cut-mcp
    ```
 
 2. **Automated setup:**
@@ -62,9 +62,9 @@ The setup script will generate the correct configuration for your system. Exampl
 ```json
 {
   "mcpServers": {
-    "rough-cut-mcp-e2e": {
+    "rough-cut-mcp": {
       "command": "C:\\Program Files\\nodejs\\node.exe",
-      "args": ["C:\\Users\\username\\AppData\\Roaming\\npm\\node_modules\\rough-cut-mcp-e2e\\build\\index.js"]
+      "args": ["C:\\Users\\username\\AppData\\Roaming\\npm\\node_modules\\rough-cut-mcp\\build\\index.js"]
     }
   }
 }
@@ -74,9 +74,9 @@ The setup script will generate the correct configuration for your system. Exampl
 ```json
 {
   "mcpServers": {
-    "rough-cut-mcp-e2e": {
+    "rough-cut-mcp": {
       "command": "/usr/local/bin/node",
-      "args": ["/usr/local/lib/node_modules/rough-cut-mcp-e2e/build/index.js"]
+      "args": ["/usr/local/lib/node_modules/rough-cut-mcp/build/index.js"]
     }
   }
 }
@@ -86,9 +86,9 @@ The setup script will generate the correct configuration for your system. Exampl
 ```json
 {
   "mcpServers": {
-    "rough-cut-mcp-e2e": {
+    "rough-cut-mcp": {
       "command": "/usr/bin/node",
-      "args": ["/usr/lib/node_modules/rough-cut-mcp-e2e/build/index.js"]
+      "args": ["/usr/lib/node_modules/rough-cut-mcp/build/index.js"]
     }
   }
 }
@@ -141,7 +141,7 @@ Removes project directory completely.
 Returns detailed project information and status.
 
 ### 8. `get-studio-status()`
-Returns all running studios with ports and project names.
+Returns all **running** studios with ports and project names. (Note: This shows active studio processes, not existing projects. Use `list-projects` to see all created projects.)
 
 ### 9. `configure-audio(apiKey?, enabled?)`
 Configure optional AI audio generation features.
@@ -246,6 +246,29 @@ All tools return structured responses:
   "error": "Error details (if failed)"
 }
 ```
+
+## Project Directory Detection
+
+The MCP server automatically finds the best location for projects:
+
+**For Fresh Installations (No Setup Required):**
+- **Global install**: Projects created in `{npm-global}/node_modules/rough-cut-mcp/assets/projects/`
+- **Local development**: Projects created in `./assets/projects/` relative to installation
+
+**For Custom Locations (Optional):**
+```bash
+# Windows
+set REMOTION_PROJECTS_DIR=D:\MyVideos\Remotion
+
+# macOS/Linux  
+export REMOTION_PROJECTS_DIR=/home/user/videos/remotion
+```
+
+**Priority Order:**
+1. `REMOTION_PROJECTS_DIR` environment variable (if set)
+2. Package installation directory + `/assets/projects/`
+3. `~/remotion-projects/` in user home
+4. Current working directory + `/assets/projects/`
 
 ## Cross-Platform Support
 

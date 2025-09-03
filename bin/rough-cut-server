@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Global binary for remotion-mcp-server command
+ * Global binary for rough-cut-mcp command
  * Starts the MCP server directly from global installation
  */
 
@@ -18,7 +18,7 @@ const args = process.argv.slice(2);
 // Check if built server exists
 const fs = require('fs');
 if (!fs.existsSync(serverScript)) {
-  console.error('Server not built. Run: remotion-mcp-build');
+  console.error('Server not built. Run: rough-cut-build');
   process.exit(1);
 }
 
@@ -33,6 +33,6 @@ serverProcess.on('exit', (code) => {
 });
 
 serverProcess.on('error', (error) => {
-  console.error('Failed to run remotion-mcp-server:', error.message);
+  console.error('Failed to run rough-cut-mcp:', error.message);
   process.exit(1);
 });

@@ -99,7 +99,7 @@ async function validateNodeVersion() {
 
 async function validateTypeScript() {
   return new Promise((resolve, reject) => {
-    const child = spawn('npx', ['tsc', '--version'], { stdio: 'pipe' });
+    const child = spawn('npx', ['tsc', '--version'], { stdio: 'pipe', shell: true });
     let output = '';
     
     child.stdout?.on('data', (data) => {
@@ -167,7 +167,7 @@ async function main() {
     }
     
     const packageJson = await fs.readJson(packageJsonPath);
-    if (packageJson.name !== 'remotion-mcp-server') {
+    if (packageJson.name !== 'rough-cut-mcp') {
       log('yellow', '⚠️  Warning: Not in expected project directory, but continuing...');
     }
     

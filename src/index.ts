@@ -29,14 +29,21 @@ class RemotionMCPServer {
   private server: Server;
 
   constructor() {
+    // Research-backed diagnostic logging
+    console.error(`[DEBUG] Node.js Version: ${process.version}`);
+    console.error(`[DEBUG] MCP Server Version: 7.0.2`);
+    console.error(`[DEBUG] Working Directory: ${process.cwd()}`);
+    console.error(`[DEBUG] Script Path: ${__filename}`);
+    
     this.server = new Server(
       {
         name: 'rough-cut-mcp',
-        version: '6.1.0'
+        version: '7.0.2' // MINIMAL TEST - No embedded intelligence, just version change
       },
       {
         capabilities: {
-          tools: {}
+          tools: {},
+          protocolVersion: "2024-11-05" // Research solution: prevent negotiation fallback
         }
       }
     );
