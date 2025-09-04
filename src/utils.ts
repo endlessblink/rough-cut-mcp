@@ -406,6 +406,15 @@ export async function createRemotionProject(projectPath: string, jsx: string): P
   const { enhanceJSXThroughAST } = await import('./ast-design-prism');
   const designPrismResult = enhanceJSXThroughAST(jsx);
   console.error(`[CREATE-PROJECT] AST Design Prism applied ${designPrismResult.enhancements.length} safe enhancements`);
+  
+  // SAFETY: Final quote safety validation
+  const { validateJSXQuoteSafety } = await import('./jsx-quote-safety-validator');
+  const finalSafetyCheck = validateJSXQuoteSafety(designPrismResult.enhancedJSX);
+  if (!finalSafetyCheck.isValid) {
+    console.error(`[CREATE-PROJECT] Final safety check found ${finalSafetyCheck.issues.length} issues - applying corrections`);
+    designPrismResult.enhancedJSX = finalSafetyCheck.correctedJSX || designPrismResult.enhancedJSX;
+  }
+  
   const videoCompositionContent = ensureProperExportSafe(designPrismResult.enhancedJSX);
   
   // CRITICAL: Ensure consistent .tsx file extensions for React components

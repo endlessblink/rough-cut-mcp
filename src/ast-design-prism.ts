@@ -5,6 +5,7 @@ import * as fs from 'fs-extra';
 import { parse } from '@babel/parser';
 import traverse from '@babel/traverse';
 import generate from '@babel/generator';
+import { validateJSXQuoteSafety, generateSafeFontFamily } from './jsx-quote-safety-validator.js';
 
 // Professional Enhancement Standards (Research-Based)
 interface ProfessionalStandards {
@@ -32,11 +33,11 @@ const PROFESSIONAL_STANDARDS: ProfessionalStandards = {
   typography: {
     minFontSize: 16, // WCAG minimum
     professionalFonts: {
-      minimal: '"Inter", system-ui, sans-serif',
-      corporate: '"Roboto", "Helvetica Neue", sans-serif',
-      tech: '"Inter", "SF Pro Display", system-ui, sans-serif', 
-      creative: '"Poppins", "Montserrat", sans-serif',
-      unknown: '"Open Sans", system-ui, sans-serif'
+      minimal: 'Inter, system-ui, sans-serif',
+      corporate: 'Roboto, Helvetica Neue, sans-serif',
+      tech: 'Inter, SF Pro Display, system-ui, sans-serif', 
+      creative: 'Poppins, Montserrat, sans-serif',
+      unknown: 'Open Sans, system-ui, sans-serif'
     },
     lineHeight: 1.5 // Research-backed optimal
   },
@@ -97,6 +98,18 @@ interface EnhancementResult {
  */
 export function enhanceJSXThroughAST(jsx: string): EnhancementResult {
   console.error('[AST-DESIGN-PRISM] Processing JSX through safe AST enhancement...');
+  
+  // STEP 0: Pre-validation for quote safety
+  console.error('[AST-DESIGN-PRISM] Pre-validation: Checking JSX quote safety...');
+  const quoteSafetyResult = validateJSXQuoteSafety(jsx);
+  if (!quoteSafetyResult.validationPassed) {
+    console.error(`[AST-DESIGN-PRISM] Quote safety issues found: ${quoteSafetyResult.issues.length} issues`);
+    quoteSafetyResult.issues.forEach(issue => {
+      console.error(`[AST-DESIGN-PRISM] - ${issue.severity}: ${issue.description} in ${issue.property}`);
+    });
+    // Use corrected JSX for processing
+    jsx = quoteSafetyResult.correctedJSX || jsx;
+  }
   
   try {
     // Step 1: Parse JSX to AST (safe, structure-aware)
@@ -249,8 +262,11 @@ function enhanceStyleObjectSafely(styleObject: any, styleIntent: StyleIntent, st
     const currentFont = fontFamilyProp.value.value;
     if (currentFont === 'Arial' || currentFont === 'Times New Roman') {
       const professionalFont = standards.typography.professionalFonts[styleIntent.detected] || standards.typography.professionalFonts.unknown;
-      fontFamilyProp.value.value = professionalFont;
-      improvements.push(`✅ Upgraded font from "${currentFont}" to "${professionalFont}"`);
+      
+      // SAFETY: Use quote-safe font family generation
+      const safeFontFamily = generateSafeFontFamily(professionalFont.split(','));
+      fontFamilyProp.value.value = safeFontFamily;
+      improvements.push(`✅ Upgraded font from "${currentFont}" to "${safeFontFamily}" (quote-safe)`);
     }
   }
   
