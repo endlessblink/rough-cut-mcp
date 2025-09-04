@@ -6,6 +6,7 @@ import { parse } from '@babel/parser';
 import traverse from '@babel/traverse';
 import generate from '@babel/generator';
 import { validateJSXQuoteSafety, generateSafeFontFamily } from './jsx-quote-safety-validator.js';
+import { validateLayoutQuickly, applyLayoutFixes, calculateSmartFontSize } from './simple-layout-intelligence.js';
 
 // Professional Enhancement Standards (Research-Based)
 interface ProfessionalStandards {
@@ -109,6 +110,27 @@ export function enhanceJSXThroughAST(jsx: string): EnhancementResult {
     });
     // Use corrected JSX for processing
     jsx = quoteSafetyResult.correctedJSX || jsx;
+  }
+  
+  // STEP 0.5: Layout disaster prevention
+  console.error('[AST-DESIGN-PRISM] Layout validation: Checking for layout disasters...');
+  const layoutValidation = validateLayoutQuickly(jsx);
+  if (!layoutValidation.isValid) {
+    console.error(`[AST-DESIGN-PRISM] Layout disasters found: ${layoutValidation.issues.length} issues`);
+    layoutValidation.issues.forEach(issue => {
+      console.error(`[AST-DESIGN-PRISM] - ${layoutValidation.severity}: ${issue}`);
+    });
+    
+    // Apply automatic layout fixes if possible
+    if (layoutValidation.canAutoFix) {
+      console.error('[AST-DESIGN-PRISM] Applying automatic layout fixes...');
+      const layoutFixes = applyLayoutFixes(jsx);
+      jsx = layoutFixes.fixedJSX;
+      console.error(`[AST-DESIGN-PRISM] Applied ${layoutFixes.appliedFixes.length} layout fixes`);
+      layoutFixes.appliedFixes.forEach(fix => {
+        console.error(`[AST-DESIGN-PRISM] - Layout fix: ${fix}`);
+      });
+    }
   }
   
   try {

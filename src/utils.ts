@@ -401,21 +401,9 @@ export async function createRemotionProject(projectPath: string, jsx: string): P
     console.warn('[JSX-VALIDATION] Warning: Potentially malformed template expressions detected, attempting to clean...');
   }
   
-  // NEW: AST-based design prism enhancement (safe, zero corruption)
-  // Import the AST system
-  const { enhanceJSXThroughAST } = await import('./ast-design-prism');
-  const designPrismResult = enhanceJSXThroughAST(jsx);
-  console.error(`[CREATE-PROJECT] AST Design Prism applied ${designPrismResult.enhancements.length} safe enhancements`);
-  
-  // SAFETY: Final quote safety validation
-  const { validateJSXQuoteSafety } = await import('./jsx-quote-safety-validator');
-  const finalSafetyCheck = validateJSXQuoteSafety(designPrismResult.enhancedJSX);
-  if (!finalSafetyCheck.isValid) {
-    console.error(`[CREATE-PROJECT] Final safety check found ${finalSafetyCheck.issues.length} issues - applying corrections`);
-    designPrismResult.enhancedJSX = finalSafetyCheck.correctedJSX || designPrismResult.enhancedJSX;
-  }
-  
-  const videoCompositionContent = ensureProperExportSafe(designPrismResult.enhancedJSX);
+  // SIMPLE: Use Claude's JSX exactly as provided - no modifications
+  console.error(`[CREATE-PROJECT] Using Claude's JSX directly (${jsx.length} characters)`);
+  const videoCompositionContent = jsx; // Trust Claude's design intelligence
   
   // CRITICAL: Ensure consistent .tsx file extensions for React components
   const videoCompositionPath = path.join(projectPath, 'src', 'VideoComposition.tsx');

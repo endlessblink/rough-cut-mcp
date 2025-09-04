@@ -2,6 +2,73 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 🚨 CRITICAL: STOP THEORETICAL FIXES - FOCUS ON WHAT ACTUALLY WORKS
+
+### **Evidence-Based Development Only**
+
+**NEVER implement theoretical fixes without proven working examples.**
+
+**The Pattern of Failure:**
+1. Complex enhancement systems → Failed
+2. Layout intelligence validators → Failed  
+3. Quote safety systems → Fixed syntax, not quality
+4. Claude Artifacts conversion attempts → Still boring results
+5. Every "improvement" → More complexity, same problems
+
+**What Actually Works:**
+- **Frame 289 Screenshot** from `test-claude-natural` project shows EXCELLENT results
+- **96px gradient text** with proper spacing
+- **Sequential Sequence components** preventing overlaps
+- **Simple, direct approach** without complex validation layers
+
+**RULE: Only implement changes based on proven working examples like the Frame 289 screenshot.**
+
+### **BRUTAL HONESTY: Stop Over-Engineering**
+
+**The Failure Pattern We Keep Repeating:**
+1. **Design complex systems** without testing basic functionality first
+2. **Add "intelligence"** to systems that haven't proven basic reliability  
+3. **Create solutions for problems** we haven't proven exist
+4. **Build workflows** before validating individual components work
+
+**Examples of Our Over-Engineering:**
+- Complex enhancement systems → Failed
+- Layout intelligence → Failed  
+- Quote safety systems → Fixed syntax, not core issues
+- Automatic conversion systems → More complexity, same problems
+
+**BRUTAL TRUTH RULE:**
+- ❌ **NEVER design complex workflows** without testing basic components first
+- ❌ **NEVER add intelligence** to unreliable foundation systems
+- ❌ **NEVER assume solutions** will work without evidence
+- ✅ **ALWAYS test basics first** - Can Claude create good Artifacts? Can we convert 1 manually? Does it work reliably?
+
+**When in doubt, test the simplest possible version first.**
+
+### **Task Management: Always Use Like-I-Said MCP**
+
+**CRITICAL: Always create and update tasks in Like-I-Said MCP as part of your working process.**
+
+**Usage:**
+- `mcp__like-i-said__create_task` - Create new tasks with title, description, priority, project
+- `mcp__like-i-said__update_task` - Update task status (todo, in_progress, done, blocked)
+- `mcp__like-i-said__list_tasks` - View current tasks by project or filter
+
+**Projects:**
+- `rough-cut-mcp-cleanup` - Archiving, cleanup, build decisions
+- `rough-cut-mcp-artifacts` - Artifacts-to-Remotion workflow development
+- `rough-cut-mcp-core` - Core MCP functionality
+
+**Why Like-I-Said over TodoWrite:**
+- ✅ Persistent across sessions
+- ✅ Better organization by project  
+- ✅ Advanced filtering and search
+- ✅ Progress tracking and analytics
+
+**Always update task status and create new tasks to track progress systematically.**
+
+---
+
 ## 🚨 MCP SERVER TROUBLESHOOTING - RESOLVED ISSUES
 
 ### **Common "Tools Not Available" Problem - SOLUTION**

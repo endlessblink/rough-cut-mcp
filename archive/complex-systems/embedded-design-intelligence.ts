@@ -1,5 +1,7 @@
-// Embedded Design Intelligence System - Like Claude's Built-in Quality
-// Makes GitHub_4-level content the DEFAULT output, not something to enhance toward
+// Embedded Design Intelligence System - Like Claude's Built-in Quality  
+// Makes Claude Artifacts-level content the DEFAULT output, not something to enhance toward
+
+import { CLAUDE_ARTIFACTS_REMOTION_TEMPLATE } from './claude-artifacts-remotion-template.js';
 
 interface DesignIntelligence {
   visualHierarchy: {
@@ -34,20 +36,20 @@ interface DesignIntelligence {
   };
 }
 
-// Claude-inspired embedded design standards (not enhancement rules)
+// Claude Artifacts-inspired design standards (clean, readable layouts)
 const EMBEDDED_DESIGN_INTELLIGENCE: DesignIntelligence = {
   visualHierarchy: {
-    titleScale: 84,           // GitHub_4 exact proven size
-    containerWidth: 650,      // GitHub_4 exact proven width
+    titleScale: 48,           // Claude Artifacts safe size - always readable
+    containerWidth: 800,      // Claude Artifacts safe width - fits all content
     spacingSystem: [8, 16, 24, 32, 48, 64, 80], // Professional 8pt grid
-    typographyStack: '"SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif'
+    typographyStack: 'Inter, SF Pro Display, system-ui, sans-serif'  // Claude Artifacts fonts
   },
   
   narrativeStructure: {
-    approach: 'data-visualization', // Default to rich content
+    approach: 'showcase', // Claude Artifacts-style simple showcase
     components: [
-      'AnimatedBackground',     // Always include rich background
-      'DataVisualization',      // Always include data component  
+      'CleanBackground',        // Simple, non-distracting background
+      'SequentialContent',      // Sequential presentation like Artifacts  
       'ContentShowcase',        // Main content presentation
       'EffectsLayer'           // Visual enhancement layer
     ],
@@ -59,17 +61,17 @@ const EMBEDDED_DESIGN_INTELLIGENCE: DesignIntelligence = {
   },
   
   animationSystems: {
-    springDefaults: { damping: 12, stiffness: 160 }, // Energetic but smooth
-    easingCurve: 'Easing.out(Easing.cubic)',         // Professional standard
-    staggerTiming: 0.25,                             // GitHub_4 proven timing
-    continuousMotion: true                           // Always something moving
+    springDefaults: { damping: 20, stiffness: 120 }, // Claude Artifacts smooth, gentle
+    easingCurve: 'Easing.out(Easing.cubic)',         // Professional standard  
+    staggerTiming: 10,                               // Claude Artifacts sequential timing (frames)
+    continuousMotion: false                          // Claude Artifacts discrete sequences
   },
   
   visualRichness: {
-    backgroundComplexity: 'rich',  // Default to rich, never minimal
-    particleCount: 20,             // Substantial visual interest  
-    layerCount: 6,                 // Multiple depth layers
-    effectIntensity: 0.8           // Noticeable but not overwhelming
+    backgroundComplexity: 'minimal', // Claude Artifacts clean simplicity
+    particleCount: 0,               // Claude Artifacts no particles - focus on content
+    layerCount: 2,                  // Claude Artifacts minimal layers - background + content
+    effectIntensity: 0.3            // Claude Artifacts subtle effects only
   }
 };
 
@@ -220,7 +222,7 @@ export class EmbeddedDesignIntelligence {
     // Generate based on architecture type
     switch (architecture.type) {
       case 'github-data-viz':
-        return this.generateGitHubDataVisualization(architecture, projectName);
+        return this.generateClaudeArtifactsGitHub(architecture, projectName);
         
       case 'brand-journey':
         return this.generateBrandJourney(architecture, prompt);
@@ -231,7 +233,17 @@ export class EmbeddedDesignIntelligence {
   }
   
   /**
-   * Generate GitHub_4-style data visualization content
+   * Generate Claude Artifacts-style GitHub showcase (clean, sequential, readable)
+   */
+  private generateClaudeArtifactsGitHub(architecture: any, projectName: string): string {
+    // Use Claude Artifacts template with dynamic project name customization
+    return CLAUDE_ARTIFACTS_REMOTION_TEMPLATE
+      .replace(/endlessblink/g, projectName)
+      .replace(/ClaudeArtifactsGitHubShowcase/g, `${projectName}GitHubShowcase`);
+  }
+
+  /**
+   * Generate GitHub_4-style data visualization content (DEPRECATED - causes overlaps)
    */
   private generateGitHubDataVisualization(architecture: any, projectName: string): string {
     const intelligence = EMBEDDED_DESIGN_INTELLIGENCE;

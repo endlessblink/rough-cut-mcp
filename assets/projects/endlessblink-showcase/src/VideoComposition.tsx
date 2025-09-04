@@ -117,6 +117,7 @@ const True80sSynthwave: React.FC = () => {
               0 0 40px ${color}
             `,
             letterSpacing: '2px',
+            lineHeight: '1.2',
             position: 'relative',
             zIndex: 2,
           }}
@@ -135,6 +136,7 @@ const True80sSynthwave: React.FC = () => {
             fontWeight: 'bold',
             color: '#ff0000',
             letterSpacing: '2px',
+            lineHeight: '1.2',
             opacity: glitchOpacity * 0.7,
             zIndex: 1,
           }}
@@ -152,6 +154,7 @@ const True80sSynthwave: React.FC = () => {
             fontWeight: 'bold',
             color: '#00ffff',
             letterSpacing: '2px',
+            lineHeight: '1.2',
             opacity: glitchOpacity * 0.5,
             zIndex: 0,
           }}
@@ -312,8 +315,8 @@ const True80sSynthwave: React.FC = () => {
             transform: `scale(${titleScale})`,
           }}
         >
-          {/* Large retro logo */}
-          <div style={{ position: 'relative', marginBottom: 60 }}>
+          {/* Responsive retro logo with layout intelligence */}
+          <div style={{ position: 'relative', marginBottom: 40, maxWidth: '90%', textAlign: 'center' }}>
             {/* Background glow */}
             <div
               style={{
@@ -324,7 +327,7 @@ const True80sSynthwave: React.FC = () => {
               }}
             />
             
-            <GlitchText size={120} color={colors.neonPink}>
+            <GlitchText size={72} color={colors.neonPink}>
               ENDLESSBLINK
             </GlitchText>
             
@@ -345,8 +348,14 @@ const True80sSynthwave: React.FC = () => {
             />
           </div>
 
-          {/* Reviews/ratings like the Loox image */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '1200px' }}>
+          {/* Reviews/ratings with responsive layout */}
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            width: '100%', 
+            maxWidth: '1000px',
+            padding: '0 40px'
+          }}>
             {/* Left review */}
             <div style={{ textAlign: 'left' }}>
               <div style={{ marginBottom: 10 }}>
@@ -406,8 +415,9 @@ const True80sSynthwave: React.FC = () => {
         >
           <div
             style={{
-              width: '900px',
-              padding: '40px 60px',
+              width: '85%',
+              maxWidth: '900px',
+              padding: '32px 48px',
               border: `3px solid ${colors.neonPink}`,
               background: `linear-gradient(135deg, 
                 rgba(255, 0, 127, 0.1), 
@@ -428,17 +438,17 @@ const True80sSynthwave: React.FC = () => {
 
             <div style={{ textAlign: 'center' }}>
               <div style={{ marginBottom: 20 }}>
-                <GlitchText size={48} color={colors.neonPink}>
+                <GlitchText size={36} color={colors.neonPink}>
                   LIKE-I-SAID-V2
                 </GlitchText>
               </div>
 
               <div style={{ marginBottom: 30 }}>
-                <GlitchText size={18} color={colors.brightCyan} glitchIntensity={0.5}>
+                <GlitchText size={16} color={colors.brightCyan} glitchIntensity={0.5}>
                   ADVANCED MCP MEMORY AND TASK MANAGEMENT
                 </GlitchText>
-                <div style={{ marginTop: 10 }}>
-                  <GlitchText size={18} color={colors.brightCyan} glitchIntensity={0.5}>
+                <div style={{ marginTop: 8 }}>
+                  <GlitchText size={16} color={colors.brightCyan} glitchIntensity={0.5}>
                     FOR LARGE LANGUAGE MODELS
                   </GlitchText>
                 </div>
@@ -487,8 +497,9 @@ const True80sSynthwave: React.FC = () => {
         >
           <div
             style={{
-              width: '900px',
-              padding: '40px 60px',
+              width: '85%',
+              maxWidth: '900px',
+              padding: '32px 48px',
               border: `3px solid ${colors.brightCyan}`,
               background: `linear-gradient(135deg, 
                 rgba(0, 255, 255, 0.1), 
@@ -503,17 +514,17 @@ const True80sSynthwave: React.FC = () => {
           >
             <div style={{ textAlign: 'center' }}>
               <div style={{ marginBottom: 20 }}>
-                <GlitchText size={48} color={colors.brightCyan}>
+                <GlitchText size={36} color={colors.brightCyan}>
                   COMFY-GURU
                 </GlitchText>
               </div>
 
               <div style={{ marginBottom: 30 }}>
-                <GlitchText size={18} color={colors.neonPink} glitchIntensity={0.5}>
+                <GlitchText size={16} color={colors.neonPink} glitchIntensity={0.5}>
                   CLAUDE DESKTOP ↔ COMFYUI BRIDGE
                 </GlitchText>
-                <div style={{ marginTop: 10 }}>
-                  <GlitchText size={18} color={colors.neonPink} glitchIntensity={0.5}>
+                <div style={{ marginTop: 8 }}>
+                  <GlitchText size={16} color={colors.neonPink} glitchIntensity={0.5}>
                     ERROR DETECTION AND LOG ANALYSIS
                   </GlitchText>
                 </div>
@@ -563,13 +574,13 @@ const True80sSynthwave: React.FC = () => {
         >
           <div style={{ textAlign: 'center' }}>
             <div style={{ marginBottom: 40 }}>
-              <GlitchText size={72} color={colors.neonPink}>
+              <GlitchText size={56} color={colors.neonPink}>
                 ACCESS GRANTED
               </GlitchText>
             </div>
 
             <div style={{ marginBottom: 30 }}>
-              <GlitchText size={28} color={colors.brightCyan} glitchIntensity={0.5}>
+              <GlitchText size={24} color={colors.brightCyan} glitchIntensity={0.5}>
                 GITHUB.COM/ENDLESSBLINK
               </GlitchText>
             </div>
