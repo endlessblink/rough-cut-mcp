@@ -10,7 +10,7 @@ const { spawn } = require('child_process');
 
 // Find the package root directory (where this bin script is located)
 const packageRoot = path.resolve(__dirname, '..');
-const debugScript = path.join(packageRoot, 'debug.js');
+const debugScript = path.join(packageRoot, 'scripts', 'debug.js');
 
 // Forward all arguments to the debug script
 const args = process.argv.slice(2);

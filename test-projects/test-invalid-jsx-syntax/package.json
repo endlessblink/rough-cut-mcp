@@ -1,0 +1,11 @@
+{
+  "name": "test-invalid-jsx-syntax",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "remotion studio"
+  },
+  "dependencies": {
+    "remotion": "^4.0.0",
+    "react": "^18.0.0"
+  }
+}

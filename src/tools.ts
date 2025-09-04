@@ -7,12 +7,11 @@ import * as net from 'net';
 // Import safe validation system
 import { validateJSXSafely } from './safe-validation-pipeline.js';
 
-// Import choice-based enhancement system
-import { analyzeAndOfferChoices, applyUserChoices } from './choice-based-enhancement.js';
+// ✅ REMOVED: choice-based enhancement - Assessment tools eliminated
 
 // Import embedded design intelligence system (Claude-style built-in quality) 
-// TEMPORARILY DISABLED for v7.0.2 minimal test to debug version loading
-// import { generateWithEmbeddedIntelligence } from './embedded-design-intelligence.js';
+// ✅ REACTIVATED in v7.0.0 - Should prevent broken JSX generation
+import { generateWithEmbeddedIntelligence } from './embedded-design-intelligence.js';
 import {
   getProjectPath,
   createRemotionProject,
@@ -45,308 +44,19 @@ import {
 import { checkpointManager, jsxProcessor } from './checkpoint-processor.js';
 
 export const tools: Tool[] = [
-  {
-    name: 'create_project',  
-    description: 'PROFESSIONAL VIDEO CREATION: Create broadcast-quality Remotion projects with built-in professional standards. AUTOMATICALLY applies: professional spacing (24px-48px multiples), typography hierarchy (72px titles, 24px body), smooth easing curves (Easing.out), proper color contrast, visual depth effects. Choose template base for enhanced quality or provide custom JSX for complete creative control.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string', description: 'Project name (alphanumeric recommended)' },
-        jsx: { type: 'string', description: 'JSX code for VideoComposition.tsx OR leave empty to use professional template base' },
-        template: { 
-          type: 'string', 
-          enum: ['professional-showcase', 'brand-presentation', 'creative-portfolio', 'tech-demo', 'custom'],
-          description: 'Professional animation template base (optional - uses custom if jsx provided)'
-        },
-        style: {
-          type: 'string',
-          enum: ['modern-corporate', 'creative-bold', 'tech-minimal', 'artistic-expressive'],
-          description: 'Visual style system to apply (optional)'
-        },
-        skip_validation: { type: 'boolean', description: 'Skip syntax validation for known-good code (default: false)' }
-      },
-      required: ['name']
-    }
-  },
-  {
-    name: 'analyze_video_enhancement',
-    description: 'CREATIVE CHOICE ANALYSIS: Analyze video for enhancement opportunities and offer dramatic improvement choices. Shows what makes videos visually engaging vs boring, with options to scale up titles (64-96px), widen containers (500-800px), add rich backgrounds (particles/animated code), and fix timing issues. Based on proven GitHub_4 success patterns.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string', description: 'Project name to analyze' }
-      },
-      required: ['name']
-    }
-  },
-  {
-    name: 'apply_enhancement_choices', 
-    description: 'APPLY CHOSEN ENHANCEMENTS: Apply user-selected enhancement choices to make video dramatically more engaging. Offers scale options (1.3x-1.6x bigger), background archetypes (tech-minimal, creative-burst, github-code), timing fixes (2-frame crossfades), and animation styles (energetic, smooth, snappy).',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string', description: 'Project name' },
-        choices: { 
-          type: 'array',
-          items: {
-            type: 'object',
-            properties: {
-              choiceId: { type: 'string' },
-              selectedOption: { type: 'string' }
-            },
-            required: ['choiceId', 'selectedOption']
-          },
-          description: 'Array of chosen enhancements'
-        }
-      },
-      required: ['name', 'choices']
-    }
-  },
-  {
-    name: 'edit_project_surgical',
-    description: 'PRECISION EDITS + QUALITY: Make targeted changes while maintaining professional standards. For spacing: use 8px grid system (16px, 24px, 32px multiples). For colors: maintain 4.5:1 contrast ratio. For timing: use smooth easing curves. Examples: gap adjustments, color harmony improvements, element positioning, sequence timing, animation smoothness.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string', description: 'Remotion project name' },
-        instruction: { 
-          type: 'string', 
-          description: 'Specific change to make. Examples: "change gap from 30px to 80px", "move logo up 50px", "change text color to blue", "move sequence 2 seconds earlier", "make spring animation faster"' 
-        },
-        duration: { type: 'number', description: 'Video duration in seconds (optional)' }
-      },
-      required: ['name', 'instruction']
-    }
-  },
-  {
-    name: 'edit_project_full',
-    description: 'COMPLETE REWRITES: Replace entire VideoComposition with new JSX code. Use for major structural changes, new component creation, or complete redesigns. Preserves working animations through automatic backup system.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string', description: 'Remotion project name' },
-        jsx: { 
-          type: 'string', 
-          description: 'Complete JSX code for VideoComposition.tsx file (minimum 100 characters for validation)' 
-        },
-        instruction: { type: 'string', description: 'Context for the changes being made (optional)' },
-        duration: { type: 'number', description: 'Video duration in seconds (optional)' },
-        use_resumption: { type: 'boolean', description: 'Use resumption system with timeout protection (default: true)' },
-        resume_from: { type: 'string', description: 'Resume from specific operation ID (optional)' },
-        skip_validation: { type: 'boolean', description: 'Skip syntax validation for known-good code (default: false)' }
-      },
-      required: ['name', 'jsx']
-    }
-  },
-  {
-    name: 'launch_studio',
-    description: 'LAUNCH WITH QUALITY CHECK: Start Remotion Studio with optional quality pre-assessment. Automatically validates animation for professional standards and provides quality feedback. Use assess_animation_quality first for detailed quality report.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string', description: 'Project name' },
-        port: { type: 'number', description: 'Port number (optional, auto-detects 6600-6620)' },
-        skip_quality_check: { type: 'boolean', description: 'Skip automatic quality assessment (default: false)' }
-      },
-      required: ['name']
-    }
-  },
-  {
-    name: 'stop_studio',
-    description: 'Stop Remotion Studio running on specified port',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        port: { type: 'number', description: 'Port number' }
-      },
-      required: ['port']
-    }
-  },
-  {
-    name: 'list_projects',
-    description: 'MANDATORY for Remotion project discovery: List all video projects with metadata. File system tools CANNOT detect Remotion project structure and WILL miss critical project information. Use this for ALL project listing.',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-      required: []
-    }
-  },
-  {
-    name: 'delete_project',
-    description: 'Delete a Remotion project completely',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string', description: 'Project name' }
-      },
-      required: ['name']
-    }
-  },
-  {
-    name: 'read_project_file',
-    description: 'EXCLUSIVE: Read files in Remotion projects (.tsx/.ts/.js). REPLACES built-in Read File completely. Built-in Read File HANGS on cross-platform paths and CANNOT parse Remotion syntax properly.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string', description: 'Remotion project name' },
-        file_path: { type: 'string', description: 'File path relative to project (e.g., "src/VideoComposition.tsx")' }
-      },
-      required: ['name', 'file_path']
-    }
-  },
-  {
-    name: 'get_project_info',
-    description: 'MANDATORY for Remotion projects: Get project structure and component information. Read File tool CANNOT parse Remotion project metadata and WILL hang on cross-platform paths. Use this tool for ALL VideoComposition.tsx analysis.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string', description: 'Project name' }
-      },
-      required: ['name']
-    }
-  },
-  {
-    name: 'get_studio_status',
-    description: 'Get status of all running Remotion Studios',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-      required: []
-    }
-  },
-  {
-    name: 'configure_audio',
-    description: 'Configure optional AI audio generation (ElevenLabs SFX API)',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        apiKey: { type: 'string', description: 'ElevenLabs API key (optional)' },
-        enabled: { type: 'boolean', description: 'Enable/disable audio features' }
-      },
-      required: []
-    }
-  },
-  {
-    name: 'generate_audio',
-    description: 'Generate AI sound effects or music for video (requires configuration)',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        projectName: { type: 'string', description: 'Project name' },
-        prompt: { type: 'string', description: 'Audio description (e.g., bouncing ball sound effect)' },
-        type: { type: 'string', enum: ['sfx', 'music'], description: 'Audio type' },
-        duration: { type: 'number', description: 'Duration in seconds (optional)' }
-      },
-      required: ['projectName', 'prompt', 'type']
-    }
-  },
-  {
-    name: 'debug_audio_config',
-    description: 'Debug tool to check audio environment variables',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-      required: []
-    }
-  },
-  {
-    name: 'list_project_backups',
-    description: 'List all available backups for a project',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string', description: 'Project name' }
-      },
-      required: ['name']
-    }
-  },
-  {
-    name: 'restore_project_backup',
-    description: 'Restore VideoComposition.tsx from a specific backup',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string', description: 'Project name' },
-        backupFilename: { type: 'string', description: 'Backup filename to restore from' }
-      },
-      required: ['name', 'backupFilename']
-    }
-  },
-  {
-    name: 'clean_project_backups',
-    description: 'Clean old backups, keeping only the most recent ones',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string', description: 'Project name' },
-        keepCount: { type: 'number', description: 'Number of backups to keep (default: 5)' }
-      },
-      required: ['name']
-    }
-  },
-  {
-    name: 'get_mcp_status',
-    description: 'Get comprehensive MCP server status including version, installation path, and npm registry comparison',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-      required: []
-    }
-  },
-  {
-    name: 'scan_project_vulnerabilities',
-    description: 'PROACTIVE SECURITY: Scan Remotion project for animation logic errors, security vulnerabilities, performance issues, and corruption patterns. Detects interpolate range errors, code injection, file system risks, resource exhaustion, and syntax issues before they cause problems.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string', description: 'Project name to scan for vulnerabilities' }
-      },
-      required: ['name']
-    }
-  },
-  // ====== NEW RESUMPTION TOOLS (Safe - Additive Only) ======
-  {
-    name: 'list_interrupted_operations',
-    description: 'List all operations that were interrupted and can be resumed',
-    inputSchema: {
-      type: 'object',
-      properties: {},
-      required: []
-    }
-  },
-  {
-    name: 'resume_operation',
-    description: 'Resume an interrupted edit_project operation from its last checkpoint',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        operationId: { type: 'string', description: 'ID of the operation to resume' }
-      },
-      required: ['operationId']
-    }
-  },
-  {
-    name: 'cancel_operation',
-    description: 'Cancel an interrupted operation and clean up its checkpoint',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        operationId: { type: 'string', description: 'ID of the operation to cancel' }
-      },
-      required: ['operationId']
-    }
-  },
-  {
-    name: 'cleanup_stale_operations',
-    description: 'Clean up old interrupted operations (older than 24 hours)',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        maxAgeHours: { type: 'number', description: 'Maximum age in hours (default: 24)' }
-      },
-      required: []
-    }
-  },
+  // ✅ REMOVED: create_project - Use manage_project with action: 'create'
+  // ✅ REMOVED: analyze_video_enhancement, apply_enhancement_choices 
+  // Embedded intelligence handles quality by default - no assessment needed
+  // ✅ REMOVED: edit_project_surgical, edit_project_full - Use edit_project unified interface
+  // ✅ REMOVED: launch_studio, stop_studio - Use control_studio with action: 'launch'/'stop'
+  // ✅ REMOVED: list_projects, delete_project, get_project_info - Use manage_project actions
+  // ✅ REMOVED: read_project_file - Use manage_project with action: 'read' 
+  // ✅ REMOVED: get_studio_status - Use control_studio with action: 'status'
+  // ✅ REMOVED: configure_audio, generate_audio, debug_audio_config - Use manage_audio
+  // ✅ REMOVED: list_project_backups, restore_project_backup, clean_project_backups - Use system_operations
+  // ✅ REMOVED: get_mcp_status - Use system_operations with action: 'status'
+  // ✅ REMOVED: scan_project_vulnerabilities - Safe validation pipeline handles security
+  // ✅ REMOVED: Resumption tools - Use system_operations with appropriate actions
   {
     name: 'manage_project',
     description: 'CONSOLIDATED PROJECT MANAGEMENT: Unified interface for all project operations. Progressive disclosure design - single tool handles create, delete, list, info operations through action parameter. Maintains all existing functionality while providing streamlined interface.',
@@ -355,12 +65,16 @@ export const tools: Tool[] = [
       properties: {
         action: {
           type: 'string',
-          enum: ['create', 'delete', 'list', 'info'],
+          enum: ['create', 'delete', 'list', 'info', 'read'],
           description: 'Project management action to perform'
         },
         name: { 
           type: 'string', 
-          description: 'Project name (required for create, delete, info actions)' 
+          description: 'Project name (required for create, delete, info, read actions)' 
+        },
+        file_path: {
+          type: 'string',
+          description: 'File path to read (required for read action, e.g. "src/VideoComposition.tsx")'
         },
         jsx: { 
           type: 'string', 
@@ -441,29 +155,7 @@ export const tools: Tool[] = [
       required: ['action']
     }
   },
-  {
-    name: 'assess_quality',
-    description: 'UNIFIED QUALITY ASSESSMENT: Consolidated interface for all quality analysis operations. Progressive disclosure design handles animation, audio, and security assessment through type parameter. Provides comprehensive quality scoring and professional recommendations.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        type: {
-          type: 'string',
-          enum: ['animation', 'audio', 'security', 'comprehensive'],
-          description: 'Type of quality assessment to perform'
-        },
-        name: { 
-          type: 'string', 
-          description: 'Project name to assess' 
-        },
-        detailed: { 
-          type: 'boolean', 
-          description: 'Provide detailed analysis with specific recommendations (optional)' 
-        }
-      },
-      required: ['type', 'name']
-    }
-  },
+  // ✅ REMOVED: assess_quality - Embedded intelligence ensures quality by default
   {
     name: 'manage_audio',
     description: 'UNIFIED AUDIO MANAGEMENT: Consolidated interface for all audio operations. Progressive disclosure design handles configuration, generation, and debugging through action parameter. Includes ElevenLabs integration and professional audio standards.',
@@ -539,91 +231,26 @@ export const tools: Tool[] = [
 export async function handleToolCall(name: string, arguments_: any): Promise<any> {
   try {
     switch (name) {
-      case 'create_project':
-        return await createProject(arguments_.name, arguments_.jsx, arguments_.template, arguments_.style, arguments_.skip_validation);
+      // ✅ REMOVED: All redundant tool handlers - Use unified tools instead
       
       case 'edit_project':
         return await editProjectIntelligent(arguments_.name, arguments_.instruction, arguments_.jsx, arguments_.duration, arguments_.use_resumption, arguments_.resume_from);
       
-      case 'edit_project_surgical':
-        return await editProjectSurgical(arguments_.name, arguments_.instruction, arguments_.duration);
+      // ✅ REMOVED: All redundant audio/backup/status handlers - Use unified tools
       
-      case 'edit_project_full':
-        return await editProjectFull(arguments_.name, arguments_.jsx, arguments_.instruction, arguments_.duration, arguments_.use_resumption, arguments_.resume_from, arguments_.skip_validation);
-      
-      case 'launch_studio':
-        return await launchStudio(arguments_.name, arguments_.port, arguments_.skip_quality_check);
-      
-      case 'stop_studio':
-        return await stopStudio(arguments_.port);
-      
-      case 'list_projects':
-        return await listProjects();
-      
-      case 'delete_project':
-        return await deleteProject(arguments_.name);
-      
-      case 'read_project_file':
-        return await readProjectFile(arguments_.name, arguments_.file_path);
-      
-      case 'get_project_info':
-        return await getProjectInfo(arguments_.name);
-      
-      case 'get_studio_status':
-        return await getStudioStatus();
-      
-      case 'configure_audio':
-        return await configureAudio(arguments_.apiKey, arguments_.enabled);
-      
-      case 'generate_audio':
-        return await generateAudio(arguments_.projectName, arguments_.prompt, arguments_.type, arguments_.duration);
-      
-      case 'debug_audio_config':
-        return await debugAudioConfig();
-      
-      case 'list_project_backups':
-        return await listBackups(arguments_.name);
-      
-      case 'restore_project_backup':
-        return await restoreBackup(arguments_.name, arguments_.backupFilename);
-      
-      case 'clean_project_backups':
-        return await cleanBackups(arguments_.name, arguments_.keepCount);
-      
-      case 'get_mcp_status':
-        return await getMCPStatus();
-      
-      case 'scan_project_vulnerabilities':
-        return await scanProjectVulnerabilities(arguments_.name);
-      
-      case 'analyze_video_enhancement':
-        return await analyzeVideoForEnhancement(arguments_.name);
-      
-      case 'apply_enhancement_choices':
-        return await applyEnhancementChoices(arguments_.name, arguments_.choices);
+      // ✅ REMOVED: scan_project_vulnerabilities, analyze_video_enhancement, apply_enhancement_choices
+      // Safe validation and embedded intelligence handle quality automatically
       
       
-      // ====== NEW RESUMPTION TOOL HANDLERS (Safe - Isolated) ======
-      case 'list_interrupted_operations':
-        return await listInterruptedOperations();
-        
-      case 'resume_operation':
-        return await resumeOperation(arguments_.operationId);
-        
-      case 'cancel_operation':
-        return await cancelOperation(arguments_.operationId);
-        
-      case 'cleanup_stale_operations':
-        return await cleanupStaleOperations(arguments_.maxAgeHours);
+      // ✅ REMOVED: All resumption tool handlers - Use system_operations
       
       case 'manage_project':
-        return await manageProject(arguments_.action, arguments_.name, arguments_.jsx, arguments_.template, arguments_.style);
+        return await manageProject(arguments_.action, arguments_.name, arguments_.jsx, arguments_.template, arguments_.style, arguments_.file_path);
       
       case 'control_studio':
         return await controlStudio(arguments_.action, arguments_.name, arguments_.port, arguments_.skip_quality_check);
       
-      case 'assess_quality':
-        return await assessQuality(arguments_.type, arguments_.name, arguments_.detailed);
+      // ✅ REMOVED: assess_quality - Embedded intelligence ensures quality by default
       
       case 'manage_audio':
         return await manageAudio(arguments_.action, arguments_.projectName, arguments_.apiKey, arguments_.enabled, arguments_.prompt, arguments_.type, arguments_.duration);
@@ -1336,114 +963,31 @@ function addBackgroundComponent(jsx: string, componentName: string): {
 // ====== CHOICE-BASED ENHANCEMENT TOOL IMPLEMENTATIONS ======
 
 /**
- * Analyze video for enhancement choices (don't force changes)
+ * ✅ REMOVED: analyzeVideoForEnhancement - Assessment tools eliminated
  */
 async function analyzeVideoForEnhancement(name: string) {
-  const projectPath = getProjectPath(name);
-  const compositionPath = path.join(projectPath, 'src', 'VideoComposition.tsx');
-  
-  if (!await fs.pathExists(compositionPath)) {
-    throw new Error(`Project "${name}" not found`);
-  }
-  
-  const jsx = await fs.readFile(compositionPath, 'utf-8');
-  const analysis = await analyzeAndOfferChoices(jsx, name);
-  
-  let report = `🎯 **Video Enhancement Analysis: ${name}**\n\n`;
-  
-  // Current scores
-  report += `📊 **Current Appeal Scores:**\n`;
-  report += `• Scale Score: ${analysis.analysis.scale.scaleScore}/100 (GitHub_4 = 95/100)\n`;
-  report += `• Energy Score: ${analysis.analysis.timing.energyScore}/100 (GitHub_4 = 90/100)\n`;
-  report += `• Motion Score: ${analysis.analysis.motion.dynamismScore}/100 (GitHub_4 = 90/100)\n`;
-  
-  const avgScore = Math.round((analysis.analysis.scale.scaleScore + analysis.analysis.timing.energyScore + analysis.analysis.motion.dynamismScore) / 3);
-  report += `• **Overall Appeal: ${avgScore}/100** (GitHub_4 = 92/100)\n\n`;
-  
-  // Critical fixes
-  if (analysis.criticalFixes.length > 0) {
-    report += `🚨 **Critical Fixes Needed:**\n`;
-    analysis.criticalFixes.forEach(fix => {
-      report += `• ${fix.reasoning}\n`;
-      fix.options.forEach((option, i) => {
-        report += `  ${i + 1}. ${option.description}: ${option.visualImpact}\n`;
-      });
-    });
-    report += '\n';
-  }
-  
-  // Enhancement opportunities
-  if (analysis.optionalEnhancements.length > 0) {
-    report += `🎨 **Enhancement Opportunities:**\n`;
-    analysis.optionalEnhancements.forEach(enhancement => {
-      report += `• **${enhancement.id}**: ${enhancement.reasoning}\n`;
-      enhancement.options.forEach((option, i) => {
-        report += `  ${i + 1}. ${option.description}: ${option.visualImpact}\n`;
-      });
-      report += '\n';
-    });
-  }
-  
-  report += `🚀 **To Apply Enhancements:**\n`;
-  report += `Use \`apply_enhancement_choices\` tool with your selected options.\n`;
-  report += `Example: Choose option 2-3 from each category for dramatic GitHub_4-level impact.`;
-  
+  // Assessment tools removed - embedded intelligence handles quality by default
   return {
     content: [{
       type: 'text',
-      text: report
+      text: `❌ Enhancement analysis tools have been removed. The v7.1.0 embedded intelligence system now ensures quality by default during project creation.`
     }]
   };
 }
 
+// ✅ ORPHANED ASSESSMENT CODE COMPLETELY REMOVED
+
 /**
- * Apply user's chosen enhancements
+ * ✅ REMOVED: applyEnhancementChoices - Assessment tools eliminated
  */
 async function applyEnhancementChoices(name: string, choices: Array<{ choiceId: string; selectedOption: string }>) {
-  const projectPath = getProjectPath(name);
-  const compositionPath = path.join(projectPath, 'src', 'VideoComposition.tsx');
-  
-  if (!await fs.pathExists(compositionPath)) {
-    throw new Error(`Project "${name}" not found`);
-  }
-  
-  const originalJSX = await fs.readFile(compositionPath, 'utf-8');
-  
-  // Create backup
-  const backupResult = await createProjectBackup(name);
-  
-  // Apply chosen enhancements
-  const result = await applyUserChoices(originalJSX, choices);
-  
-  if (result.changesApplied.length > 0) {
-    await fs.writeFile(compositionPath, result.enhancedJSX);
-    
-    let message = `✅ **Enhancement choices applied to "${name}"**\n\n`;
-    message += `**Changes Made:**\n`;
-    result.changesApplied.forEach(change => {
-      message += `• ${change}\n`;
-    });
-    
-    if (backupResult.success) {
-      message += `\n💾 Original backed up as: ${backupResult.backupPath}`;
-    }
-    
-    message += `\n\n🎬 Refresh your browser to see the dramatic improvements!`;
-    
-    return {
-      content: [{
-        type: 'text',
-        text: message
-      }]
-    };
-  } else {
-    return {
-      content: [{
-        type: 'text',
-        text: `No enhancements were applied. ${result.changesApplied.join(' ')}`
-      }]
-    };
-  }
+  // Enhancement choice tools removed - embedded intelligence handles quality by default
+  return {
+    content: [{
+      type: 'text',
+      text: `❌ Enhancement choice tools have been removed. The v7.1.0 embedded intelligence system now ensures quality by default during project creation.`
+    }]
+  };
 }
 
 async function createProject(name: string, jsx?: string, template?: string, style?: string, skipValidation?: boolean) {
@@ -1460,25 +1004,72 @@ async function createProject(name: string, jsx?: string, template?: string, styl
   if (jsx && jsx.trim().length > 0) {
     console.error(`[CREATE-PROJECT] Running enhanced design analysis and validation...`);
     
-    // Step 1: Safe validation
+    // Step 1: Safe validation with enhanced logging
+    console.error(`[VALIDATION] ==========================================`);
+    console.error(`[VALIDATION] ANALYZING JSX: ${jsx.length} characters`);
+    console.error(`[VALIDATION] PROJECT: ${name}`);
+    console.error(`[VALIDATION] v7.1.0 SHOULD PREVENT: Broken JSX from Claude`);
+    console.error(`[VALIDATION] ==========================================`);
+    
     const validation = await validateJSXSafely(jsx, name, { skipValidation });
+    
     if (!validation.isValid) {
       const criticalErrors = validation.errors.filter(e => e.severity === 'critical').length;
+      console.error(`[VALIDATION] ❌ CRITICAL FAILURE: ${criticalErrors} critical errors detected`);
+      console.error(`[VALIDATION] 🚨 THIS SHOULD NOT HAPPEN with v7.1.0 embedded intelligence!`);
+      console.error(`[VALIDATION] 💡 Claude generated broken JSX - embedded intelligence FAILED`);
+      
       if (criticalErrors > 0) {
         throw new Error(`JSX validation failed with ${criticalErrors} critical errors:\n${validation.report}`);
       } else {
-        console.error(`[CREATE-PROJECT] JSX has warnings but is safe to use`);
+        console.error(`[VALIDATION] JSX has warnings but is safe to use`);
       }
+    } else {
+      console.error(`[VALIDATION] ✅ JSX passed validation - good quality JSX provided`);
     }
     
     // Step 2: Embedded design intelligence (Claude-style built-in quality)
     try {
       console.error(`[CREATE-PROJECT] Applying embedded design intelligence (GitHub_4-level by default)...`);
       
-      // MINIMAL v7.0.2 TEST - Embedded intelligence disabled to debug version loading
-      console.error(`[CREATE-PROJECT] v7.0.2 minimal test - no embedded intelligence`);
-      console.error(`[CREATE-PROJECT] Testing if basic version change works without complex systems`);
-      processedJSX = jsx || `// Default minimal content for v7.0.2 test`;
+      // ✅ v7.0.0 EMBEDDED INTELLIGENCE ACTIVE - Should generate GitHub_4-level content
+      console.error(`[CREATE-PROJECT] ==========================================`);
+      console.error(`[CREATE-PROJECT] v7.1.0 EMBEDDED INTELLIGENCE SYSTEM ACTIVE`);
+      console.error(`[CREATE-PROJECT] SHOULD GENERATE: GitHub_4-level rich content`);
+      console.error(`[CREATE-PROJECT] SHOULD PREVENT: Broken JSX, validation failures`);
+      console.error(`[CREATE-PROJECT] QUALITY CONTROLS: Full logging and debugging enabled`);
+      console.error(`[CREATE-PROJECT] ==========================================`);
+      
+      // Track JSX source and apply embedded intelligence
+      if (jsx && jsx.trim().length > 500) {
+        console.error(`[CREATE-PROJECT] JSX provided by Claude: ${jsx.length} characters`);
+        console.error(`[CREATE-PROJECT] 🚨 WARNING: Claude bypassed embedded intelligence!`);
+        console.error(`[CREATE-PROJECT] 💡 APPLYING embedded intelligence to improve broken JSX...`);
+        
+        // Apply embedded intelligence to fix Claude's broken JSX
+        try {
+          const enhancement = await generateWithEmbeddedIntelligence(jsx, name);
+          processedJSX = enhancement.richJSX;
+          console.error(`[CREATE-PROJECT] ✅ Embedded intelligence applied to fix Claude's JSX`);
+          console.error(`[CREATE-PROJECT] Quality: ${enhancement.expectedQuality}`);
+        } catch (embeddedError) {
+          console.error(`[CREATE-PROJECT] ❌ Embedded intelligence failed:`, embeddedError);
+          processedJSX = jsx;
+        }
+      } else {
+        console.error(`[CREATE-PROJECT] NO JSX or minimal JSX provided`);
+        console.error(`[CREATE-PROJECT] ✅ GENERATING rich content with embedded intelligence...`);
+        
+        try {
+          const richGeneration = await generateWithEmbeddedIntelligence(`Create a ${name} video`, name);
+          processedJSX = richGeneration.richJSX;
+          console.error(`[CREATE-PROJECT] ✅ Embedded intelligence generated GitHub_4-level content`);
+          console.error(`[CREATE-PROJECT] Quality: ${richGeneration.expectedQuality}`);
+        } catch (generationError) {
+          console.error(`[CREATE-PROJECT] ❌ Embedded intelligence generation failed:`, generationError);
+          processedJSX = jsx || `// Embedded intelligence failed - using default`;
+        }
+      }
       
     } catch (intelligenceError) {
       console.error(`[CREATE-PROJECT] Embedded intelligence failed, using original JSX:`, intelligenceError);
@@ -2837,7 +2428,7 @@ async function cleanupStaleOperations(maxAgeHours?: number) {
 }
 
 // CONSOLIDATED TOOL: manage_project
-async function manageProject(action: string, name?: string, jsx?: string, template?: string, style?: string) {
+async function manageProject(action: string, name?: string, jsx?: string, template?: string, style?: string, file_path?: string) {
   try {
     console.error(`[MANAGE-PROJECT] Action: ${action}, Project: ${name || 'N/A'}`);
 
@@ -2862,6 +2453,15 @@ async function manageProject(action: string, name?: string, jsx?: string, templa
           throw new Error('Project name is required for info action');
         }
         return await getProjectInfo(name);
+      
+      case 'read':
+        if (!name) {
+          throw new Error('Project name is required for read action');
+        }
+        if (!file_path) {
+          throw new Error('File path is required for read action');
+        }
+        return await readProjectFile(name, file_path);
       
       default:
         throw new Error(`Unknown manage_project action: ${action}`);
@@ -2966,69 +2566,7 @@ async function controlStudio(action: string, name?: string, port?: number, skip_
 
 // PHASE 2 CONSOLIDATED TOOLS
 
-// CONSOLIDATED TOOL: assess_quality
-async function assessQuality(type: string, name: string, detailed?: boolean) {
-  try {
-    console.error(`[ASSESS-QUALITY] Type: ${type}, Project: ${name}, Detailed: ${!!detailed}`);
-
-    switch (type) {
-      case 'animation':
-        // Route to existing animation quality assessment - currently integrated in design prism
-        return {
-          content: [{
-            type: 'text',
-            text: `🎬 **Animation Quality Assessment for "${name}"**\n\nThis project uses the integrated Design Prism system for professional animation quality standards. The system automatically applies:\n\n✅ Professional spacing (24px-48px multiples)\n✅ Typography hierarchy (72px titles, 24px body)\n✅ Smooth easing curves (Easing.out)\n✅ Proper color contrast (4.5:1 ratio)\n✅ Visual depth effects\n\nFor detailed assessment, use launch_studio with quality checks enabled.`
-          }]
-        };
-      
-      case 'security':
-        if (detailed) {
-          return await scanProjectVulnerabilities(name);
-        } else {
-          return {
-            content: [{
-              type: 'text',
-              text: `🔒 **Security Assessment for "${name}"**\n\nBasic security check complete. Use detailed=true for full vulnerability scan.`
-            }]
-          };
-        }
-      
-      case 'audio':
-        return {
-          content: [{
-            type: 'text',
-            text: `🔊 **Audio Quality Assessment for "${name}"**\n\nAudio quality assessment requires actual audio files. Use manage_audio to:\n\n• Configure ElevenLabs integration\n• Generate professional audio\n• Debug audio configuration\n\nThe system applies professional standards (LUFS, peak levels, frequency balance) automatically.`
-          }]
-        };
-      
-      case 'comprehensive':
-        const results = [];
-        results.push('🎬 **Animation**: Professional Design Prism standards applied');
-        results.push('🔊 **Audio**: Use manage_audio for generation and quality control');
-        results.push('🔒 **Security**: Basic validation passed, use detailed scan for vulnerabilities');
-        
-        return {
-          content: [{
-            type: 'text',
-            text: `📊 **Comprehensive Quality Assessment for "${name}"**\n\n${results.join('\n')}\n\n**Overall Quality**: Professional standards maintained across all systems.`
-          }]
-        };
-      
-      default:
-        throw new Error(`Unknown assess_quality type: ${type}`);
-    }
-
-  } catch (error) {
-    console.error('[ASSESS-QUALITY] Error:', error);
-    return {
-      content: [{
-        type: 'text',
-        text: `❌ Failed to assess ${type} quality: ${error instanceof Error ? error.message : 'Unknown error'}`
-      }],
-      isError: true
-    };
-  }
-}
+// ✅ ASSESSMENT TOOLS REMOVED - Embedded intelligence ensures quality by default
 
 // CONSOLIDATED TOOL: manage_audio
 async function manageAudio(action: string, projectName?: string, apiKey?: string, enabled?: boolean, prompt?: string, type?: string, duration?: number) {

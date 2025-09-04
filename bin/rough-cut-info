@@ -10,7 +10,7 @@ const { spawn } = require('child_process');
 
 // Find the package root directory (where this bin script is located)
 const packageRoot = path.resolve(__dirname, '..');
-const infoScript = path.join(packageRoot, 'info.js');
+const infoScript = path.join(packageRoot, 'scripts', 'info.js');
 
 // Forward all arguments to the info script
 const args = process.argv.slice(2);

@@ -1,0 +1,12 @@
+{
+  "name": "test-missing-core-files",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "remotion studio",
+    "build": "remotion render"
+  },
+  "dependencies": {
+    "remotion": "^4.0.0",
+    "react": "^18.0.0"
+  }
+}

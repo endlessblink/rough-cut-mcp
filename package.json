@@ -1,6 +1,6 @@
 {
   "name": "rough-cut-mcp",
-  "version": "7.0.2",
+  "version": "8.0.0",
   "description": "Cross-platform MCP server for Remotion video creation with AI audio generation",
   "main": "build/index.js",
   "preferGlobal": true,
@@ -14,34 +14,31 @@
   "files": [
     "build/",
     "bin/",
-    "setup.js",
-    "build.js",
-    "debug.js",
-    "info.js",
+    "scripts/",
     "utils/",
     "README.md",
     "package.json"
   ],
   "scripts": {
     "prebuild": "node -e \"if(process.platform==='linux'&&process.env.WSL_DISTRO_NAME){console.error('Build on Windows only!');process.exit(1)}\"",
-    "build": "node build.js",
-    "build:cross-platform": "node build.js",
+    "build": "node scripts/build.js",
+    "build:cross-platform": "node scripts/build.js",
     "build:windows": "powershell -File build-windows.ps1",
     "build:ts": "tsc",
     "start": "node build/index.js",
     "start:win": "cmd /c \"bash -c 'source ~/.nvm/nvm.sh && node build/index.js'\"",
     "start:wsl": "bash -lc \"source ~/.nvm/nvm.sh && node build/index.js\"",
-    "setup": "node setup.js",
-    "setup:cross-platform": "node setup.js",
+    "setup": "node scripts/setup.js",
+    "setup:cross-platform": "node scripts/setup.js",
     "setup:windows": "powershell -ExecutionPolicy Bypass -File setup-windows.ps1",
-    "dev": "node build.js && node setup.js",
+    "dev": "node scripts/build.js && node scripts/setup.js",
     "dev:ts": "tsc && node build/index.js",
     "test:env": "bash -c \"source ~/.nvm/nvm.sh && node --version && npm --version && npx --version\"",
-    "tasks:watch": "node watch-tasks.js",
-    "tasks:watch:active": "node watch-tasks.js --filter=active",
-    "tasks:watch:todo": "node watch-tasks.js --filter=todo",
-    "tasks:watch:in-progress": "node watch-tasks.js --filter=in_progress",
-    "tasks:watch:compact": "node watch-tasks.js --compact"
+    "tasks:watch": "node scripts/local-task-monitor.js",
+    "tasks:watch:active": "node scripts/watch-tasks.js --filter=active",
+    "tasks:watch:todo": "node scripts/watch-tasks.js --filter=todo",
+    "tasks:watch:in-progress": "node scripts/watch-tasks.js --filter=in_progress",
+    "tasks:watch:compact": "node scripts/watch-tasks.js --compact"
   },
   "keywords": [
     "mcp",
@@ -63,21 +60,22 @@
     "url": "https://github.com/endlessblink/rough-cut-mcp/issues"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.5.0",
-    "fs-extra": "^11.2.0",
-    "cross-env": "^7.0.3",
-    "slash": "^3.0.0",
-    "dotenv": "^16.4.0",
+    "@babel/generator": "^7.23.0",
     "@babel/parser": "^7.23.0",
     "@babel/traverse": "^7.23.0",
-    "@babel/generator": "^7.23.0"
+    "@modelcontextprotocol/sdk": "^0.5.0",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.4.0",
+    "fs-extra": "^11.2.0",
+    "glob": "^11.0.3",
+    "slash": "^3.0.0"
   },
   "devDependencies": {
-    "@types/fs-extra": "^11.0.4",
-    "@types/node": "^20.0.0",
+    "@types/babel__generator": "^7.6.4",
     "@types/babel__parser": "^7.1.1",
     "@types/babel__traverse": "^7.20.1",
-    "@types/babel__generator": "^7.6.4",
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.0.0",
     "typescript": "^5.0.0"
   }
 }

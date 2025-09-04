@@ -1,0 +1,7 @@
+{
+  "name": "test-mid-operation-interruption",
+  "version": "1.0.0",
+  "dependencies": {
+    "remotion": "^4.0.0"
+  }
+}

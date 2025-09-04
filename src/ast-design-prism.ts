@@ -83,7 +83,12 @@ interface EnhancementResult {
   enhancedJSX: string;
   enhancements: string[];
   styleDetected: StyleIntent;
-  corrupted: boolean;
+  corruptionDetected: string[];
+  safetyReport: {
+    astParsingSuccess: boolean;
+    enhancementsSafe: boolean;
+    fallbackUsed: boolean;
+  };
 }
 
 /**
@@ -105,9 +110,10 @@ export function enhanceJSXThroughAST(jsx: string): EnhancementResult {
     console.error(`[AST-DESIGN-PRISM] Style: ${styleIntent.detected} (${styleIntent.confidence}%)`);
     
     const enhancements: string[] = [];
+    const corruptionDetected: string[] = [];
     const standards = PROFESSIONAL_STANDARDS;
     
-    // Step 3: Traverse AST and enhance CSS objects safely
+    // Step 3: Traverse AST and enhance CSS objects safely + detect corruption
     traverse(ast, {
       JSXElement(path) {
         const openingElement = path.node.openingElement;
@@ -126,9 +132,27 @@ export function enhanceJSXThroughAST(jsx: string): EnhancementResult {
           
           const styleObject = styleAttr.value.expression;
           
+          // CORRUPTION DETECTION: Check for quote/syntax issues in CSS values
+          const corruptionCheck = detectCSSCorruption(styleObject);
+          corruptionDetected.push(...corruptionCheck.issues);
+          
           // Safe CSS object enhancement
           const enhancementResult = enhanceStyleObjectSafely(styleObject, styleIntent, standards);
           enhancements.push(...enhancementResult.improvements);
+        }
+      },
+      
+      // Detect string literal corruption patterns
+      StringLiteral(path) {
+        const value = path.node.value;
+        if (typeof value === 'string') {
+          // Check for common corruption patterns from TASK-64610
+          if (value.match(/''[\d]/)) {
+            corruptionDetected.push(`Quote corruption detected: ${value}`);
+          }
+          if (value.includes('pxpx') || value.includes('%%')) {
+            corruptionDetected.push(`CSS unit corruption detected: ${value}`);
+          }
         }
       }
     });
@@ -136,11 +160,18 @@ export function enhanceJSXThroughAST(jsx: string): EnhancementResult {
     // Step 4: Generate clean JSX from enhanced AST
     const enhancedJSX = generate(ast).code;
     
+    console.error(`[AST-DESIGN-PRISM] Processing complete: ${enhancements.length} enhancements, ${corruptionDetected.length} corruption issues detected`);
+    
     return {
       enhancedJSX,
       enhancements,
       styleDetected: styleIntent,
-      corrupted: false
+      corruptionDetected,
+      safetyReport: {
+        astParsingSuccess: true,
+        enhancementsSafe: true,
+        fallbackUsed: false
+      }
     };
     
   } catch (error) {
@@ -149,9 +180,56 @@ export function enhanceJSXThroughAST(jsx: string): EnhancementResult {
       enhancedJSX: jsx,
       enhancements: [`❌ Enhancement failed: ${error instanceof Error ? error.message : 'Unknown error'}`],
       styleDetected: { detected: 'unknown', confidence: 0, characteristics: [] },
-      corrupted: true
+      corruptionDetected: [`AST parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`],
+      safetyReport: {
+        astParsingSuccess: false,
+        enhancementsSafe: false,
+        fallbackUsed: true
+      }
     };
   }
+}
+
+/**
+ * Detect CSS corruption patterns within style objects (AST-based)
+ */
+function detectCSSCorruption(styleObject: any): { issues: string[] } {
+  const issues: string[] = [];
+  
+  styleObject.properties.forEach((prop: any) => {
+    if (prop.type === 'ObjectProperty' && prop.value?.type === 'StringLiteral') {
+      const value = prop.value.value;
+      const propName = prop.key.name || '<unknown>';
+      
+      // Detect quote corruption patterns from TASK-64610
+      if (typeof value === 'string') {
+        // Trailing quote corruption: '20px' → '20px'
+        if (value.match(/^'[^']*'$/)) {
+          // This is actually correct - single quotes around CSS value
+        } else if (value.match(/^["'].*['"]/)) {
+          // Mixed quotes or multiple quotes
+          issues.push(`Mixed/multiple quotes in ${propName}: ${value}`);
+        }
+        
+        // CSS unit corruption
+        if (value.includes('pxpx') || value.includes('%%') || value.includes('remrem')) {
+          issues.push(`CSS unit duplication in ${propName}: ${value}`);
+        }
+        
+        // Empty quote corruption
+        if (value === '' && (propName.includes('gap') || propName.includes('margin') || propName.includes('padding'))) {
+          issues.push(`Empty CSS value in ${propName}`);
+        }
+        
+        // Malformed numeric values
+        if (value.match(/\d+['"]\d+/) || value.match(/['"]\d+px['"]/)) {
+          issues.push(`Malformed numeric value in ${propName}: ${value}`);
+        }
+      }
+    }
+  });
+  
+  return { issues };
 }
 
 /**
@@ -367,7 +445,19 @@ export function enhanceJSXWithAST_Future(jsx: string): EnhancementResult {
   // return generate(ast).code;
   
   console.error('[AST-DESIGN-PRISM] AST enhancement not yet implemented - using safe fallback');
-  return enhanceJSXThroughAST(jsx);
+  
+  // Safe fallback - return JSX without enhancement to prevent infinite recursion
+  return {
+    enhancedJSX: jsx,
+    enhancements: [],
+    styleDetected: detectStyleIntent(jsx),
+    corruptionDetected: [],
+    safetyReport: {
+      astParsingSuccess: false,
+      enhancementsSafe: true,
+      fallbackUsed: true
+    }
+  };
 }
 
 /**

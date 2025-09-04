@@ -47,6 +47,36 @@ node info.js
 3. Look for hammer icon (🔨) in input area
 4. Test with: "Use rough-cut-mcp create_project tool"
 
+## 🚨 Version Management - CRITICAL
+
+**When updating rough-cut-mcp versions, you MUST update BOTH locations:**
+
+### Required Changes:
+1. **package.json**: Update version field
+2. **src/utils.ts**: Update hardcoded `currentVersion = 'X.Y.Z'` in getMCPStatusInfo() function (around line 1825)
+
+### Why Both Are Required:
+- **package.json**: Controls build metadata and npm publishing
+- **utils.ts**: Controls Claude Desktop status reporting via getMCPStatusInfo()
+- **If only one is updated**: Claude Desktop shows version mismatch
+
+### Version Update Workflow:
+```bash
+1. Update package.json version
+2. Find and update: const currentVersion = '7.0.0'; in src/utils.ts
+3. Clean rebuild: rm -rf build/ && npm run build:ts
+4. Restart Claude Desktop completely  
+5. Verify: Should show "Running Version: X.Y.Z" matching package.json
+```
+
+### ⚠️ Common Mistake:
+- ❌ **Updating only package.json** → Claude Desktop shows old version from hardcoded string
+- ✅ **Updating both locations** → Correct version display and functionality
+
+**This issue caused extensive debugging when v7.0.0 embedded intelligence wouldn't activate due to version mismatch.**
+
+---
+
 ## Project Overview
 
 This is the `rough-cut-mcp` - a cross-platform MCP (Model Context Protocol) server for Remotion video creation with AI audio generation. The server acts as a bridge between Claude Desktop and Remotion projects, handling file operations and process management while letting Claude generate intelligent JSX.

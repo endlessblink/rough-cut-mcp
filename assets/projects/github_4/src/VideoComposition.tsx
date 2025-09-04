@@ -1065,10 +1065,10 @@ const GitHubLogo = ({ scale = 1, animate = true }) => {
     }}>
       <svg width="60" height="60" viewBox="0 0 24 24">
         <defs>
-          <linearGradient id="githubGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#58a6ff" />
-            <stop offset="50%" stopColor="#79c0ff" />
-            <stop offset="100%" stopColor="#a5a5a5" />
+          <linearGradient id="githubGradient" x1='0%' y1='0%' x2='100%' y2='100%'>
+            <stop offset='0%' stopColor="#58a6ff" />
+            <stop offset='50%' stopColor="#79c0ff" />
+            <stop offset='100%' stopColor="#a5a5a5" />
           </linearGradient>
         </defs>
         <path 
@@ -1161,7 +1161,7 @@ const DynamicBackground = () => {
       }} />
       
       {/* Dynamic grid pattern */}
-      <svg width="100%" height="100%" style={{ opacity: 0.08 }}>
+      <svg width='100%' height='100%' style={{ opacity: 0.08 }}>
         <defs>
           <pattern id="enhancedGrid" width="100" height="100" patternUnits="userSpaceOnUse">
             <path 
@@ -1171,15 +1171,15 @@ const DynamicBackground = () => {
               strokeWidth="1" 
             />
           </pattern>
-          <linearGradient id="gridGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#58a6ff" stopOpacity={interpolate(Math.sin(frame * 0.03), [-1, 1], [0.1, 0.4])} />
-            <stop offset="50%" stopColor="#79c0ff" stopOpacity={interpolate(Math.cos(frame * 0.025), [-1, 1], [0.05, 0.3])} />
-            <stop offset="100%" stopColor="#56d364" stopOpacity={interpolate(Math.sin(frame * 0.04), [-1, 1], [0.02, 0.2])} />
+          <linearGradient id="gridGradient" x1='0%' y1='0%' x2='100%' y2='100%'>
+            <stop offset='0%' stopColor="#58a6ff" stopOpacity={interpolate(Math.sin(frame * 0.03), [-1, 1], [0.1, 0.4])} />
+            <stop offset='50%' stopColor="#79c0ff" stopOpacity={interpolate(Math.cos(frame * 0.025), [-1, 1], [0.05, 0.3])} />
+            <stop offset='100%' stopColor="#56d364" stopOpacity={interpolate(Math.sin(frame * 0.04), [-1, 1], [0.02, 0.2])} />
           </linearGradient>
         </defs>
         <rect 
-          width="100%" 
-          height="100%" 
+          width='100%' 
+          height='100%' 
           fill="url(#enhancedGrid)"
           transform={`translate(${Math.sin(frame * 0.008) * 30}, ${Math.cos(frame * 0.012) * 25})`}
         />
