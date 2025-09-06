@@ -571,6 +571,9 @@ async function convertArtifactToVideo(name: string, artifactJsx: string) {
     // Use converted JSX
     await fs.writeFile(path.join(projectPath, 'src', 'VideoComposition.tsx'), remotionJsx);
     
+    // Automatically add missing dependencies based on preserved imports
+    await addMissingDependencies(projectPath, remotionJsx, name);
+    
     // Create Root.tsx
     const rootContent = `import React from 'react';
 import { Composition } from 'remotion';
@@ -660,7 +663,7 @@ Config.setOverwriteOutput(true);`;
     return {
       content: [{
         type: 'text',
-        text: `🎯 **Intelligent Content Preservation v9.5.0 - SUCCESS!**
+        text: `🎯 **Enhanced Classification v9.5.1 - SUCCESS!**
 
 ✅ **"${name}" Artifact → Remotion Video Conversion Complete**
 
@@ -691,7 +694,7 @@ Config.setOverwriteOutput(true);`;
     return {
       content: [{
         type: 'text',
-        text: `❌ **Intelligent Content Preservation v9.5.0 - CONVERSION FAILED**
+        text: `❌ **Enhanced Classification v9.5.1 - CONVERSION FAILED**
 
 **Error**: ${error instanceof Error ? error.message : 'Unknown error'}
 
@@ -713,6 +716,50 @@ Config.setOverwriteOutput(true);`;
   }
 }
 
+// Automatically add missing dependencies to project based on preserved imports
+async function addMissingDependencies(projectPath: string, remotionJsx: string, projectName: string): Promise<void> {
+  try {
+    const packageJsonPath = path.join(projectPath, 'package.json');
+    const packageJson = await fs.readJson(packageJsonPath);
+    
+    let dependenciesAdded = false;
+    const logsDir = getOurLogsDir();
+    
+    // Check for lucide-react imports
+    if (remotionJsx.includes("from 'lucide-react'") || remotionJsx.includes('from "lucide-react"')) {
+      console.error(`[DEPENDENCY] Adding lucide-react for ${projectName}`);
+      packageJson.dependencies['lucide-react'] = '^0.400.0';
+      dependenciesAdded = true;
+      fs.appendFileSync(path.join(logsDir, 'npm-install.log'), `DEPENDENCY-AUTO-ADD: lucide-react for preserved imports in ${projectName}\n`);
+    }
+    
+    // Check for other common imports that might be missing
+    if (remotionJsx.includes("from 'framer-motion'")) {
+      console.error(`[DEPENDENCY] Adding framer-motion for ${projectName}`);
+      packageJson.dependencies['framer-motion'] = '^11.0.0';
+      dependenciesAdded = true;
+    }
+    
+    if (remotionJsx.includes("from 'react-icons'")) {
+      console.error(`[DEPENDENCY] Adding react-icons for ${projectName}`);
+      packageJson.dependencies['react-icons'] = '^5.0.0';
+      dependenciesAdded = true;
+    }
+    
+    // Update package.json if dependencies were added
+    if (dependenciesAdded) {
+      await fs.writeJson(packageJsonPath, packageJson, { spaces: 2 });
+      console.error(`[DEPENDENCY] Updated package.json for ${projectName} with missing dependencies`);
+      fs.appendFileSync(path.join(logsDir, 'npm-install.log'), `DEPENDENCY-UPDATE: package.json updated for ${projectName}\n`);
+    } else {
+      console.error(`[DEPENDENCY] No missing dependencies detected for ${projectName}`);
+    }
+    
+  } catch (error) {
+    console.error(`[DEPENDENCY] Failed to add missing dependencies for ${projectName}:`, error instanceof Error ? error.message : 'unknown');
+  }
+}
+
 // GET MCP INFO: Show current version and build information
 async function getMCPInfo() {
   try {
@@ -724,7 +771,7 @@ async function getMCPInfo() {
         type: 'text',
         text: `🛠️ **Rough Cut MCP Server Info**
 
-**Version**: ${statusInfo.version?.current || '9.5.0'} - Intelligent Content Preservation with Classification
+**Version**: ${statusInfo.version?.current || '9.5.1'} - Enhanced Classification + Auto-Dependencies
 **Conversion Method**: AST-Based (Babel parser for syntax safety)
 **Build Time**: ${buildTime}
 **Available Tools**: 4

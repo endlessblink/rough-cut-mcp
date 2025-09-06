@@ -335,11 +335,11 @@ function classifyArtifact(jsx: string, useStateVars: Set<string>): { isContentHe
     const contentIndicators = [
       jsx.length > 8000,                                    // Large content artifacts
       jsx.includes('slides') || jsx.includes('showcase'),   // Content structure keywords
-      jsx.includes('sections') || jsx.includes('pages'),    // Layout structure
+      jsx.includes('scenes') || jsx.includes('sections') || jsx.includes('pages'),    // Layout structure
       jsx.includes('title') && jsx.includes('description'), // Text content patterns
       jsx.includes('portfolio') || jsx.includes('dashboard'), // Content types
-      (jsx.match(/slides\[|slides\s*=/g) || []).length > 0,  // Slides array usage
-      Array.from(useStateVars).includes('currentSlide') || Array.from(useStateVars).includes('currentPage') // Navigation state
+      (jsx.match(/slides\[|slides\s*=|scenes\[|scenes\s*=/g) || []).length > 0,  // Content array usage
+      Array.from(useStateVars).includes('currentSlide') || Array.from(useStateVars).includes('currentPage') || Array.from(useStateVars).includes('currentScene') // Navigation state
     ];
     
     // Animation indicators (suggests apply enhanced mode)
@@ -358,9 +358,9 @@ function classifyArtifact(jsx: string, useStateVars: Set<string>): { isContentHe
     
     logAST(`[CLASSIFY] Content score: ${contentScore}/7, Animation score: ${animationScore}/7`);
     
-    const isContentHeavy = contentScore >= 3;
-    const isAnimationHeavy = animationScore >= 3;
-    const shouldPreserveContent = isContentHeavy && !isAnimationHeavy;
+    const isContentHeavy = (contentScore >= 2 && jsx.length > 10000) || contentScore >= 3;
+    const isAnimationHeavy = animationScore >= 4;
+    const shouldPreserveContent = isContentHeavy || (contentScore >= animationScore && jsx.length > 5000);
     
     logAST(`[CLASSIFY] Result: Content-heavy: ${isContentHeavy}, Animation-heavy: ${isAnimationHeavy}, Preserve: ${shouldPreserveContent}`);
     
