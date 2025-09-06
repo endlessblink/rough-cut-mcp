@@ -326,6 +326,52 @@ function createUniversalStructurePreservingFrame(varName: string, discoveredStru
   }
 }
 
+// Emergency fix: Artifact classification to prevent content destruction
+function classifyArtifact(jsx: string, useStateVars: Set<string>): { isContentHeavy: boolean; isAnimationHeavy: boolean; shouldPreserveContent: boolean } {
+  try {
+    logAST(`[CLASSIFY] Starting artifact classification for ${jsx.length} chars`);
+    
+    // Content indicators (suggests preserve original structure)
+    const contentIndicators = [
+      jsx.length > 8000,                                    // Large content artifacts
+      jsx.includes('slides') || jsx.includes('showcase'),   // Content structure keywords
+      jsx.includes('sections') || jsx.includes('pages'),    // Layout structure
+      jsx.includes('title') && jsx.includes('description'), // Text content patterns
+      jsx.includes('portfolio') || jsx.includes('dashboard'), // Content types
+      (jsx.match(/slides\[|slides\s*=/g) || []).length > 0,  // Slides array usage
+      Array.from(useStateVars).includes('currentSlide') || Array.from(useStateVars).includes('currentPage') // Navigation state
+    ];
+    
+    // Animation indicators (suggests apply enhanced mode)
+    const animationIndicators = [
+      jsx.includes('Math.sin') || jsx.includes('Math.cos'),     // Mathematical animations
+      jsx.includes('setInterval') && jsx.includes('particle'),  // Animation loops with particles
+      jsx.includes('requestAnimationFrame'),                    // Animation frame requests
+      (jsx.match(/particle|wave|bounce|spring|orbit/gi) || []).length >= 2, // Animation keywords
+      Array.from(useStateVars).filter(v => v.toLowerCase().includes('particle')).length >= 1, // Particle state
+      jsx.includes('useEffect') && jsx.includes('Math.'),      // Math in effects
+      (jsx.match(/useState.*Math\./g) || []).length >= 2       // Math in useState
+    ];
+    
+    const contentScore = contentIndicators.filter(Boolean).length;
+    const animationScore = animationIndicators.filter(Boolean).length;
+    
+    logAST(`[CLASSIFY] Content score: ${contentScore}/7, Animation score: ${animationScore}/7`);
+    
+    const isContentHeavy = contentScore >= 3;
+    const isAnimationHeavy = animationScore >= 3;
+    const shouldPreserveContent = isContentHeavy && !isAnimationHeavy;
+    
+    logAST(`[CLASSIFY] Result: Content-heavy: ${isContentHeavy}, Animation-heavy: ${isAnimationHeavy}, Preserve: ${shouldPreserveContent}`);
+    
+    return { isContentHeavy, isAnimationHeavy, shouldPreserveContent };
+    
+  } catch (error) {
+    logAST(`[CLASSIFY] Classification failed: ${error instanceof Error ? error.message : 'unknown'}, defaulting to preserve content`);
+    return { isContentHeavy: true, isAnimationHeavy: false, shouldPreserveContent: true };
+  }
+}
+
 export async function convertArtifactToRemotionAST(artifactJsx: string): Promise<string> {
   try {
     // Clear previous log and start fresh
@@ -447,6 +493,10 @@ export async function convertArtifactToRemotionAST(artifactJsx: string): Promise
       }
     });
 
+    // Emergency fix: Classify artifact before applying transformations
+    const classification = classifyArtifact(artifactJsx, removedStateVars);
+    logAST(`[CLASSIFY] Artifact classified as: ${classification.shouldPreserveContent ? 'CONTENT-HEAVY' : 'ANIMATION-HEAVY'}`);
+
     // Apply semantic transformations to AST nodes
     traverse(ast, {
       // Add Remotion imports at the top
@@ -474,10 +524,37 @@ export async function convertArtifactToRemotionAST(artifactJsx: string): Promise
                 const varName = stateVar.name;
                 logAST(`Creating frame-based alternative for: ${varName}`);
                 
-                // v9.4.0: Enhanced mode always active for universal structure preservation
-                const ENHANCED_PARTICLES_TEST = true; // Always use enhanced mode (no environment dependency)
+                // v9.4.1: Intelligent enhanced mode based on artifact classification
+                const ENHANCED_PARTICLES_TEST = !classification.shouldPreserveContent; // Only enhance animation-focused artifacts
                 
-                if (varName === 'particles' && ENHANCED_PARTICLES_TEST) {
+                if (classification.shouldPreserveContent) {
+                  // Content-preserving mode: minimal transformation for content-heavy artifacts
+                  logAST(`[CONTENT-PRESERVE] Preserving original structure for ${varName} in content-heavy artifact`);
+                  
+                  if (varName === 'currentSlide' || varName === 'currentPage' || varName === 'activeTab') {
+                    // Convert navigation useState to frame-based progression
+                    logAST(`[CONTENT-PRESERVE] Converting navigation state: ${varName}`);
+                    const frameBasedNavigation = t.variableDeclaration('const', [
+                      t.variableDeclarator(
+                        t.identifier(varName),
+                        t.binaryExpression('%',
+                          t.binaryExpression('/', t.callExpression(t.identifier('useCurrentFrame'), []), t.numericLiteral(60)),
+                          t.numericLiteral(5) // Cycle through 5 slides
+                        )
+                      )
+                    ]);
+                    replacements.push(frameBasedNavigation);
+                  } else {
+                    // Preserve other useState as-is by converting to constants  
+                    logAST(`[CONTENT-PRESERVE] Preserving ${varName} as static constant`);
+                    const initialValue = declarator.init.arguments[0];
+                    const safeInitialValue = (t.isExpression(initialValue) ? initialValue : t.arrayExpression([]));
+                    const preservedConstant = t.variableDeclaration('const', [
+                      t.variableDeclarator(t.identifier(varName), safeInitialValue)
+                    ]);
+                    replacements.push(preservedConstant);
+                  }
+                } else if (varName === 'particles' && ENHANCED_PARTICLES_TEST) {
                   // Test enhanced universal logic for particles only
                   logAST(`[PHASE3-TEST] Testing enhanced logic for particles`);
                   

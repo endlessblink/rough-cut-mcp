@@ -660,7 +660,7 @@ Config.setOverwriteOutput(true);`;
     return {
       content: [{
         type: 'text',
-        text: `🎯 **Universal Structure Preservation v9.4.1 - SUCCESS!**
+        text: `🎯 **Intelligent Content Preservation v9.5.0 - SUCCESS!**
 
 ✅ **"${name}" Artifact → Remotion Video Conversion Complete**
 
@@ -691,7 +691,7 @@ Config.setOverwriteOutput(true);`;
     return {
       content: [{
         type: 'text',
-        text: `❌ **Universal Structure Preservation v9.4.1 - CONVERSION FAILED**
+        text: `❌ **Intelligent Content Preservation v9.5.0 - CONVERSION FAILED**
 
 **Error**: ${error instanceof Error ? error.message : 'Unknown error'}
 
@@ -724,7 +724,7 @@ async function getMCPInfo() {
         type: 'text',
         text: `🛠️ **Rough Cut MCP Server Info**
 
-**Version**: ${statusInfo.version?.current || '9.4.1'} - Universal Structure Preservation + Polish Fixes
+**Version**: ${statusInfo.version?.current || '9.5.0'} - Intelligent Content Preservation with Classification
 **Conversion Method**: AST-Based (Babel parser for syntax safety)
 **Build Time**: ${buildTime}
 **Available Tools**: 4
