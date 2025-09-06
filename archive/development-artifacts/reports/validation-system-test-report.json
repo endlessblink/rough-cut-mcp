@@ -1,0 +1,53 @@
+{
+  "timestamp": "2025-09-04T09:03:42.003Z",
+  "testType": "Static Validation System Testing",
+  "results": {
+    "validJSX": {
+      "isValid": true,
+      "errorCount": 3,
+      "processingTime": 89,
+      "criticalErrors": 0,
+      "report": "🔍 **Safe Validation Report: test-validJSX**\n\n✅ **VALIDATION PASSED** - Safe to use\n\n**Validation Summary:**\n• Syntax: ✅ Valid\n• Variables: ✅ Complete\n• Types: ❌ Issues\n• Templates: ✅ Complete\n• Remotion: ✅ Compatible\n\n⚠️ **High Priority** (3):\n• Line 1: Cannot find module 'react' or its corresponding type declarations.\n• Line 2: Cannot find module 'remotion' or its corresponding type declarations.\n• Line 10: This JSX tag requires the module path 'react/jsx-runtime' to exist, but none could be found. Make sure you have types for the appropriate package installed.\n\n"
+    },
+    "syntaxError": {
+      "isValid": false,
+      "errorCount": 1,
+      "processingTime": 1,
+      "criticalErrors": 1,
+      "report": "🔍 **Safe Validation Report: test-syntaxError**\n\n❌ **VALIDATION FAILED** - 1 critical errors\n\n**Validation Summary:**\n• Syntax: ❌ Errors\n• Variables: ✅ Complete\n• Types: ✅ Safe\n• Templates: ✅ Complete\n• Remotion: ✅ Compatible\n\n🚨 **Critical Errors** (1):\n• Line 8: JSX syntax error: Unterminated JSX contents. (8:19)\n\n"
+    },
+    "remotionError": {
+      "isValid": false,
+      "errorCount": 5,
+      "processingTime": 36,
+      "criticalErrors": 1,
+      "report": "🔍 **Safe Validation Report: test-remotionError**\n\n❌ **VALIDATION FAILED** - 1 critical errors\n\n**Validation Summary:**\n• Syntax: ✅ Valid\n• Variables: ✅ Complete\n• Types: ❌ Issues\n• Templates: ✅ Complete\n• Remotion: ❌ Issues\n\n🚨 **Critical Errors** (1):\n• Line 6: interpolate() requires at least 3 arguments: frame, inputRange, outputRange\n\n⚠️ **High Priority** (4):\n• Line 1: Cannot find module 'react' or its corresponding type declarations.\n• Line 2: Cannot find module 'remotion' or its corresponding type declarations.\n• Line 9: This JSX tag requires the module path 'react/jsx-runtime' to exist, but none could be found. Make sure you have types for the appropriate package installed.\n• Line undefined: Using interpolate() but useCurrentFrame() not imported or called\n\n💡 **Warnings** (1):\n• Line 4: Variable 'VideoComposition' is declared but never used\n  💡 Remove unused variable or prefix with underscore: _VideoComposition\n\n🎯 **Improvement Suggestions:**\n• Consider using useCurrentFrame() for frame-based animations\n"
+    },
+    "variableError": {
+      "isValid": false,
+      "errorCount": 5,
+      "processingTime": 35,
+      "criticalErrors": 1,
+      "report": "🔍 **Safe Validation Report: test-variableError**\n\n❌ **VALIDATION FAILED** - 1 critical errors\n\n**Validation Summary:**\n• Syntax: ✅ Valid\n• Variables: ❌ Missing\n• Types: ❌ Issues\n• Templates: ✅ Complete\n• Remotion: ✅ Compatible\n\n🚨 **Critical Errors** (1):\n• Line 9: Variable 'undefinedVariable' is not defined\n\n⚠️ **High Priority** (4):\n• Line 1: Cannot find module 'react' or its corresponding type declarations.\n• Line 2: Cannot find module 'remotion' or its corresponding type declarations.\n• Line 8: This JSX tag requires the module path 'react/jsx-runtime' to exist, but none could be found. Make sure you have types for the appropriate package installed.\n• Line 9: Cannot find name 'undefinedVariable'.\n\n💡 **Warnings** (2):\n• Line 4: Variable 'VideoComposition' is declared but never used\n  💡 Remove unused variable or prefix with underscore: _VideoComposition\n• Line 5: Variable 'unusedVariable' is declared but never used\n  💡 Remove unused variable or prefix with underscore: _unusedVariable\n\n🎯 **Improvement Suggestions:**\n• Consider using useCurrentFrame() for frame-based animations\n"
+    }
+  },
+  "summary": {
+    "accuracy": 100,
+    "expectedFailures": 3,
+    "actualFailures": 3,
+    "avgProcessingTime": 40.25,
+    "validationCorrect": 4
+  },
+  "security": {
+    "staticAnalysisOnly": true,
+    "noCodeExecution": true,
+    "noEvalCalls": true
+  },
+  "completeness": {
+    "astSyntax": true,
+    "variableFlow": true,
+    "typeChecking": true,
+    "templateValidation": true,
+    "remotionValidation": true
+  }
+}

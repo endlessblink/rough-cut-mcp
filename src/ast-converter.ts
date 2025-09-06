@@ -626,6 +626,91 @@ export async function convertArtifactToRemotionAST(artifactJsx: string): Promise
         }
       },
 
+      // Transform root JSX elements to use AbsoluteFill for proper Remotion layout
+      JSXElement(path) {
+        if (t.isJSXIdentifier(path.node.openingElement.name) && 
+            path.node.openingElement.name.name === 'div') {
+          
+          // Check if this is likely a root container (has full screen classes)
+          const hasFullScreenClasses = path.node.openingElement.attributes?.some(attr => {
+            if (t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'className') {
+              if (t.isStringLiteral(attr.value)) {
+                const classes = attr.value.value;
+                return (classes.includes('w-full') && classes.includes('h-screen')) ||
+                       (classes.includes('w-full') && classes.includes('h-full'));
+              }
+            }
+            return false;
+          });
+          
+          if (hasFullScreenClasses) {
+            logAST(`[ABSOLUTEFILL] Converting root div to AbsoluteFill for proper background rendering`);
+            
+            // Change div to AbsoluteFill
+            path.node.openingElement.name = t.jsxIdentifier('AbsoluteFill');
+            if (path.node.closingElement) {
+              path.node.closingElement.name = t.jsxIdentifier('AbsoluteFill');
+            }
+            
+            // Convert className to style for better Remotion compatibility
+            path.node.openingElement.attributes?.forEach(attr => {
+              if (t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'className') {
+                if (t.isStringLiteral(attr.value)) {
+                  const classes = attr.value.value;
+                  
+                  // Convert gradient background classes to proper CSS
+                  if (classes.includes('bg-gradient-to-br')) {
+                    logAST(`[ABSOLUTEFILL] Converting gradient background to style for proper rendering`);
+                    
+                    // Determine gradient colors from class pattern
+                    let gradientCSS = 'linear-gradient(135deg, #581c87 0%, #1e3a8a 50%, #312e81 100%)'; // Default
+                    
+                    if (classes.includes('from-purple-900') && classes.includes('to-indigo-900')) {
+                      gradientCSS = 'linear-gradient(135deg, #581c87 0%, #1e3a8a 50%, #312e81 100%)';
+                    } else if (classes.includes('from-black')) {
+                      gradientCSS = 'linear-gradient(135deg, #000000 0%, #1a1a1a 50%, #333333 100%)';
+                    }
+                    
+                    // Create or update style attribute
+                    const existingStyleAttr = path.node.openingElement.attributes?.find(a => 
+                      t.isJSXAttribute(a) && t.isJSXIdentifier(a.name) && a.name.name === 'style'
+                    );
+                    
+                    if (existingStyleAttr && t.isJSXAttribute(existingStyleAttr) && t.isJSXExpressionContainer(existingStyleAttr.value)) {
+                      // Add background to existing style object
+                      if (t.isObjectExpression(existingStyleAttr.value.expression)) {
+                        existingStyleAttr.value.expression.properties.unshift(
+                          t.objectProperty(t.identifier('background'), t.stringLiteral(gradientCSS))
+                        );
+                      }
+                    } else {
+                      // Create new style attribute
+                      const styleAttr = t.jsxAttribute(
+                        t.jsxIdentifier('style'),
+                        t.jsxExpressionContainer(
+                          t.objectExpression([
+                            t.objectProperty(t.identifier('background'), t.stringLiteral(gradientCSS)),
+                            t.objectProperty(t.identifier('overflow'), t.stringLiteral('hidden'))
+                          ])
+                        )
+                      );
+                      
+                      path.node.openingElement.attributes = path.node.openingElement.attributes || [];
+                      path.node.openingElement.attributes.push(styleAttr);
+                    }
+                    
+                    // Remove className attribute since we converted it to style
+                    path.node.openingElement.attributes = path.node.openingElement.attributes?.filter(a => 
+                      !(t.isJSXAttribute(a) && t.isJSXIdentifier(a.name) && a.name.name === 'className')
+                    ) || [];
+                  }
+                }
+              }
+            });
+          }
+        }
+      },
+
       // Remove arrow functions assigned to handler variables
       VariableDeclarator(path) {
         if (t.isIdentifier(path.node.id) && 

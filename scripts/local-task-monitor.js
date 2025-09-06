@@ -145,47 +145,36 @@ function filterTasks(tasks) {
   return filtered;
 }
 
-// Sort tasks for optimal productivity viewing
+// Simple, foolproof sorting that prioritizes urgent tasks
 function sortTasks(tasks) {
-  console.log(`\n🔄 DEBUG: Sorting ${tasks.length} tasks (sort: ${config.sort})`);
+  // Create explicit sorting that puts urgent first ALWAYS
+  const sorted = [...tasks];
   
-  const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
-  const statusOrder = { in_progress: 0, todo: 1, blocked: 2 };
-  
-  return tasks.sort((a, b) => {
-    switch (config.sort) {
-      case 'priority':
-        // Primary: Status (in_progress first)
-        const statusDiff = (statusOrder[a.status] || 1) - (statusOrder[b.status] || 1);
-        if (statusDiff !== 0) return statusDiff;
-        
-        // Secondary: Priority (urgent first) 
-        const priorityDiff = (priorityOrder[a.priority] || 2) - (priorityOrder[b.priority] || 2);
-        if (priorityDiff !== 0) return priorityDiff;
-        
-        // Tertiary: Title alphabetical
-        return (a.title || '').localeCompare(b.title || '');
-        
-      case 'status':
-        // Sort by status only
-        const statusDiff2 = (statusOrder[a.status] || 1) - (statusOrder[b.status] || 1);
-        if (statusDiff2 !== 0) return statusDiff2;
-        return (a.title || '').localeCompare(b.title || '');
-        
-      case 'created':
-        // Sort by creation date (newest first)
-        const dateA = new Date(a.created || 0);
-        const dateB = new Date(b.created || 0);
-        return dateB - dateA;
-        
-      case 'alpha':
-        // Sort alphabetically by title
-        return (a.title || '').localeCompare(b.title || '');
-        
-      default:
-        return 0; // No sorting
+  // Simple priority-first sort
+  sorted.sort((a, b) => {
+    const aPriority = a.priority || 'medium';
+    const bPriority = b.priority || 'medium';
+    
+    // URGENT always wins
+    if (aPriority === 'urgent' && bPriority !== 'urgent') return -1;
+    if (bPriority === 'urgent' && aPriority !== 'urgent') return 1;
+    
+    // Within same priority, in_progress before todo
+    if (aPriority === bPriority) {
+      if (a.status === 'in_progress' && b.status !== 'in_progress') return -1;
+      if (b.status === 'in_progress' && a.status !== 'in_progress') return 1;
     }
+    
+    // Standard priority order
+    const priorityOrder = { urgent: 0, high: 1, medium: 2, low: 3 };
+    const priorityDiff = (priorityOrder[aPriority] || 2) - (priorityOrder[bPriority] || 2);
+    if (priorityDiff !== 0) return priorityDiff;
+    
+    // Alphabetical within same priority/status
+    return (a.title || '').localeCompare(b.title || '');
   });
+  
+  return sorted;
 }
 
 // Format and display tasks

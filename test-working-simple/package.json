@@ -1,0 +1,19 @@
+{
+  "name": "test-working-simple",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "remotion studio --port=7890",
+    "build": "remotion render src/index.ts VideoComposition out/video.mp4"
+  },
+  "dependencies": {
+    "@remotion/bundler": "^4.0.341",
+    "@remotion/cli": "^4.0.341",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "remotion": "^4.0.340"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.0",
+    "typescript": "^5.0.0"
+  }
+}

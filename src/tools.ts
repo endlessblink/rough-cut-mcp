@@ -360,7 +360,7 @@ async function launchStudio(name: string) {
     
     const studio = spawn('npm', ['start'], {
       cwd: projectPath,
-      stdio: 'inherit',
+      stdio: 'pipe', // Prevent studio output from interfering with MCP communication
       shell: true
     });
     
@@ -374,7 +374,7 @@ async function launchStudio(name: string) {
     const studioURL = `http://localhost:${availablePort}`;
     let studioReady = false;
     let attempts = 0;
-    const maxAttempts = 30; // 30 seconds timeout
+    const maxAttempts = 60; // 60 seconds timeout for complex artifacts
     
     while (!studioReady && attempts < maxAttempts) {
       try {
@@ -660,7 +660,7 @@ Config.setOverwriteOutput(true);`;
     return {
       content: [{
         type: 'text',
-        text: `🎯 **Universal Structure Preservation v9.4.0 - SUCCESS!**
+        text: `🎯 **Universal Structure Preservation v9.4.1 - SUCCESS!**
 
 ✅ **"${name}" Artifact → Remotion Video Conversion Complete**
 
@@ -691,7 +691,7 @@ Config.setOverwriteOutput(true);`;
     return {
       content: [{
         type: 'text',
-        text: `❌ **Universal Structure Preservation v9.4.0 - CONVERSION FAILED**
+        text: `❌ **Universal Structure Preservation v9.4.1 - CONVERSION FAILED**
 
 **Error**: ${error instanceof Error ? error.message : 'Unknown error'}
 
@@ -724,7 +724,7 @@ async function getMCPInfo() {
         type: 'text',
         text: `🛠️ **Rough Cut MCP Server Info**
 
-**Version**: ${statusInfo.version?.current || '9.4.0'} - Universal Structure Preservation with Complete Visual Similarity
+**Version**: ${statusInfo.version?.current || '9.4.1'} - Universal Structure Preservation + Polish Fixes
 **Conversion Method**: AST-Based (Babel parser for syntax safety)
 **Build Time**: ${buildTime}
 **Available Tools**: 4
