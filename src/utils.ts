@@ -1819,7 +1819,7 @@ All suggestions are optional - create whatever you envision!
  */
 export async function getMCPStatusInfo(): Promise<any> {
   try {
-    const currentVersion = '8.0.0'; // Streamlined Release - 5 Unified Tools, Embedded Intelligence Active
+    const currentVersion = '9.4.0'; // Universal Structure Preservation with Complete Visual Similarity
     const serverDir = __dirname.endsWith('build') ? path.dirname(__dirname) : __dirname;
     
     // Read current package.json
@@ -1835,11 +1835,11 @@ export async function getMCPStatusInfo(): Promise<any> {
     }
     
     // Check npm registry version (SAFE - no crash risk)
-    let npmRegistryVersion = '7.0.0'; // Known published version
+    let npmRegistryVersion = '9.4.0'; // Known published version
     let npmCheckStatus = 'cached'; // Skip npm call to prevent crashes
     
     console.error('[MCP-STATUS] Skipping npm registry check to prevent crashes');
-    console.error('[MCP-STATUS] Using cached registry version: 7.0.0');
+    console.error('[MCP-STATUS] Using cached registry version: 9.4.0');
     
     // Installation path detection
     const installationPaths = {

@@ -25,20 +25,31 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { tools, handleToolCall } from './tools.js';
 
+// Get absolute path to OUR project directory (not Claude Desktop's working directory)  
+function getOurProjectRoot(): string {
+  // __filename points to our build/index.js file
+  const buildDir = path.dirname(__filename);
+  return path.dirname(buildDir); // Go up one level to project root
+}
+
+function getOurLogsDir(): string {
+  return path.join(getOurProjectRoot(), 'logs');
+}
+
 class RemotionMCPServer {
   private server: Server;
 
   constructor() {
     // Research-backed diagnostic logging
     console.error(`[DEBUG] Node.js Version: ${process.version}`);
-    console.error(`[DEBUG] MCP Server Version: 8.0.0`);
+    console.error(`[DEBUG] MCP Server Version: 9.4.0`);
     console.error(`[DEBUG] Working Directory: ${process.cwd()}`);
     console.error(`[DEBUG] Script Path: ${__filename}`);
     
     this.server = new Server(
       {
         name: 'rough-cut-mcp',
-        version: '8.0.0' // Streamlined Release - 5 Unified Tools, Embedded Intelligence Active
+        version: '9.4.0' // Universal Structure Preservation with Complete Visual Similarity
       },
       {
         capabilities: {
@@ -57,31 +68,58 @@ class RemotionMCPServer {
   private setupVersionOverride() {
     // RESEARCH-BACKED: Aggressive version logging to bypass July 2025 MCP bug
     console.error(`[VERSION-OVERRIDE] =================================`);
-    console.error(`[VERSION-OVERRIDE] MCP SERVER VERSION: 7.0.0`);
+    console.error(`[VERSION-OVERRIDE] MCP SERVER VERSION: 9.4.0`);
     console.error(`[VERSION-OVERRIDE] BYPASSING PROTOCOL FALLBACK BUG`);
     console.error(`[VERSION-OVERRIDE] PREVENTING v6.2.0 CACHE LOADING`);
     console.error(`[VERSION-OVERRIDE] =================================`);
     
     // Enhanced version logging throughout startup
-    console.error(`[MCP-INIT] Server created with version 7.0.0`);
+    console.error(`[MCP-INIT] Server created with version 9.4.0`);
     console.error(`[MCP-INIT] Protocol version: 2024-11-05`);
-    console.error(`[MCP-INIT] This should show as Running Version: 7.0.0`);
+    console.error(`[MCP-INIT] This should show as Running Version: 9.4.0`);
   }
 
   private setupToolHandlers() {
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
-      tools
-    }));
+    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
+      // Use OUR project logs directory, not Claude Desktop's
+      const fs = require('fs-extra');
+      const logsDir = getOurLogsDir();
+      fs.ensureDirSync(logsDir);
+      fs.appendFileSync(path.join(logsDir, 'mcp-tools-list.log'), `TOOLS LISTED: ${new Date().toISOString()}\n`);
+      
+      return {
+        tools
+      };
+    });
 
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      const { name, arguments: args } = request.params;
-      return await handleToolCall(name, args || {});
+      // Use OUR project logs directory, not Claude Desktop's
+      const fs = require('fs-extra');
+      const logsDir = getOurLogsDir();
+      fs.ensureDirSync(logsDir);
+      
+      try {
+        fs.appendFileSync(path.join(logsDir, 'mcp-requests.log'), `REQUEST: ${JSON.stringify(request.params)} - ${new Date().toISOString()}\n`);
+        
+        const { name, arguments: args } = request.params;
+        
+        fs.appendFileSync(path.join(logsDir, 'mcp-requests.log'), `PRE-HANDLE: ${name} - ${new Date().toISOString()}\n`);
+        
+        const result = await handleToolCall(name, args || {});
+        
+        fs.appendFileSync(path.join(logsDir, 'mcp-requests.log'), `POST-HANDLE: Success - ${new Date().toISOString()}\n`);
+        
+        return result;
+      } catch (error) {
+        fs.appendFileSync(path.join(logsDir, 'mcp-errors.log'), `HANDLER ERROR: ${error instanceof Error ? error.message : 'Unknown'} - ${error instanceof Error ? error.stack : 'No stack'} - ${new Date().toISOString()}\n`);
+        throw error;
+      }
     });
   }
 
   private setupErrorHandling() {
     // RESEARCH-BACKED: Enhanced error logging to track version consistency
-    console.error(`[MCP-ERROR-SETUP] Version 7.0.0 error handling active`);
+    console.error(`[MCP-ERROR-SETUP] Version 9.4.0 error handling active`);
     console.error(`[MCP-ERROR-SETUP] Will prevent fallback to v6.2.0 cache`);
     process.on('SIGINT', async () => {
       await this.server.close();

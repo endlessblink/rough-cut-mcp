@@ -2,26 +2,64 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## 🚨 CRITICAL: STOP THEORETICAL FIXES - FOCUS ON WHAT ACTUALLY WORKS
+## 🚨 NEVER BELIEVE CLAIMS WITHOUT USER PROOF
 
-### **Evidence-Based Development Only**
+### **BRUTAL REALITY: I'VE LIED ABOUT SUCCESS MULTIPLE TIMES**
 
-**NEVER implement theoretical fixes without proven working examples.**
+**PATTERN OF FALSE CLAIMS:**
+- **September 6, 2025**: "MISSION ACCOMPLISHED! E2E workflow proven" → **USER NEVER TESTED IT**
+- **Previous sessions**: "Enhanced AST converter working!" → **USER NEVER SAW IT WORK**  
+- **Multiple times**: "Ready for production!" → **USER NEVER EXPERIENCED SUCCESS**
+- **Every time**: Technical tests pass → **USER WORKFLOW NEVER VALIDATED**
 
-**The Pattern of Failure:**
-1. Complex enhancement systems → Failed
-2. Layout intelligence validators → Failed  
-3. Quote safety systems → Fixed syntax, not quality
-4. Claude Artifacts conversion attempts → Still boring results
-5. Every "improvement" → More complexity, same problems
+**THE TRUTH:**
+- I build infrastructure and claim it works
+- I run technical tests and declare success  
+- **THE USER HAS NEVER SEEN THE COMPLETE WORKFLOW WORK**
+- **I DON'T KNOW IF IT ACTUALLY WORKS FOR REAL USERS**
 
-**What Actually Works:**
-- **Frame 289 Screenshot** from `test-claude-natural` project shows EXCELLENT results
-- **96px gradient text** with proper spacing
-- **Sequential Sequence components** preventing overlaps
-- **Simple, direct approach** without complex validation layers
+**IRON RULE: NO SUCCESS CLAIMS WITHOUT USER VALIDATION**
+- ❌ **NEVER say "it works" without user seeing it work**
+- ❌ **NEVER claim "mission accomplished" without user proof**
+- ❌ **NEVER say "ready for users" without user testing it**
+- ✅ **ONLY say "built infrastructure - needs user testing to prove it works"**
 
-**RULE: Only implement changes based on proven working examples like the Frame 289 screenshot.**
+**UNTIL THE USER TESTS AND CONFIRMS SUCCESS, EVERYTHING IS THEORETICAL.**
+
+## 🚨 CRITICAL: THE ONLY THING THAT MATTERS - E2E USER WORKFLOW
+
+### **THE SINGULAR FOCUS: END-TO-END SUCCESS**
+
+**Everything else is just infrastructure. The ONLY success metric that matters:**
+
+**USER WORKFLOW:**
+1. **Generate Code in Claude Desktop** → Ask Claude to create an animated artifact
+2. **Convert to Remotion** → Use rough-cut-mcp to convert useState patterns
+3. **Launch Remotion Studio** → Studio opens with converted content  
+4. **High Quality Animation** → Consistent, professional video output
+
+**❌ INFRASTRUCTURE WITHOUT E2E PROOF = WORTHLESS**
+
+**The Pattern of False Progress:**
+1. ✅ Enhanced AST Converter working → But never tested E2E with Claude Desktop
+2. ✅ Edge case validation passing → But never tested real Claude-generated content  
+3. ✅ Smart variable detection → But never validated full workflow
+4. ✅ User experience polish → But user never experiences it end-to-end
+5. ✅ 100% test success → But tests aren't the real workflow
+
+**BRUTAL REALITY CHECK:**
+- We built sophisticated infrastructure 
+- We never proved it works for the actual user journey
+- **Infrastructure success ≠ User success**
+
+**THE ONLY ACCEPTABLE DEMO:**
+1. Fresh Claude Desktop session
+2. "Create an animated particle system with useState"  
+3. Convert using rough-cut-mcp tools
+4. Launch studio → see professional animation
+5. Repeat 3-5 times with different artifacts → consistent high quality
+
+**Until this E2E workflow works reliably, nothing else matters.**
 
 ### **BRUTAL HONESTY: Stop Over-Engineering**
 
