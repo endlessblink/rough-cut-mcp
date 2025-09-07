@@ -285,10 +285,14 @@ export class ShowcaseAST {
   }
   
   private addInlineStyleAttribute(path: any, styles: Record<string, string>) {
-    // Add comprehensive inline styles for professional video rendering
-    const styleProperties = Object.entries(styles).map(([key, value]) =>
-      t.objectProperty(t.identifier(key), t.stringLiteral(value))
-    );
+    // Add comprehensive inline styles with proper camelCase conversion
+    const styleProperties = Object.entries(styles).map(([key, value]) => {
+      // CRITICAL: Apply camelCase conversion to fix CSS property syntax
+      const camelCaseKey = this.toCamelCase(key);
+      const safeValue = this.sanitizePropertyValue(value);
+      
+      return t.objectProperty(t.identifier(camelCaseKey), t.stringLiteral(safeValue));
+    });
     
     const existingStyleAttr = path.node.openingElement.attributes?.find((attr: any) =>
       t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'style'
@@ -311,6 +315,16 @@ export class ShowcaseAST {
     }
     
     console.error(`[${this.name}] Added comprehensive inline styles: ${Object.keys(styles).join(', ')}`);
+  }
+
+  private toCamelCase(str: string): string {
+    // Convert CSS property names to valid JavaScript identifiers
+    return str.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
+  }
+
+  private sanitizePropertyValue(value: string): string {
+    // Escape special characters in CSS values
+    return value.replace(/['"`\\]/g, '\\$&');
   }
   
   private getRemainingClasses(originalClasses: string, convertedStyles: Record<string, string>): string {
