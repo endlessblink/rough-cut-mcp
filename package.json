@@ -1,6 +1,6 @@
 {
   "name": "rough-cut-mcp",
-  "version": "9.6.0",
+  "version": "10.0.0",
   "description": "Cross-platform MCP server for Remotion video creation with AI audio generation",
   "main": "build/index.js",
   "preferGlobal": true,

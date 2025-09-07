@@ -663,7 +663,7 @@ Config.setOverwriteOutput(true);`;
     return {
       content: [{
         type: 'text',
-        text: `🎯 **Professional Icon Quality v9.6.0 - SUCCESS!**
+        text: `🎯 **Multi-Pipeline Architecture v10.0.0 - SUCCESS!**
 
 ✅ **"${name}" Artifact → Remotion Video Conversion Complete**
 
@@ -694,7 +694,7 @@ Config.setOverwriteOutput(true);`;
     return {
       content: [{
         type: 'text',
-        text: `❌ **Professional Icon Quality v9.6.0 - CONVERSION FAILED**
+        text: `❌ **Multi-Pipeline Architecture v10.0.0 - CONVERSION FAILED**
 
 **Error**: ${error instanceof Error ? error.message : 'Unknown error'}
 
@@ -828,7 +828,7 @@ async function getMCPInfo() {
         type: 'text',
         text: `🛠️ **Rough Cut MCP Server Info**
 
-**Version**: ${statusInfo.version?.current || '9.6.0'} - Professional Icon Quality + Fixed Dependency Timing
+**Version**: ${statusInfo.version?.current || '10.0.0'} - Multi-Pipeline AST Architecture with Specialized Transformers
 **Conversion Method**: AST-Based (Babel parser for syntax safety)
 **Build Time**: ${buildTime}
 **Available Tools**: 4
