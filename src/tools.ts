@@ -663,7 +663,7 @@ Config.setOverwriteOutput(true);`;
     return {
       content: [{
         type: 'text',
-        text: `🎯 **Comprehensive Visual System v10.2.0 - SUCCESS!**
+        text: `🎯 **CSS Syntax Fix v10.2.1 - SUCCESS!**
 
 ✅ **"${name}" Artifact → Remotion Video Conversion Complete**
 
@@ -694,7 +694,7 @@ Config.setOverwriteOutput(true);`;
     return {
       content: [{
         type: 'text',
-        text: `❌ **Comprehensive Visual System v10.2.0 - CONVERSION FAILED**
+        text: `❌ **CSS Syntax Fix v10.2.1 - CONVERSION FAILED**
 
 **Error**: ${error instanceof Error ? error.message : 'Unknown error'}
 
@@ -828,7 +828,7 @@ async function getMCPInfo() {
         type: 'text',
         text: `🛠️ **Rough Cut MCP Server Info**
 
-**Version**: ${statusInfo.version?.current || '10.2.0'} - Comprehensive Visual System with Professional Quality
+**Version**: ${statusInfo.version?.current || '10.2.1'} - CSS Syntax Fix + Comprehensive Visual System
 **Conversion Method**: AST-Based (Babel parser for syntax safety)
 **Build Time**: ${buildTime}
 **Available Tools**: 4
