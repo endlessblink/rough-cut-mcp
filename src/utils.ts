@@ -1819,7 +1819,7 @@ All suggestions are optional - create whatever you envision!
  */
 export async function getMCPStatusInfo(): Promise<any> {
   try {
-    const currentVersion = '9.5.1'; // Enhanced Classification + Auto-Dependencies (Fixed Content Preservation)
+    const currentVersion = '9.6.0'; // Professional Icon Quality - Fixed Dependency Timing for Visual Excellence
     const serverDir = __dirname.endsWith('build') ? path.dirname(__dirname) : __dirname;
     
     // Read current package.json
@@ -1835,11 +1835,11 @@ export async function getMCPStatusInfo(): Promise<any> {
     }
     
     // Check npm registry version (SAFE - no crash risk)
-    let npmRegistryVersion = '9.5.1'; // Known published version
+    let npmRegistryVersion = '9.6.0'; // Known published version
     let npmCheckStatus = 'cached'; // Skip npm call to prevent crashes
     
     console.error('[MCP-STATUS] Skipping npm registry check to prevent crashes');
-    console.error('[MCP-STATUS] Using cached registry version: 9.5.1');
+    console.error('[MCP-STATUS] Using cached registry version: 9.6.0');
     
     // Installation path detection
     const installationPaths = {

@@ -571,9 +571,6 @@ async function convertArtifactToVideo(name: string, artifactJsx: string) {
     // Use converted JSX
     await fs.writeFile(path.join(projectPath, 'src', 'VideoComposition.tsx'), remotionJsx);
     
-    // Automatically add missing dependencies based on preserved imports
-    await addMissingDependencies(projectPath, remotionJsx, name);
-    
     // Create Root.tsx
     const rootContent = `import React from 'react';
 import { Composition } from 'remotion';
@@ -628,6 +625,9 @@ registerRoot(RemotionRoot);`;
     
     await fs.writeFile(path.join(projectPath, 'package.json'), JSON.stringify(packageJson, null, 2));
     
+    // CRITICAL FIX: Add missing dependencies AFTER package.json creation (not before!)
+    await addMissingDependencies(projectPath, remotionJsx, name);
+    
     // Create tsconfig and config files
     const tsConfig = {
       "compilerOptions": {
@@ -663,7 +663,7 @@ Config.setOverwriteOutput(true);`;
     return {
       content: [{
         type: 'text',
-        text: `🎯 **Enhanced Classification v9.5.1 - SUCCESS!**
+        text: `🎯 **Professional Icon Quality v9.6.0 - SUCCESS!**
 
 ✅ **"${name}" Artifact → Remotion Video Conversion Complete**
 
@@ -694,7 +694,7 @@ Config.setOverwriteOutput(true);`;
     return {
       content: [{
         type: 'text',
-        text: `❌ **Enhanced Classification v9.5.1 - CONVERSION FAILED**
+        text: `❌ **Professional Icon Quality v9.6.0 - CONVERSION FAILED**
 
 **Error**: ${error instanceof Error ? error.message : 'Unknown error'}
 
@@ -716,24 +716,54 @@ Config.setOverwriteOutput(true);`;
   }
 }
 
-// Automatically add missing dependencies to project based on preserved imports
+// Automatically add missing dependencies to project based on preserved imports (WITH COMPREHENSIVE DEBUGGING)
 async function addMissingDependencies(projectPath: string, remotionJsx: string, projectName: string): Promise<void> {
   try {
     const packageJsonPath = path.join(projectPath, 'package.json');
+    const logsDir = getOurLogsDir();
+    
+    // COMPREHENSIVE DEBUGGING: Track every step
+    console.error(`[DEBUG-DEPS] Starting dependency addition for: ${projectName}`);
+    console.error(`[DEBUG-DEPS] Project path: ${projectPath}`);
+    console.error(`[DEBUG-DEPS] Package.json path: ${packageJsonPath}`);
+    
+    // Pre-verification checks
+    const exists = await fs.pathExists(packageJsonPath);
+    console.error(`[DEBUG-DEPS] Package.json exists: ${exists}`);
+    
+    if (!exists) {
+      console.error(`[ERROR-DEPS] Package.json does not exist at: ${packageJsonPath}`);
+      return;
+    }
+    
+    // File system diagnostics  
+    try {
+      const stats = await fs.stat(packageJsonPath);
+      console.error(`[DEBUG-DEPS] File size: ${stats.size} bytes`);
+      console.error(`[DEBUG-DEPS] File permissions: ${stats.mode.toString(8)}`);
+      console.error(`[DEBUG-DEPS] Last modified: ${stats.mtime}`);
+    } catch (statError) {
+      console.error(`[ERROR-DEPS] Cannot stat file: ${statError instanceof Error ? statError.message : 'unknown'}`);
+    }
+    
+    // Read current package.json content
     const packageJson = await fs.readJson(packageJsonPath);
+    console.error(`[DEBUG-DEPS] Current dependencies: ${JSON.stringify(Object.keys(packageJson.dependencies || {}))}`);
     
     let dependenciesAdded = false;
-    const logsDir = getOurLogsDir();
     
     // Check for lucide-react imports
     if (remotionJsx.includes("from 'lucide-react'") || remotionJsx.includes('from "lucide-react"')) {
       console.error(`[DEPENDENCY] Adding lucide-react for ${projectName}`);
+      packageJson.dependencies = packageJson.dependencies || {};
       packageJson.dependencies['lucide-react'] = '^0.400.0';
       dependenciesAdded = true;
+      
+      console.error(`[DEBUG-DEPS] Modified dependencies object: ${JSON.stringify(Object.keys(packageJson.dependencies))}`);
       fs.appendFileSync(path.join(logsDir, 'npm-install.log'), `DEPENDENCY-AUTO-ADD: lucide-react for preserved imports in ${projectName}\n`);
     }
     
-    // Check for other common imports that might be missing
+    // Check for other common imports
     if (remotionJsx.includes("from 'framer-motion'")) {
       console.error(`[DEPENDENCY] Adding framer-motion for ${projectName}`);
       packageJson.dependencies['framer-motion'] = '^11.0.0';
@@ -746,17 +776,44 @@ async function addMissingDependencies(projectPath: string, remotionJsx: string, 
       dependenciesAdded = true;
     }
     
-    // Update package.json if dependencies were added
+    // Critical: Update package.json with comprehensive verification
     if (dependenciesAdded) {
-      await fs.writeJson(packageJsonPath, packageJson, { spaces: 2 });
-      console.error(`[DEPENDENCY] Updated package.json for ${projectName} with missing dependencies`);
-      fs.appendFileSync(path.join(logsDir, 'npm-install.log'), `DEPENDENCY-UPDATE: package.json updated for ${projectName}\n`);
+      console.error(`[DEBUG-DEPS] About to write package.json with ${Object.keys(packageJson.dependencies).length} dependencies`);
+      
+      // Add delay to prevent WSL2 race conditions
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Write with explicit options for WSL2 compatibility
+      await fs.writeJson(packageJsonPath, packageJson, { 
+        spaces: 2
+      });
+      
+      // Force filesystem sync (critical for WSL2)
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // CRITICAL: Immediate verification read
+      const verification = await fs.readJson(packageJsonPath);
+      console.error(`[DEBUG-DEPS] Verification read dependencies: ${JSON.stringify(Object.keys(verification.dependencies || {}))}`);
+      
+      if (verification.dependencies && verification.dependencies['lucide-react']) {
+        console.error(`[SUCCESS-DEPS] lucide-react VERIFIED in package.json for ${projectName}`);
+        fs.appendFileSync(path.join(logsDir, 'npm-install.log'), `DEPENDENCY-VERIFIED: lucide-react confirmed in package.json for ${projectName}\n`);
+      } else {
+        console.error(`[FAILURE-DEPS] lucide-react NOT FOUND in verification read for ${projectName}`);
+        console.error(`[FAILURE-DEPS] This indicates WSL2 filesystem issue or race condition`);
+        fs.appendFileSync(path.join(logsDir, 'npm-install.log'), `DEPENDENCY-FAILURE: lucide-react write failed verification for ${projectName}\n`);
+        throw new Error(`Dependency write verification failed - lucide-react not found after writeJson`);
+      }
+      
     } else {
-      console.error(`[DEPENDENCY] No missing dependencies detected for ${projectName}`);
+      console.error(`[DEBUG-DEPS] No missing dependencies detected for ${projectName}`);
     }
     
   } catch (error) {
-    console.error(`[DEPENDENCY] Failed to add missing dependencies for ${projectName}:`, error instanceof Error ? error.message : 'unknown');
+    console.error(`[ERROR-DEPS] Failed to add missing dependencies for ${projectName}:`, error instanceof Error ? error.message : 'unknown');
+    console.error(`[ERROR-DEPS] Stack trace:`, error instanceof Error ? error.stack : 'no stack');
+    fs.appendFileSync(path.join(getOurLogsDir(), 'npm-install.log'), `DEPENDENCY-ERROR: ${error instanceof Error ? error.message : 'unknown'} for ${projectName}\n`);
+    throw error; // Re-throw to prevent silent failure
   }
 }
 
@@ -771,7 +828,7 @@ async function getMCPInfo() {
         type: 'text',
         text: `🛠️ **Rough Cut MCP Server Info**
 
-**Version**: ${statusInfo.version?.current || '9.5.1'} - Enhanced Classification + Auto-Dependencies
+**Version**: ${statusInfo.version?.current || '9.6.0'} - Professional Icon Quality + Fixed Dependency Timing
 **Conversion Method**: AST-Based (Babel parser for syntax safety)
 **Build Time**: ${buildTime}
 **Available Tools**: 4

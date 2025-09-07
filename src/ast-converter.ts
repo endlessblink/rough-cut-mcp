@@ -703,8 +703,9 @@ export async function convertArtifactToRemotionAST(artifactJsx: string): Promise
         }
       },
 
-      // Transform root JSX elements to use AbsoluteFill for proper Remotion layout
+      // Transform JSX elements: AbsoluteFill conversion and interactivity removal
       JSXElement(path) {
+        // Transform root divs to AbsoluteFill for proper Remotion layout
         if (t.isJSXIdentifier(path.node.openingElement.name) && 
             path.node.openingElement.name.name === 'div') {
           
@@ -787,6 +788,7 @@ export async function convertArtifactToRemotionAST(artifactJsx: string): Promise
           }
         }
       },
+
 
       // Remove arrow functions assigned to handler variables
       VariableDeclarator(path) {
@@ -910,6 +912,12 @@ function addRemotionImports(path: any) {
       if (source === 'remotion') {
         hasRemotionImports = true;
         logAST('Found existing Remotion import');
+      }
+      
+      // PRESERVE external dependencies (will be managed by improved dependency system)
+      if (source === 'lucide-react' || source === 'react-icons' || source === 'framer-motion') {
+        logAST(`Preserving external import for dependency management: ${source}`);
+        // Keep import - dependency management will handle package.json
       }
       
       // CLEAN UP React imports (remove useState, useEffect)
