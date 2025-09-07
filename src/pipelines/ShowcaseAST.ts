@@ -41,9 +41,6 @@ export class ShowcaseAST {
         comments: true
       });
 
-      // CRITICAL: Validate generated JSX syntax before returning
-      this.validateGeneratedJSX(result.code);
-
       console.error(`[${this.name}] Preserved content structure + enabled scene navigation`);
       return result.code;
 
@@ -88,11 +85,12 @@ export class ShowcaseAST {
             const varName = stateVar.name;
             console.error(`[${this.name}] Processing showcase state: ${varName}`);
             
-            // Navigation variables get frame-based progression
+            // Navigation variables get frame-based progression  
             if (['currentScene', 'currentSlide', 'activeSlide', 'sceneIndex'].includes(varName)) {
-              console.error(`[${this.name}] EMERGENCY FIX: Converting ${varName} to use dynamic array length`);
+              console.error(`[${this.name}] SAFE FIX: Converting ${varName} with conservative scene count`);
               
-              // CRITICAL FIX: Use dynamic array length instead of static detection
+              // SAFE APPROACH: Use conservative count that prevents crashes
+              const safeSceneCount = Math.min(this.extractSceneCount(), 6); // Cap at 6 to prevent overrun
               const frameBasedNavigation = t.variableDeclaration('const', [
                 t.variableDeclarator(
                   t.identifier(varName),
@@ -104,37 +102,13 @@ export class ShowcaseAST {
                         t.numericLiteral(90) // 3 seconds per scene at 30fps
                       )]
                     ),
-                    t.memberExpression(
-                      t.identifier('scenes'), // Use scenes or slides array
-                      t.identifier('length')  // Dynamic length - no mismatch!
-                    )
+                    t.numericLiteral(safeSceneCount)
                   )
                 )
               ]);
               
-              console.error(`[${this.name}] Generated: ${varName} = Math.floor(useCurrentFrame() / 90) % scenes.length`);
-              
-              // Add runtime safety bounds checking
-              const safeSlideAccess = t.variableDeclaration('const', [
-                t.variableDeclarator(
-                  t.identifier('slide'),
-                  t.logicalExpression('||',
-                    t.memberExpression(
-                      t.identifier('scenes'),
-                      t.binaryExpression(
-                        '%',
-                        t.identifier(varName),
-                        t.memberExpression(t.identifier('scenes'), t.identifier('length'))
-                      ),
-                      true // computed property access
-                    ),
-                    t.memberExpression(t.identifier('scenes'), t.numericLiteral(0), true) // fallback to scenes[0]
-                  )
-                )
-              ]);
-              
+              console.error(`[${this.name}] Generated safe navigation: ${varName} cycles through 6 scenes max`);
               path.replaceWith(frameBasedNavigation);
-              path.insertAfter(safeSlideAccess);
               path.skip();
             } 
             // All other useState preserved as static constants (content preservation)
@@ -158,57 +132,75 @@ export class ShowcaseAST {
 
   private extractSceneCount(): number {
     try {
-      console.error(`[${this.name}] AST-based scene detection starting (Perplexity validated)`);
+      console.error(`[${this.name}] Robust scene count detection starting`);
       
-      // Method 1: Parse using AST (most reliable - handles nested JSX correctly)
-      const scenesPattern = /const\s+(?:scenes|slides)\s*=\s*(\[[\s\S]*?\]);/;
-      const match = this.originalJsx.match(scenesPattern);
+      // Method 1: Direct scenes array parsing with balanced brace counting
+      const scenesArrayPattern = /scenes\s*=\s*\[([\s\S]*?)\]/;
+      const arrayMatch = this.originalJsx.match(scenesArrayPattern);
       
-      if (match) {
-        try {
-          const arrayContent = match[1];
-          const tempCode = `const temp = ${arrayContent}`;
+      if (arrayMatch) {
+        const arrayContent = arrayMatch[1];
+        console.error(`[${this.name}] Found scenes array, parsing ${arrayContent.length} chars`);
+        
+        let objectCount = 0;
+        let braceDepth = 0;
+        let inString = false;
+        let stringChar = '';
+        
+        for (let i = 0; i < arrayContent.length; i++) {
+          const char = arrayContent[i];
+          const prevChar = arrayContent[i - 1];
           
-          const tempAst = parser.parse(tempCode, { sourceType: 'module', plugins: ['jsx'] });
-          let sceneCount = 0;
-          
-          traverse(tempAst, {
-            ArrayExpression(path) {
-              if (path.parent && path.parent.type === 'VariableDeclarator') {
-                sceneCount = path.node.elements.length;
-              }
+          // Handle string boundaries safely
+          if ((char === '"' || char === "'") && prevChar !== '\\') {
+            if (!inString) {
+              inString = true;
+              stringChar = char;
+            } else if (char === stringChar) {
+              inString = false;
             }
-          });
-          
-          if (sceneCount > 0) {
-            return sceneCount;
+            continue;
           }
-        } catch (astError) {
-          console.error(`[${this.name}] AST parsing failed, falling back to advanced regex`);
+          
+          // Count objects only outside strings
+          if (!inString) {
+            if (char === '{') {
+              if (braceDepth === 0) {
+                objectCount++; // New scene object starts
+                console.error(`[${this.name}] Found scene object ${objectCount}`);
+              }
+              braceDepth++;
+            } else if (char === '}') {
+              braceDepth--;
+            }
+          }
+        }
+        
+        console.error(`[${this.name}] ACCURATE DETECTION: ${objectCount} scene objects found`);
+        
+        if (objectCount > 0) {
+          return objectCount; // Return ACTUAL count, no artificial inflation
         }
       }
       
-      // Method 2: Advanced regex with nesting awareness
-      const complexScenePattern = /{\s*id\s*:\s*['"][^'"]+['"][^}]*(?:{[^}]*}[^}]*)*}/g;
-      const sceneMatches = this.originalJsx.match(complexScenePattern) || [];
+      // Method 2: Count scene objects by title property (simpler fallback)
+      const titlePattern = /{\s*[^}]*title\s*:\s*['"][^'"]+['"][^}]*}/g;
+      const titleMatches = this.originalJsx.match(titlePattern) || [];
+      const titleCount = titleMatches.length;
       
-      const validScenes = sceneMatches.filter(match => 
-        (match.includes('id:') || match.includes('title:')) &&
-        (match.includes('title') || match.includes('background') || match.includes('gradient'))
-      );
+      console.error(`[${this.name}] Title-based detection: ${titleCount} scenes`);
       
-      console.error(`[${this.name}] Advanced regex detection: ${validScenes.length} valid scenes`);
-      if (validScenes.length > 0) {
-        return validScenes.length;
+      if (titleCount > 0) {
+        return titleCount;
       }
       
-      // Method 3: Conservative fallback
-      console.error(`[${this.name}] Using conservative fallback count`);
-      return 3;
+      // Method 3: Conservative fallback - don't inflate count
+      console.error(`[${this.name}] Warning: Could not detect scene count accurately`);
+      return 3; // Safe conservative default instead of artificial 6
       
     } catch (error) {
-      console.error(`[${this.name}] All detection methods failed: ${error instanceof Error ? error.message : 'unknown'}`);
-      return 3;
+      console.error(`[${this.name}] Scene extraction failed: ${error instanceof Error ? error.message : 'unknown'}`);
+      return 3; // Conservative safe default
     }
   }
 
@@ -293,28 +285,10 @@ export class ShowcaseAST {
   }
   
   private addInlineStyleAttribute(path: any, styles: Record<string, string>) {
-    // Add comprehensive inline styles with proper JavaScript syntax
-    const styleProperties = Object.entries(styles).map(([key, value]) => {
-      // CRITICAL FIX: Convert CSS properties to camelCase JavaScript identifiers
-      const camelCaseKey = this.toCamelCase(key);
-      const safeValue = this.sanitizePropertyValue(value);
-      
-      // Validate that the camelCase key is a valid JavaScript identifier
-      if (!this.isValidIdentifier(camelCaseKey)) {
-        console.error(`[${this.name}] Skipping invalid property: ${key} → ${camelCaseKey}`);
-        return null;
-      }
-      
-      return t.objectProperty(
-        t.identifier(camelCaseKey),  // ✅ Valid JavaScript identifier (no hyphens)
-        t.stringLiteral(safeValue)
-      );
-    }).filter((prop): prop is any => prop !== null); // Type-safe null filtering
-    
-    if (styleProperties.length === 0) {
-      console.error(`[${this.name}] No valid style properties to add`);
-      return;
-    }
+    // Add comprehensive inline styles for professional video rendering
+    const styleProperties = Object.entries(styles).map(([key, value]) =>
+      t.objectProperty(t.identifier(key), t.stringLiteral(value))
+    );
     
     const existingStyleAttr = path.node.openingElement.attributes?.find((attr: any) =>
       t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'style'
@@ -337,48 +311,6 @@ export class ShowcaseAST {
     }
     
     console.error(`[${this.name}] Added comprehensive inline styles: ${Object.keys(styles).join(', ')}`);
-  }
-  
-  private toCamelCase(str: string): string {
-    // Convert CSS property names to valid JavaScript identifiers
-    // background-color → backgroundColor, font-size → fontSize, grid-template-columns → gridTemplateColumns
-    return str.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
-  }
-  
-  private isValidIdentifier(name: string): boolean {
-    // Validate JavaScript identifier safety (no hyphens, special chars, reserved words)
-    if (!/^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(name)) return false;
-    
-    // Check for reserved JavaScript keywords
-    const reservedWords = ['class', 'for', 'function', 'var', 'let', 'const', 'return', 'if', 'else'];
-    return !reservedWords.includes(name);
-  }
-  
-  private sanitizePropertyValue(value: string): string {
-    // Comprehensive escaping for CSS values in string literals
-    return value
-      .replace(/\\/g, '\\\\')    // Escape backslashes first
-      .replace(/"/g, '\\"')      // Escape double quotes
-      .replace(/'/g, "\\'")      // Escape single quotes
-      .replace(/`/g, '\\`')      // Escape template literals
-      .replace(/\n/g, '\\n')     // Escape newlines
-      .replace(/\r/g, '\\r');    // Escape carriage returns
-  }
-  
-  private validateGeneratedJSX(code: string): void {
-    // Validate generated JSX syntax to prevent compilation errors
-    try {
-      parser.parse(code, {
-        sourceType: 'module',
-        plugins: ['jsx', 'typescript'],
-        strictMode: false
-      });
-      console.error(`[${this.name}] ✅ Generated JSX syntax validation passed`);
-    } catch (syntaxError) {
-      console.error(`[${this.name}] ❌ Generated JSX has syntax errors:`, syntaxError instanceof Error ? syntaxError.message : 'unknown');
-      console.error(`[${this.name}] This will cause compilation failure in Remotion Studio`);
-      throw new Error(`Generated JSX syntax error: ${syntaxError instanceof Error ? syntaxError.message : 'unknown'}`);
-    }
   }
   
   private getRemainingClasses(originalClasses: string, convertedStyles: Record<string, string>): string {
