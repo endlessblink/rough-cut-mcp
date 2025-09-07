@@ -663,7 +663,7 @@ Config.setOverwriteOutput(true);`;
     return {
       content: [{
         type: 'text',
-        text: `🎯 **Multi-Pipeline Architecture v10.0.0 - SUCCESS!**
+        text: `🎯 **Runtime Safety Fixes v10.1.0 - SUCCESS!**
 
 ✅ **"${name}" Artifact → Remotion Video Conversion Complete**
 
@@ -694,7 +694,7 @@ Config.setOverwriteOutput(true);`;
     return {
       content: [{
         type: 'text',
-        text: `❌ **Multi-Pipeline Architecture v10.0.0 - CONVERSION FAILED**
+        text: `❌ **Runtime Safety Fixes v10.1.0 - CONVERSION FAILED**
 
 **Error**: ${error instanceof Error ? error.message : 'Unknown error'}
 
@@ -828,7 +828,7 @@ async function getMCPInfo() {
         type: 'text',
         text: `🛠️ **Rough Cut MCP Server Info**
 
-**Version**: ${statusInfo.version?.current || '10.0.0'} - Multi-Pipeline AST Architecture with Specialized Transformers
+**Version**: ${statusInfo.version?.current || '10.1.0'} - Runtime Safety + Dynamic Gradient Preservation
 **Conversion Method**: AST-Based (Babel parser for syntax safety)
 **Build Time**: ${buildTime}
 **Available Tools**: 4

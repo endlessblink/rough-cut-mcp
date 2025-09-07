@@ -42,14 +42,14 @@ class RemotionMCPServer {
   constructor() {
     // Research-backed diagnostic logging
     console.error(`[DEBUG] Node.js Version: ${process.version}`);
-    console.error(`[DEBUG] MCP Server Version: 10.0.0`);
+    console.error(`[DEBUG] MCP Server Version: 10.1.0`);
     console.error(`[DEBUG] Working Directory: ${process.cwd()}`);
     console.error(`[DEBUG] Script Path: ${__filename}`);
     
     this.server = new Server(
       {
         name: 'rough-cut-mcp',
-        version: '10.0.0' // Multi-Pipeline AST Architecture - Specialized Systems for Quality Results
+        version: '10.1.0' // Runtime Safety Fixes - Accurate Scene Detection & Dynamic Gradient Preservation
       },
       {
         capabilities: {
@@ -68,15 +68,15 @@ class RemotionMCPServer {
   private setupVersionOverride() {
     // RESEARCH-BACKED: Aggressive version logging to bypass July 2025 MCP bug
     console.error(`[VERSION-OVERRIDE] =================================`);
-    console.error(`[VERSION-OVERRIDE] MCP SERVER VERSION: 10.0.0`);
+    console.error(`[VERSION-OVERRIDE] MCP SERVER VERSION: 10.1.0`);
     console.error(`[VERSION-OVERRIDE] BYPASSING PROTOCOL FALLBACK BUG`);
     console.error(`[VERSION-OVERRIDE] PREVENTING v6.2.0 CACHE LOADING`);
     console.error(`[VERSION-OVERRIDE] =================================`);
     
     // Enhanced version logging throughout startup
-    console.error(`[MCP-INIT] Server created with version 10.0.0`);
+    console.error(`[MCP-INIT] Server created with version 10.1.0`);
     console.error(`[MCP-INIT] Protocol version: 2024-11-05`);
-    console.error(`[MCP-INIT] This should show as Running Version: 10.0.0`);
+    console.error(`[MCP-INIT] This should show as Running Version: 10.1.0`);
   }
 
   private setupToolHandlers() {
@@ -119,7 +119,7 @@ class RemotionMCPServer {
 
   private setupErrorHandling() {
     // RESEARCH-BACKED: Enhanced error logging to track version consistency
-    console.error(`[MCP-ERROR-SETUP] Version 10.0.0 error handling active`);
+    console.error(`[MCP-ERROR-SETUP] Version 10.1.0 error handling active`);
     console.error(`[MCP-ERROR-SETUP] Will prevent fallback to v6.2.0 cache`);
     process.on('SIGINT', async () => {
       await this.server.close();

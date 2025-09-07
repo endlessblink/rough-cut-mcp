@@ -28,7 +28,7 @@ export class ShowcaseAST {
         Program: (path) => this.addRemotionImports(path),
         VariableDeclaration: (path) => this.handleShowcaseStates(path),
         CallExpression: (path) => this.removeInteractiveCallbacks(path),
-        JSXElement: (path) => this.preserveContentStructure(path),
+        JSXElement: (path) => this.enhanceVisualRendering(path),
         JSXAttribute: (path) => this.removeInteractivity(path)
       });
 
@@ -127,38 +127,75 @@ export class ShowcaseAST {
 
   private extractSceneCount(): number {
     try {
-      console.error(`[${this.name}] Extracting scene count from showcase content`);
+      console.error(`[${this.name}] Robust scene count detection starting`);
       
-      // Look for scenes array patterns
-      const sceneArrayPatterns = [
-        /scenes\s*=\s*\[\s*([\s\S]*?)\s*\]/,
-        /const\s+scenes\s*=\s*\[\s*([\s\S]*?)\s*\]/
-      ];
+      // Method 1: Direct scenes array parsing with balanced brace counting
+      const scenesArrayPattern = /scenes\s*=\s*\[([\s\S]*?)\]/;
+      const arrayMatch = this.originalJsx.match(scenesArrayPattern);
       
-      for (const pattern of sceneArrayPatterns) {
-        const match = this.originalJsx.match(pattern);
-        if (match) {
-          const sceneContent = match[1];
-          const sceneObjects = sceneContent.match(/{[^{}]*id\s*:/g) || [];
-          const sceneCount = sceneObjects.length;
+      if (arrayMatch) {
+        const arrayContent = arrayMatch[1];
+        console.error(`[${this.name}] Found scenes array, parsing ${arrayContent.length} chars`);
+        
+        let objectCount = 0;
+        let braceDepth = 0;
+        let inString = false;
+        let stringChar = '';
+        
+        for (let i = 0; i < arrayContent.length; i++) {
+          const char = arrayContent[i];
+          const prevChar = arrayContent[i - 1];
           
-          console.error(`[${this.name}] Detected ${sceneCount} scenes in showcase`);
-          if (sceneCount > 0) {
-            return Math.max(sceneCount, 3);
+          // Handle string boundaries safely
+          if ((char === '"' || char === "'") && prevChar !== '\\') {
+            if (!inString) {
+              inString = true;
+              stringChar = char;
+            } else if (char === stringChar) {
+              inString = false;
+            }
+            continue;
           }
+          
+          // Count objects only outside strings
+          if (!inString) {
+            if (char === '{') {
+              if (braceDepth === 0) {
+                objectCount++; // New scene object starts
+                console.error(`[${this.name}] Found scene object ${objectCount}`);
+              }
+              braceDepth++;
+            } else if (char === '}') {
+              braceDepth--;
+            }
+          }
+        }
+        
+        console.error(`[${this.name}] ACCURATE DETECTION: ${objectCount} scene objects found`);
+        
+        if (objectCount > 0) {
+          return objectCount; // Return ACTUAL count, no artificial inflation
         }
       }
       
-      // Fallback: count scene definitions
-      const sceneIdMatches = this.originalJsx.match(/id:\s*['"][^'"]+['"]/g) || [];
-      const fallbackCount = Math.max(sceneIdMatches.length, 5);
+      // Method 2: Count scene objects by title property (simpler fallback)
+      const titlePattern = /{\s*[^}]*title\s*:\s*['"][^'"]+['"][^}]*}/g;
+      const titleMatches = this.originalJsx.match(titlePattern) || [];
+      const titleCount = titleMatches.length;
       
-      console.error(`[${this.name}] Fallback scene count: ${fallbackCount}`);
-      return fallbackCount;
+      console.error(`[${this.name}] Title-based detection: ${titleCount} scenes`);
+      
+      if (titleCount > 0) {
+        return titleCount;
+      }
+      
+      // Method 3: Conservative fallback - don't inflate count
+      console.error(`[${this.name}] Warning: Could not detect scene count accurately`);
+      return 3; // Safe conservative default instead of artificial 6
       
     } catch (error) {
-      console.error(`[${this.name}] Scene count extraction failed, defaulting to 5`);
-      return 5;
+      console.error(`[${this.name}] Scene extraction failed: ${error instanceof Error ? error.message : 'unknown'}`);
+      return 3; // Conservative safe default
     }
   }
 
@@ -183,8 +220,164 @@ export class ShowcaseAST {
     }
   }
 
+  private enhanceVisualRendering(path: any) {
+    // Comprehensive visual rendering fixes for showcase artifacts with null safety
+    if (!path || !path.node) {
+      console.error(`[${this.name}] Skipping null path in visual rendering`);
+      return;
+    }
+    
+    if (t.isJSXElement(path.node)) {
+      try {
+        this.removeStyleJSXBlocks(path);
+        this.convertBackgroundGradients(path);
+        this.enhanceIconRendering(path);
+        this.preserveContentStructure(path);
+      } catch (error) {
+        console.error(`[${this.name}] Visual rendering error: ${error instanceof Error ? error.message : 'unknown'}`);
+        console.error(`[${this.name}] Error in element: ${path.node.openingElement?.name?.name || 'unknown'}`);
+      }
+    }
+  }
+
+  private removeStyleJSXBlocks(path: any) {
+    // Remove <style jsx> blocks that cause Remotion compatibility issues  
+    if (!path?.node?.openingElement?.name) return;
+    
+    if (t.isJSXIdentifier(path.node.openingElement.name) &&
+        path.node.openingElement.name.name === 'style') {
+      
+      const jsxAttr = path.node.openingElement.attributes?.find((attr: any) =>
+        t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'jsx'
+      );
+      
+      if (jsxAttr) {
+        console.error(`[${this.name}] Removing style jsx block for Remotion compatibility`);
+        path.remove();
+        return;
+      }
+    }
+  }
+
+  private convertBackgroundGradients(path: any) {
+    // PRESERVE dynamic scene-based gradients, only convert static ones
+    if (!path?.node?.openingElement?.name) return;
+    
+    if (t.isJSXIdentifier(path.node.openingElement.name) &&
+        path.node.openingElement.name.name === 'div') {
+      
+      const classNameAttr = path.node.openingElement.attributes?.find((attr: any) =>
+        t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'className'
+      );
+      
+      if (classNameAttr) {
+        // Check if className is template literal (dynamic scene-based)
+        if (t.isJSXExpressionContainer(classNameAttr.value)) {
+          console.error(`[${this.name}] Preserving dynamic scene-based className expression`);
+          return; // Keep dynamic scene styling intact
+        }
+        
+        if (t.isStringLiteral(classNameAttr.value)) {
+          const classes = classNameAttr.value.value;
+          
+          // DON'T convert if it references scene state
+          if (classes.includes('${scenes[currentScene]') || 
+              classes.includes('${currentSceneData.color}') ||
+              classes.includes('scenes[')) {
+            console.error(`[${this.name}] Preserving dynamic scene gradient reference: ${classes}`);
+            return; // Keep original template literal for scene-specific colors
+          }
+          
+          // Only convert static gradient classes (no scene references)
+          if (classes.includes('bg-gradient-to-br') && !classes.includes('${')) {
+            console.error(`[${this.name}] Converting static gradient: ${classes}`);
+            
+            // Map only common static gradients, preserve scene-specific ones
+            const staticGradientMap: { [key: string]: string } = {
+              'from-gray-900 to-black': 'linear-gradient(135deg, #111827 0%, #000000 100%)',
+              'from-black to-gray-900': 'linear-gradient(135deg, #000000 0%, #111827 100%)'
+            };
+            
+            // Only convert if explicitly static pattern
+            for (const [pattern, css] of Object.entries(staticGradientMap)) {
+              if (classes.includes(pattern)) {
+                this.addExplicitGradientStyle(path, css);
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  private addExplicitGradientStyle(path: any, gradientCSS: string) {
+    // Add explicit gradient as style property for Remotion visibility
+    const existingStyleAttr = path.node.openingElement.attributes?.find((attr: any) =>
+      t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'style'
+    );
+    
+    if (existingStyleAttr && t.isJSXExpressionContainer(existingStyleAttr.value)) {
+      // Add to existing style object
+      if (t.isObjectExpression(existingStyleAttr.value.expression)) {
+        existingStyleAttr.value.expression.properties.unshift(
+          t.objectProperty(t.identifier('background'), t.stringLiteral(gradientCSS))
+        );
+      }
+    } else {
+      // Create new style attribute
+      const styleAttr = t.jsxAttribute(
+        t.jsxIdentifier('style'),
+        t.jsxExpressionContainer(
+          t.objectExpression([
+            t.objectProperty(t.identifier('background'), t.stringLiteral(gradientCSS)),
+            t.objectProperty(t.identifier('minHeight'), t.stringLiteral('100vh')),
+            t.objectProperty(t.identifier('position'), t.stringLiteral('relative'))
+          ])
+        )
+      );
+      
+      path.node.openingElement.attributes = path.node.openingElement.attributes || [];
+      path.node.openingElement.attributes.push(styleAttr);
+    }
+  }
+
+  private enhanceIconRendering(path: any) {
+    // Enhance lucide-react icon rendering for Remotion visibility
+    if (!path?.node?.openingElement?.name) return;
+    
+    if (t.isJSXIdentifier(path.node.openingElement.name)) {
+      const iconName = path.node.openingElement.name.name;
+      const lucideIcons = ['Github', 'Brain', 'Star', 'Monitor', 'Bot', 'Terminal', 'FileText', 'Search', 'Download', 'Settings', 'Code', 'Cpu', 'GitBranch', 'CheckCircle', 'Zap', 'Play'];
+      
+      if (lucideIcons.includes(iconName)) {
+        console.error(`[${this.name}] Enhancing icon rendering for: ${iconName}`);
+        
+        // Add explicit props for better Remotion visibility
+        const enhancedProps = [
+          t.jsxAttribute(t.jsxIdentifier('strokeWidth'), t.stringLiteral('2')),
+          t.jsxAttribute(t.jsxIdentifier('color'), t.stringLiteral('currentColor'))
+        ];
+        
+        // Only add size if not already present
+        const hasSizeProp = path.node.openingElement.attributes?.some((attr: any) =>
+          t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'size'
+        );
+        
+        if (!hasSizeProp) {
+          enhancedProps.push(t.jsxAttribute(t.jsxIdentifier('size'), t.stringLiteral('24')));
+        }
+        
+        path.node.openingElement.attributes = path.node.openingElement.attributes || [];
+        path.node.openingElement.attributes.push(...enhancedProps);
+      }
+    }
+  }
+
   private preserveContentStructure(path: any) {
     // Convert root divs to AbsoluteFill for proper Remotion showcase layout
+    if (!path?.node?.openingElement?.name) return;
+    
     if (t.isJSXIdentifier(path.node.openingElement.name) && 
         path.node.openingElement.name.name === 'div') {
       
