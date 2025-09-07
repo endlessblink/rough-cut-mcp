@@ -1819,7 +1819,7 @@ All suggestions are optional - create whatever you envision!
  */
 export async function getMCPStatusInfo(): Promise<any> {
   try {
-    const currentVersion = '10.2.1'; // CSS Syntax Fix - CamelCase Property Conversion + Comprehensive Visual System
+    const currentVersion = '11.0.0'; // Simple Remotion-Native Approach - Working Videos Over Complex CSS
     const serverDir = __dirname.endsWith('build') ? path.dirname(__dirname) : __dirname;
     
     // Read current package.json
@@ -1835,11 +1835,11 @@ export async function getMCPStatusInfo(): Promise<any> {
     }
     
     // Check npm registry version (SAFE - no crash risk)
-    let npmRegistryVersion = '10.2.1'; // Known published version
+    let npmRegistryVersion = '11.0.0'; // Known published version
     let npmCheckStatus = 'cached'; // Skip npm call to prevent crashes
     
     console.error('[MCP-STATUS] Skipping npm registry check to prevent crashes');
-    console.error('[MCP-STATUS] Using cached registry version: 10.2.1');
+    console.error('[MCP-STATUS] Using cached registry version: 11.0.0');
     
     // Installation path detection
     const installationPaths = {

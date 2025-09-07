@@ -1,6 +1,7 @@
 // ASTRouter - Intelligent routing between specialized AST pipelines  
 import { AnimationAST } from './AnimationAST.js';
 import { ShowcaseAST } from './ShowcaseAST.js';
+import { SimpleShowcaseAST } from './SimpleShowcaseAST.js';
 
 interface PipelineInterface {
   name: string;
@@ -20,14 +21,14 @@ export class ASTRouter {
       const pipelineType = this.classifyArtifact(jsx);
       console.error(`[ROUTER] Selected ${pipelineType} pipeline for ${projectName}`);
       
-      // Simple pipeline selection without complex Map typing
+      // Simple pipeline selection - use SIMPLE approach for showcases
       let pipeline: PipelineInterface;
       if (pipelineType === 'animation') {
         pipeline = new AnimationAST();
       } else if (pipelineType === 'showcase') {
-        pipeline = new ShowcaseAST();
+        pipeline = new SimpleShowcaseAST(); // Use SIMPLE approach that works
       } else {
-        pipeline = new ShowcaseAST(); // Default to content preservation
+        pipeline = new SimpleShowcaseAST(); // Default to simple working approach
       }
       
       const result = await pipeline.transform(jsx);

@@ -663,7 +663,7 @@ Config.setOverwriteOutput(true);`;
     return {
       content: [{
         type: 'text',
-        text: `🎯 **CSS Syntax Fix v10.2.1 - SUCCESS!**
+        text: `🎯 **Simple Remotion-Native v11.0.0 - SUCCESS!**
 
 ✅ **"${name}" Artifact → Remotion Video Conversion Complete**
 
@@ -694,7 +694,7 @@ Config.setOverwriteOutput(true);`;
     return {
       content: [{
         type: 'text',
-        text: `❌ **CSS Syntax Fix v10.2.1 - CONVERSION FAILED**
+        text: `❌ **Simple Remotion-Native v11.0.0 - CONVERSION FAILED**
 
 **Error**: ${error instanceof Error ? error.message : 'Unknown error'}
 
@@ -828,7 +828,7 @@ async function getMCPInfo() {
         type: 'text',
         text: `🛠️ **Rough Cut MCP Server Info**
 
-**Version**: ${statusInfo.version?.current || '10.2.1'} - CSS Syntax Fix + Comprehensive Visual System
+**Version**: ${statusInfo.version?.current || '11.0.0'} - Simple Remotion-Native Approach
 **Conversion Method**: AST-Based (Babel parser for syntax safety)
 **Build Time**: ${buildTime}
 **Available Tools**: 4
