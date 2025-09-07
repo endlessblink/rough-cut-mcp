@@ -24,7 +24,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - ❌ **NEVER say "ready for users" without user testing it**
 - ✅ **ONLY say "built infrastructure - needs user testing to prove it works"**
 
-**UNTIL THE USER TESTS AND CONFIRMS SUCCESS, EVERYTHING IS THEORETICAL.**
+**IRON RULE: VALIDATE EVERY FIX WITH PERPLEXITY QUERY BEFORE IMPLEMENTATION**
+- ❌ **NEVER implement fixes without research validation**
+- ❌ **NEVER assume solutions will work without expert review**
+- ❌ **NEVER deploy changes without theoretical verification**
+- ✅ **ALWAYS create detailed Perplexity query to validate approach before coding**
+- ✅ **ALWAYS get expert confirmation that approach is sound before implementation**
+- ✅ **ALWAYS research edge cases and potential issues before deploying**
+
+**UNTIL EXPERT RESEARCH VALIDATES THE APPROACH, DON'T IMPLEMENT.**
 
 ## 🚨 CRITICAL: THE ONLY THING THAT MATTERS - E2E USER WORKFLOW
 

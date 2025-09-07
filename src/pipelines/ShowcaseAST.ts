@@ -3,13 +3,16 @@ import * as parser from '@babel/parser';
 import traverse from '@babel/traverse';
 import generate from '@babel/generator';
 import * as t from '@babel/types';
+import { TailwindConverter } from './TailwindConverter.js';
 
 export class ShowcaseAST {
   public name = 'ShowcaseAST';
   private originalJsx = '';
+  private tailwindConverter: TailwindConverter;
   
   constructor() {
-    console.error(`[${this.name}] Initializing showcase pipeline for content preservation + navigation`);
+    console.error(`[${this.name}] Initializing showcase pipeline with comprehensive visual system`);
+    this.tailwindConverter = new TailwindConverter();
   }
 
   async transform(jsx: string): Promise<string> {
@@ -221,7 +224,7 @@ export class ShowcaseAST {
   }
 
   private enhanceVisualRendering(path: any) {
-    // Comprehensive visual rendering fixes for showcase artifacts with null safety
+    // Comprehensive visual system transformation for professional video quality
     if (!path || !path.node) {
       console.error(`[${this.name}] Skipping null path in visual rendering`);
       return;
@@ -229,14 +232,118 @@ export class ShowcaseAST {
     
     if (t.isJSXElement(path.node)) {
       try {
-        this.removeStyleJSXBlocks(path);
-        this.convertBackgroundGradients(path);
+        // Phase 1: Comprehensive CSS conversion (typography, layout, effects)
+        this.convertTailwindToInlineStyles(path);
+        
+        // Phase 2: Handle dynamic styling (gradients, scene-based)
+        this.preserveDynamicStyling(path);
+        
+        // Phase 3: Professional enhancements 
         this.enhanceIconRendering(path);
+        
+        // Phase 4: Video compatibility fixes
+        this.removeStyleJSXBlocks(path);
         this.preserveContentStructure(path);
+        
       } catch (error) {
         console.error(`[${this.name}] Visual rendering error: ${error instanceof Error ? error.message : 'unknown'}`);
         console.error(`[${this.name}] Error in element: ${path.node.openingElement?.name?.name || 'unknown'}`);
       }
+    }
+  }
+  
+  private convertTailwindToInlineStyles(path: any) {
+    // Comprehensive Tailwind-to-Remotion conversion for professional video quality
+    const classNameAttr = path.node.openingElement.attributes?.find((attr: any) =>
+      t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'className'
+    );
+    
+    if (classNameAttr && t.isStringLiteral(classNameAttr.value)) {
+      const classes = classNameAttr.value.value;
+      console.error(`[${this.name}] Converting Tailwind classes: ${classes}`);
+      
+      // Use comprehensive converter for all CSS aspects
+      const inlineStyles = this.tailwindConverter.convertClassesToInlineStyles(classes);
+      
+      if (Object.keys(inlineStyles).length > 0) {
+        console.error(`[${this.name}] Generated ${Object.keys(inlineStyles).length} inline style properties`);
+        
+        // Add comprehensive inline styles
+        this.addInlineStyleAttribute(path, inlineStyles);
+        
+        // Keep className for any unconverted classes, remove fully converted ones
+        const remainingClasses = this.getRemainingClasses(classes, inlineStyles);
+        if (remainingClasses) {
+          classNameAttr.value = t.stringLiteral(remainingClasses);
+        } else {
+          this.removeClassNameAttribute(path);
+        }
+      }
+    }
+  }
+  
+  private addInlineStyleAttribute(path: any, styles: Record<string, string>) {
+    // Add comprehensive inline styles for professional video rendering
+    const styleProperties = Object.entries(styles).map(([key, value]) =>
+      t.objectProperty(t.identifier(key), t.stringLiteral(value))
+    );
+    
+    const existingStyleAttr = path.node.openingElement.attributes?.find((attr: any) =>
+      t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'style'
+    );
+    
+    if (existingStyleAttr && t.isJSXExpressionContainer(existingStyleAttr.value)) {
+      // Merge with existing styles
+      if (t.isObjectExpression(existingStyleAttr.value.expression)) {
+        existingStyleAttr.value.expression.properties.push(...styleProperties);
+      }
+    } else {
+      // Create new comprehensive style attribute
+      const styleAttr = t.jsxAttribute(
+        t.jsxIdentifier('style'),
+        t.jsxExpressionContainer(t.objectExpression(styleProperties))
+      );
+      
+      path.node.openingElement.attributes = path.node.openingElement.attributes || [];
+      path.node.openingElement.attributes.push(styleAttr);
+    }
+    
+    console.error(`[${this.name}] Added comprehensive inline styles: ${Object.keys(styles).join(', ')}`);
+  }
+  
+  private getRemainingClasses(originalClasses: string, convertedStyles: Record<string, string>): string {
+    // Keep classes that weren't fully converted (like dynamic template literals)
+    const classArray = originalClasses.split(/\s+/);
+    const convertedClassTypes = ['text-', 'font-', 'bg-', 'p-', 'm-', 'gap-', 'grid', 'flex', 'items-', 'justify-', 'rounded', 'shadow', 'opacity-', 'transform'];
+    
+    const remainingClasses = classArray.filter(cls => {
+      // Keep dynamic classes and unconverted special classes
+      if (cls.includes('${') || cls.includes('animate-') || cls.includes('transition-')) {
+        return true;
+      }
+      
+      // Remove if converted to inline styles
+      return !convertedClassTypes.some(type => cls.startsWith(type));
+    });
+    
+    return remainingClasses.join(' ').trim();
+  }
+  
+  private removeClassNameAttribute(path: any) {
+    path.node.openingElement.attributes = path.node.openingElement.attributes?.filter((attr: any) =>
+      !(t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'className')
+    ) || [];
+  }
+  
+  private preserveDynamicStyling(path: any) {
+    // Preserve template literals and scene-based dynamic styling (renamed from convertBackgroundGradients)
+    const classNameAttr = path.node.openingElement.attributes?.find((attr: any) =>
+      t.isJSXAttribute(attr) && t.isJSXIdentifier(attr.name) && attr.name.name === 'className'
+    );
+    
+    if (classNameAttr && t.isJSXExpressionContainer(classNameAttr.value)) {
+      console.error(`[${this.name}] Preserving dynamic scene-based className expression`);
+      // Keep dynamic template literals intact for scene-specific styling
     }
   }
 
