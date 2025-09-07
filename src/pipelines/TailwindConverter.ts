@@ -56,7 +56,92 @@ export class TailwindConverter {
     }
     
     console.error(`[${this.name}] Applied ${conversionsApplied} conversions from ${classArray.length} classes`);
-    return styles;
+    
+    // Apply video-specific optimizations
+    const optimizedStyles = this.enhanceForVideo(styles);
+    console.error(`[${this.name}] Applied video optimizations to ${Object.keys(optimizedStyles).length} properties`);
+    
+    return optimizedStyles;
+  }
+
+  private enhanceForVideo(styles: Record<string, string>): Record<string, string> {
+    const enhanced: Record<string, string> = {};
+    
+    for (const [key, value] of Object.entries(styles)) {
+      switch (key) {
+        case 'fontSize':
+          // Enhance font sizes for video visibility (10% larger)
+          const sizeMatch = value.match(/(\d+)px/);
+          if (sizeMatch) {
+            const originalSize = parseInt(sizeMatch[1]);
+            const enhancedSize = Math.round(originalSize * 1.1);
+            enhanced[key] = `${enhancedSize}px`;
+          } else {
+            enhanced[key] = value;
+          }
+          break;
+          
+        case 'fontWeight':
+          // Enhance font weights for better video contrast
+          const weightMap: Record<string, string> = {
+            '100': '200', '200': '300', '300': '400', '400': '500',
+            '500': '600', '600': '700', '700': '800', '800': '900', '900': '900'
+          };
+          enhanced[key] = weightMap[value] || value;
+          break;
+          
+        case 'color':
+          // Enhance text contrast for video visibility
+          enhanced[key] = this.enhanceTextContrast(value);
+          break;
+          
+        case 'boxShadow':
+          // Enhance shadows for video visibility
+          enhanced[key] = this.enhanceShadowForVideo(value);
+          break;
+          
+        case 'backgroundColor':
+          // Enhance background opacity for video cards
+          if (value.includes('rgba')) {
+            enhanced[key] = this.enhanceBackgroundOpacity(value);
+          } else {
+            enhanced[key] = value;
+          }
+          break;
+          
+        default:
+          enhanced[key] = value;
+      }
+    }
+    
+    return enhanced;
+  }
+
+  private enhanceTextContrast(color: string): string {
+    // Enhance text colors for better video visibility
+    const contrastMap: Record<string, string> = {
+      '#d1d5db': '#e5e7eb', // gray-300 → gray-200 (lighter)
+      '#9ca3af': '#d1d5db', // gray-400 → gray-300 (lighter)
+      '#6b7280': '#9ca3af'  // gray-500 → gray-400 (lighter)
+    };
+    return contrastMap[color] || color;
+  }
+
+  private enhanceShadowForVideo(shadow: string): string {
+    // Increase shadow opacity and blur for video visibility
+    return shadow.replace(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/g, 
+      (match, r, g, b, a) => `rgba(${r}, ${g}, ${b}, ${Math.min(parseFloat(a) * 1.5, 1)})`
+    );
+  }
+
+  private enhanceBackgroundOpacity(bgColor: string): string {
+    // Enhance card background opacity for video visibility
+    return bgColor.replace(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/g,
+      (match, r, g, b, a) => {
+        const enhancedOpacity = Math.min(parseFloat(a) * 1.2, 0.3); // Cap at 0.3 for readability
+        return `rgba(${r}, ${g}, ${b}, ${enhancedOpacity})`;
+      }
+    );
   }
 
   private convertTypography(cls: string): Record<string, string> | null {
